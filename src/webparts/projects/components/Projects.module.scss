@@ -1,0 +1,620 @@
+.wrapper {
+  margin-top: 16px;
+}
+
+/* Filters row (PAGE-3) */
+.filters {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+
+  select {
+    background: #fff;
+    border: 1px solid #eaeaea;
+    border-radius: 8px;
+    font-size: 14px;
+    padding: 9px 12px;
+    color: #4a4d53;
+  }
+}
+
+/* Empty state (PAGE-2) */
+.emptyState {
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.filters {
+  display: flex;
+  gap: 20px;
+  flex-wrap: nowrap;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.selectWrapper {
+  flex: 1;
+  position: relative;
+}
+
+.selectWrapper select {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 13px;
+  color: #4a4d53;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.selectArrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+@media (max-width: 1024px) {
+  .filters {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .selectWrapper {
+    flex: 1 1 calc(50% - 12px); // 2 per row
+    min-width: 200px;
+  }
+}
+
+@media (max-width: 640px) {
+  .filters {
+    flex-direction: column; // stack vertically
+    gap: 10px;
+  }
+
+  .selectWrapper {
+    flex: 1 1 100%;
+  }
+
+  .selectWrapper select {
+    font-size: 14px;
+    padding: 9px 12px; // better tap area
+  }
+
+  .selectArrow {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.pagination button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-size: 13px;
+  color: #4a4d53;
+}
+
+
+.columnPopupOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ================= POPUP CARD ================= */
+.columnPopup {
+  background: #fff;
+  width: 420px;
+  max-width: 85vw;
+  height: 600px;
+  /* 🔥 FIXED HEIGHT */
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+
+  display: flex;
+  flex-direction: column;
+  /* 🔥 REQUIRED */
+  padding: 20px;
+}
+
+/* 🔥 ONLY THIS SCROLLS */
+.columnList {
+  flex: 1;
+  /* fills remaining height */
+  overflow-y: auto;
+  /* scrollbar */
+  margin: 10px 0;
+  padding-right: 6px;
+}
+
+/* Footer always visible */
+.popupActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+
+/* ================= HEADER ================= */
+.columnPopup h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.columnPopup p {
+  margin: 4px 0 12px;
+  color: #666;
+  font-size: 13px;
+}
+
+/* ================= SCROLLABLE CONTENT ================= */
+
+
+/* ================= COLUMN ROW ================= */
+.columnRow,
+.columnItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  font-size: 14px;
+}
+
+.columnRow span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ================= REORDER BUTTONS ================= */
+.reorderBtns {
+  display: flex;
+  flex-direction: column;
+}
+
+.reorderBtns button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px;
+}
+
+.reorderBtns button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ================= FOOTER ================= */
+.popupActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.popupActions button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.popupActions button:first-child {
+  background: #2563eb;
+  color: white;
+}
+
+.popupActions button:last-child {
+  background: #2563eb;
+}
+
+.columnRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+}
+
+/* Wrapper for label + drag */
+.columnContent {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  /* 🔥 takes full row width */
+}
+
+/* Text */
+.columnLabel {
+  /* 🔥 pushes drag handle right */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Drag icon */
+.dragHandle {
+  margin-left: auto;
+  /* 🔥 extreme right */
+  cursor: grab;
+  color: #9ca3af;
+  font-size: 16px;
+  padding-left: 12px;
+  width: 17px;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+/* Hover feedback */
+.columnRow[draggable="true"]:hover {
+  background: #eef2ff;
+}
+
+@media (max-width: 768px) {
+  .columnRow {
+    touch-action: none;
+    /* 🔥 allow dragging */
+  }
+
+  .dragHandle {
+    cursor: grab;
+    padding: 10px;
+    /* 🔥 bigger touch target */
+  }
+}
+
+.columnRow {
+  touch-action: none;
+  /* REQUIRED for pointer drag */
+  user-select: none;
+}
+
+.dragHandle {
+  cursor: grab;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+@media (max-width: 768px) {
+  .columnRow {
+    touch-action: none;
+    /* 🔥 REQUIRED */
+  }
+
+  .dragHandle {
+    padding: 12px;
+    /* bigger touch target */
+  }
+}
+
+
+.projectLink {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ================= PROJECT POPUP ================= */
+
+.projectPopupOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+
+.projectPopup h3 {
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* ================= GROUPS ================= */
+
+.group {
+  margin-bottom: 18px;
+}
+
+.groupTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #4f46e5;
+  margin-bottom: 10px;
+}
+
+/* ================= GRID ================= */
+
+.groupGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 16px;
+}
+
+.fieldRow {
+  display: flex;
+  flex-direction: column;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.fieldValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  margin-top: 4px;
+}
+
+/* ================= ACTIONS ================= */
+
+.popupActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.popupActions button {
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.projectDetails p {
+  font-size: 14px;
+  margin: 6px 0;
+}
+
+.projectPopup {
+  background: #fff;
+  border-radius: 12px;
+  width: 800px;
+  max-height: 85vh;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  max-width: 95%;
+  overflow: hidden; // 🔥 IMPORTANT
+}
+
+
+.projectDocument {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sectionCard {
+  border: 1px solid #e6e8eb;
+  border-radius: 10px;
+  padding: 16px 18px;
+  background: #fafbfc;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 6px;
+}
+
+.sectionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 32px;
+  row-gap: 14px;
+}
+
+.fieldRow {
+  display: flex;
+  flex-direction: column;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.fieldValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.projectHeader {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e6e6e6;
+  background: #fff;
+
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.projectHeader h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.projectBody {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1; // 🔥 allows scrolling
+}
+
+.columnPopupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.columnSearch {
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  gap: 10px;
+
+  input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    &::placeholder {
+      color: #9ca3af;
+    }
+
+  }
+}
+
+.iconcss {
+  display: flex;
+  align-items: center;
+  width: 50px;
+  text-align: center;
+  margin: 0 auto;
+  height: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  justify-content: center;
+  background: white;
+}
+
+/* ================= FORM STYLES ================= */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  padding: 4px;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 280px;
+}
+
+.formLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 2px;
+}
+
+.required {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.formInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1f2937;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  outline: none;
+
+  &:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+}
+
+.formInputMulti {
+  @extend .formInput;
+  min-height: 100px;
+  padding: 8px;
+}
+
+.formError {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}

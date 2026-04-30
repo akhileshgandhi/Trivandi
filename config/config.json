@@ -1,0 +1,108 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "trivandi-project-team-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/trivandiProjectTeam/TrivandiProjectTeamWebPart.js",
+          "manifest": "./src/webparts/trivandiProjectTeam/TrivandiProjectTeamWebPart.manifest.json"
+        }
+      ]
+    },
+    "projects-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/projects/ProjectsWebPart.js",
+          "manifest": "./src/webparts/projects/ProjectsWebPart.manifest.json"
+        }
+      ]
+    },
+    "dashboard-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/dashboard/DashboardWebPart.js",
+          "manifest": "./src/webparts/dashboard/DashboardWebPart.manifest.json"
+        }
+      ]
+    },
+    "bids-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/bids/BidsWebPart.js",
+          "manifest": "./src/webparts/bids/BidsWebPart.manifest.json"
+        }
+      ]
+    },
+    "templates-resources-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/templatesResources/TemplatesResourcesWebPart.js",
+          "manifest": "./src/webparts/templatesResources/TemplatesResourcesWebPart.manifest.json"
+        }
+      ]
+    },
+    "requests-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/requests/RequestsWebPart.js",
+          "manifest": "./src/webparts/requests/RequestsWebPart.manifest.json"
+        }
+      ]
+    },
+    "project-details-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/projectDetails/ProjectDetailsWebPart.js",
+          "manifest": "./src/webparts/projectDetails/ProjectDetailsWebPart.manifest.json"
+        }
+      ]
+    },
+    "my-work-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/myWork/MyWorkWebPart.js",
+          "manifest": "./src/webparts/myWork/MyWorkWebPart.manifest.json"
+        }
+      ]
+    },
+    "private-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/private/PrivateWebPart.js",
+          "manifest": "./src/webparts/private/PrivateWebPart.manifest.json"
+        }
+      ]
+    },
+    "external-user-access-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/externalUserAccess/ExternalUserAccessWebPart.js",
+          "manifest": "./src/webparts/externalUserAccess/ExternalUserAccessWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {
+    "jquery": {
+      "path": "node_modules/jquery/dist/jquery.min.js",
+      "globalName": "jQuery"
+    },
+    "bootstrap": {
+      "path": "node_modules/bootstrap/dist/js/bootstrap.min.js",
+      "globalName": "bootstrap"
+    }
+  },
+  "localizedResources": {
+    "TrivandiProjectTeamWebPartStrings": "lib/webparts/trivandiProjectTeam/loc/{locale}.js",
+    "ProjectsWebPartStrings": "lib/webparts/projects/loc/{locale}.js",
+    "BidsWebPartStrings": "lib/webparts/bids/loc/{locale}.js",
+    "DashboardWebPartStrings": "lib/webparts/dashboard/loc/{locale}.js",
+    "TemplatesResourcesWebPartStrings": "lib/webparts/templatesResources/loc/{locale}.js",
+    "RequestsWebPartStrings": "lib/webparts/requests/loc/{locale}.js",
+    "ProjectDetailsWebPartStrings": "lib/webparts/projectDetails/loc/{locale}.js",
+    "MyWorkWebPartStrings": "lib/webparts/myWork/loc/{locale}.js",
+    "PrivateWebPartStrings": "lib/webparts/private/loc/{locale}.js",
+    "ExternalUserAccessWebPartStrings": "lib/webparts/externalUserAccess/loc/{locale}.js"
+  }
+}

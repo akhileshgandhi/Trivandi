@@ -1,0 +1,32 @@
+.CanvasZoneSectionContainer {
+    max-width: 100% !important;
+}
+
+#CommentsWrapper
+{
+        display: none !important;
+}
+@media screen and (min-width: 1024px) {
+    .CanvasZoneSectionContainer {
+        max-width: 100% !important;
+    }
+}
+
+#spCommandBar {
+    min-height: 0px !important;
+    display: none !important;
+}
+
+#sp-appBar {
+    display: none !important;
+}
+
+.ControlZone {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.CanvasSection {
+    margin: 0 !important;
+    padding: 0 !important;
+}

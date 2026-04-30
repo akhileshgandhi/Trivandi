@@ -1,0 +1,40 @@
+export interface ISharedFilesModuleScss {
+  sharedFiles: string;
+  accentBar: string;
+  sectionTitle: string;
+  toolbar: string;
+  breadcrumbContainer: string;
+  breadcrumb: string;
+  actions: string;
+  shareButton: string;
+  actionButton: string;
+  newButton: string;
+  tableContainer: string;
+  table: string;
+  checkboxColumn: string;
+  nameColumn: string;
+  modifiedColumn: string;
+  byColumn: string;
+  actionColumn: string;
+  row: string;
+  nameCell: string;
+  folderIcon: string;
+  fileIcon: string;
+  folderLink: string;
+  fileLink: string;
+  moreButton: string;
+  selected: string;
+  emptyState: string;
+  emptyIcon: string;
+  emptySubtext: string;
+  selectionInfo: string;
+  loadingContainer: string;
+  errorContainer: string;
+  errorIcon: string;
+  logDialogContent: string;
+  logTableContainer: string;
+  logTable: string;
+}
+
+declare const styles: ISharedFilesModuleScss;
+export default styles;

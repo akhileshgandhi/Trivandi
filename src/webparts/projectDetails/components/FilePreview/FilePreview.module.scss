@@ -1,0 +1,324 @@
+@import '~@fluentui/react/dist/sass/References.scss';
+
+// Modal Shell
+// containerClassName IS the ms-Modal-main div — style it directly
+.modalContainer {
+  width: min(92vw, 1100px) !important;
+  height: min(90vh, 820px) !important;
+  min-width: 480px;
+  min-height: 400px;
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22), 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+
+  // Fluent UI wraps all children in this div — must stretch to fill
+  :global(.ms-Modal-scrollableContent) {
+    flex: 1 1 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+}
+
+// Header
+.header {
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #0511f2 0%, #106ebe 100%);
+  flex-shrink: 0;
+
+  .headerContent {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .fileInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .fileTypeIcon {
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.9);
+    flex-shrink: 0;
+  }
+
+  .fileTextGroup {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .fileName {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 680px;
+  }
+
+  .filePath {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 11px;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 680px;
+  }
+
+  .closeButton {
+    color: rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+
+    i { font-size: 12px; }
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+    }
+  }
+}
+
+// Content Area
+.content {
+  flex: 1 1 0;
+  overflow: hidden;
+  position: relative;
+  background-color: #f3f3f3;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;   // critical — lets flex child shrink below its content size
+}
+
+// Loading
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  gap: 14px;
+  background-color: #f8f8f8;
+  color: $ms-color-neutralSecondary;
+}
+
+// Error
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 48px;
+  text-align: center;
+  background-color: #fef0f0;
+
+  .errorIcon {
+    font-size: 52px;
+    color: #d13438;
+    margin-bottom: 16px;
+  }
+}
+
+// Image Preview
+.imageContainer {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: repeating-conic-gradient(#e0e0e0 0% 25%, #f5f5f5 0% 50%) 0 0 / 20px 20px;
+
+  .previewImage {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+    border-radius: 2px;
+  }
+}
+
+// Read-only notice bar (shown between header and content when canDownload=false)
+.readOnlyBar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 20px;
+  background: #fff4ce;
+  color: #7a5c00;
+  font-size: 12px;
+  font-weight: 500;
+  border-bottom: 1px solid #f0d878;
+
+  i { font-size: 11px; }
+}
+
+// PDF / Office / Text iframes
+.pdfContainer,
+.officeContainer,
+.textContainer {
+  flex: 1 1 0;
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  .previewFrame {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    border: none;
+    background-color: $ms-color-white;
+    display: block;
+  }
+
+  // Covers the Office Online / PDF bottom toolbar for read-only users.
+  // Prevents clicks on the "…" menu button that exposes Download a Copy / Print to PDF.
+  .iframeBlocker {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    z-index: 10;
+    cursor: not-allowed;
+    background: transparent;
+  }
+
+  .officeFallback {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    background-color: $ms-color-neutralLighterAlt;
+
+    .fallbackContent {
+      text-align: center;
+      padding: 40px;
+
+      .fileIcon {
+        font-size: 64px;
+        color: $ms-color-themePrimary;
+        margin-bottom: 16px;
+      }
+
+      .fallbackActions {
+        margin-top: 24px;
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+    }
+  }
+}
+
+// Video
+.videoContainer {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #1a1a1a;
+
+  .previewVideo {
+    max-width: 100%;
+    max-height: 100%;
+  }
+}
+
+// Unsupported / Not Available
+.unsupportedContainer {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+  text-align: center;
+  background: linear-gradient(160deg, #f8f9fa 0%, #eef2f7 100%);
+  gap: 8px;
+
+  .fileIcon {
+    font-size: 72px;
+    color: #0078d4;
+    margin-bottom: 8px;
+    opacity: 0.75;
+  }
+
+  .downloadContainer {
+    margin-top: 28px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+
+    .downloadButton {
+      padding: 10px 22px;
+      border-radius: 6px;
+      font-weight: 600;
+      background-color: #0078d4;
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      &:hover {
+        background-color: #106ebe;
+      }
+    }
+  }
+}
+
+// Footer
+.footer {
+  padding: 10px 20px;
+  border-top: 1px solid #e1e1e1;
+  background-color: #fafafa;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .actionButton {
+    color: #0078d4;
+    border-radius: 6px;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+
+    &:hover {
+      background-color: #e8f0fb;
+      border-color: #c7d9f5;
+      color: #106ebe;
+    }
+  }
+
+  .footerLabel {
+    color: $ms-color-neutralSecondary;
+    font-size: 12px;
+  }
+}

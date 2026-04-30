@@ -1,0 +1,119 @@
+.card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f8f8f9;
+  border: 1px solid #eaeaea;
+}
+
+/* ICONS */
+.icon {
+  width: 20px;
+  height: 20px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #363373cc;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.iconRight {
+  margin-left: auto;
+  background: hsla(0, 0%, 100%, 0.25);
+  border-radius: 12px;
+  flex-shrink: 0;
+  height: 20px;
+  padding: 8px;
+  width: 20px;
+}
+
+.iconNoBg {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.iconNoBg img {
+  width: 40px;
+  height: 40px;
+  display: block;
+}
+
+/* Purple – Templates */
+.fileIcon {
+  background: #363373cc;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+/* Blue – Invoices */
+.invoiceIcon {
+  background: #3b82f6; /* Blue */
+  padding: 10px;
+  border-radius: 12px;
+}
+
+
+/* CONTENT */
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card h5 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: #212121;
+}
+
+.card p {
+  color: #94918c;
+  font-size: 14px;
+  margin: 0;
+}
+
+.card span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #625e56;
+}
+
+.timeIcon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.6;
+}
+
+/* DOCUMENT CARD */
+.cardDocument {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* COLORED CARDS */
+.coloredCard {
+  color: #ffffff;
+}
+
+.coloredCard h5,
+.coloredCard p,
+.coloredCard span {
+  color: #ffffff;
+}
+
+.coloredCard .icon {
+  background: rgba(255, 255, 255, 0.25);
+  filter: brightness(0) invert(1);
+}

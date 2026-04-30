@@ -1,0 +1,311 @@
+@import '~@fluentui/react/dist/sass/References.scss';
+
+.activeGuests {
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+
+    .title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #323130;
+    }
+
+    .badge {
+      background-color: #d4f8e8;
+      color: #107c41;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+
+  .guestsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+
+    .guestCard {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid #edebe9;
+      border-radius: 8px;
+      transition: all 0.2s;
+
+      &:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-color: #d2d0ce;
+      }
+
+      .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: #0078d4;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+
+      &.expiredCard {
+        border-color: #fde7e9;
+        background-color: #fffafa;
+      }
+
+      .expiredAvatar {
+        background-color: #a80000 !important;
+      }
+
+      .guestInfo {
+        flex: 1;
+        min-width: 0;
+
+        .guestNameRow {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 4px;
+
+          .guestName {
+            margin: 0;
+          }
+
+          .expiredBadge {
+            background-color: #fde7e9;
+            color: #a80000;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            flex-shrink: 0;
+          }
+        }
+
+        .expiryInfo {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin: 4px 0 0 0;
+          font-size: 11px;
+          color: #107c41;
+
+          .expiryIcon {
+            font-size: 11px;
+          }
+        }
+
+        .expiryInfoExpired {
+          color: #a80000;
+        }
+
+        .guestName {
+          margin: 0 0 4px 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: #323130;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .guestCompany {
+          margin: 0 0 6px 0;
+          font-size: 12px;
+          color: #605e5c;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .guestRole {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+
+          .role {
+            color: #0078d4;
+            font-weight: 600;
+          }
+
+          .separator {
+            color: #d2d0ce;
+          }
+
+          .lastAccess {
+            color: #605e5c;
+          }
+
+          .fileCount {
+            color: #0078d4;
+            font-weight: 600;
+          }
+        }
+
+        .filesSection {
+          margin-top: 12px;
+          padding-top: 8px;
+          border-top: 1px solid #f3f2f1;
+
+          .filesHeader {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #605e5c;
+            text-transform: uppercase;
+
+            .filesIcon {
+              font-size: 12px;
+            }
+          }
+
+          .filesList {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+
+            .fileItem {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              padding: 4px;
+              border-radius: 4px;
+
+              &:hover {
+                background-color: #f8f9fa;
+              }
+
+              .previewButton {
+                min-width: 24px;
+                width: 24px;
+                height: 24px;
+                border-radius: 4px;
+                color: #0078d4;
+
+                &:hover {
+                  background-color: #e6f2ff;
+                  color: #106ebe;
+                }
+
+                .ms-Button-icon {
+                  font-size: 12px;
+                }
+              }
+
+              .fileName {
+                font-size: 12px;
+                color: #323130;
+                cursor: context-menu;
+                line-height: 1.2;
+                flex: 1;
+
+                &:hover {
+                  text-decoration: underline;
+                }
+              }
+
+              .moreButton {
+                min-width: 24px;
+                width: 24px;
+                height: 24px;
+                border-radius: 4px;
+                color: #605e5c;
+                opacity: 0;
+                transition: opacity 0.2s ease;
+
+                &:hover {
+                  background-color: #f3f2f1;
+                  color: #323130;
+                }
+
+                .ms-Button-icon {
+                  font-size: 12px;
+                }
+              }
+
+              &:hover .moreButton {
+                opacity: 1;
+              }
+            }
+
+            .moreFiles {
+              font-size: 11px;
+              color: #605e5c;
+              font-style: italic;
+              padding-left: 30px;
+            }
+          }
+        }
+      }
+    }
+
+    .emptyState {
+      grid-column: 1 / -1;
+      padding: 48px 24px;
+      text-align: center;
+
+      .emptyIcon {
+        font-size: 48px;
+        color: #d2d0ce;
+        margin-bottom: 16px;
+      }
+
+      p {
+        color: #605e5c;
+        font-size: 14px;
+        margin: 0;
+      }
+    }
+  }
+
+  .footer {
+    display: flex;
+    justify-content: center;
+    padding-top: 16px;
+    border-top: 1px solid #edebe9;
+
+    .manageButton {
+      border: 1px solid #edebe9;
+
+      &:hover {
+        background-color: #f3f2f1;
+      }
+    }
+  }
+
+  .loadingContainer,
+  .errorContainer {
+    padding: 48px 24px;
+    text-align: center;
+
+    .errorIcon {
+      font-size: 32px;
+      color: #a80000;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: #605e5c;
+      margin: 8px 0 0 0;
+    }
+  }
+}

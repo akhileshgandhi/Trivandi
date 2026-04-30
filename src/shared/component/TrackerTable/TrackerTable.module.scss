@@ -1,0 +1,258 @@
+.trackerWrapper {
+  background: #ffffff;
+  border-radius: 12px;
+    overflow: visible;
+//   padding: 16px;
+}
+
+/* ===== TITLE ===== */
+.title {
+    align-items: center;
+    color: #0511F2;
+    display: flex;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    margin-top: 10px;
+}
+
+.title::before {
+  content: "";
+  width: 6px;
+  height: 32px;
+  background: #ec008c;
+  border-radius: 2px;
+  margin-right: 8px;
+}
+
+/* ===== CONTROLS ===== */
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+    overflow: visible;
+}
+.withDivider {
+  border-bottom: 1px solid #C9C9C9;
+}
+
+/* ===== TABS ===== */
+.tabs {
+  display: flex;
+     border: 1px solid #EAEAEA;
+    border-radius: 10px;
+    height: 46px;
+}
+
+.tab {
+  background: #f8f8f9;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #374151;
+}
+
+.tab:hover {
+  background: #e5e7eb;
+}
+
+.activeTab {
+  background: #DFE0F4;
+  color: #212121;
+  font-weight: 500;
+}
+
+.tabCount {
+  margin-left: 6px;
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+/* ===== FILTER ===== */
+.filterBtn {
+      align-items: center;
+    background:white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    height: 46px;
+    justify-content: center;
+    width: 44px;
+    transition: all 0.2s ease;
+    color: #666;
+    
+    &:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+    
+    svg {
+      transition: all 0.2s ease;
+    }
+}
+
+.resetBtn {
+  align-items: center;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  font-weight: 500;
+  height: 46px;
+  justify-content: center;
+  padding: 0 16px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.resetBtn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.filterBtnActive {
+  background: #DFE0F4 !important;
+  border-color: #1976d2 !important;
+  color: #1976d2;
+  
+  svg {
+    color: #1976d2;
+  }
+}
+
+
+.filterIcon {
+  width: 20px;                
+  height: 20px;
+  object-fit: contain;
+}
+
+
+.outerContainer{
+    background: #F8F8F9;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #EAEAEA;
+      overflow: visible;
+      max-width: none;
+}
+
+.filtersRow {
+  margin: 12px 0 16px 0;
+}
+
+@media (max-width: 1024px) {
+  .controls {
+    gap: 12px;
+  }
+}
+@media (max-width: 1024px) {
+  .tabs {
+    flex-wrap: wrap;
+    height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 4px;
+  }
+
+  .tab {
+    flex-shrink: 0;
+    padding: 9px 16px;
+    font-size: 14px;
+  }
+}
+@media (max-width: 640px) {
+  .filterBtn {
+    height: 40px;
+    width: 40px;
+  }
+
+  .filterIcon {
+    width: 18px;
+    height: 18px;
+  }
+}
+@media (max-width: 640px) {
+  .outerContainer {
+    padding: 12px;
+  }
+  
+}
+@media (max-width: 1024px) {
+  .filtersRow {
+    margin: 10px 0 14px 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .filtersRow {
+    margin: 8px 0 12px 0;
+  }
+}
+.pagination {
+  display: flex;
+  justify-content: center;   // 🔥 CENTER
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.pagination button {
+  padding: 6px 14px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  font-weight: 500;
+}
+
+
+.reset{
+      display: flex;
+    gap: 10px;
+}
+
+.createBtn {
+  align-items: center;
+  background: #4f46e5;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  font-weight: 600;
+  height: 46px;
+  justify-content: center;
+  padding: 0 16px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.createBtn:hover {
+  background: #4338ca;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
