@@ -26,8 +26,10 @@ import {
   addProject,
 } from "../../../shared/services/projectService";
 import { Search } from "lucide-react";
+import { usePermissionStore } from "../../../Permission/PermissionStore";
 
 const Projects: React.FC<IProjectsProps> = (props) => {
+  const { canAdd } = usePermissionStore();
   const STORAGE_KEY = "projects_active_tab";
 
   const dragFromIndex = React.useRef<number | null>(null);
@@ -57,19 +59,19 @@ const Projects: React.FC<IProjectsProps> = (props) => {
   /* ===================== CREATE PROJECT MODAL STATE ===================== */
   // Controls whether the modal is visible
   const [showCreateModal, setShowCreateModal] = useState(false);
-  
+
   // Stores all fields from SharePoint (field name, type, choices, required, etc.)
   const [formFields, setFormFields] = useState<any[]>([]);
-  
+
   // Stores user input for each field (e.g., { Title: "Project Name", Status: "Live" })
   const [formValues, setFormValues] = useState<Record<string, any>>({});
-  
+
   // Stores validation errors (e.g., { Title: "Title is required" })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  
+
   // True when saving to show "Saving..." button text
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Toggle for create new project vs use existing URLs
   const [isCreateNew, setIsCreateNew] = useState(true);
 
@@ -186,23 +188,23 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     try {
       const currentTab = tab || activeTab;
       const statusToUse = status || mapTabToStatus(currentTab);
-      
+
       // Add noncmap filter: include only NonCmap items for Non-CMAP tab, exclude them for Live/Closed
       const finalFilters = currentTab === "Non-CMAP"
         ? { ...filters, NonCmap: "1" }
         : { ...filters, NonCmap: "0" };
-      
+
       console.log("Loading projects - Page:", page, "Status:", statusToUse, "Filters:", finalFilters);
-      
+
       const { items, totalCount } = await getProjectsPage(
         statusToUse,
         page,
         PAGE_SIZE,
         finalFilters
       );
-      
-      console.log("Loaded projects - Count:", items.length, "Total:", totalCount, "Page:", page,items, "items:");
-      
+
+      console.log("Loaded projects - Count:", items.length, "Total:", totalCount, "Page:", page, items, "items:");
+
       // No need for client-side filtering - now done on server
       setRows(items);
       setTotalItems(totalCount);
@@ -246,7 +248,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
   const loadTabCounts = async () => {
     const counts: Record<string, number> = {};
     const tabs = ["Live", "Closed", "Non-CMAP"];
-    
+
     try {
       await Promise.all(
         tabs.map(async (tab) => {
@@ -277,7 +279,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     try {
       // Step 1: Get all fields from the Projects list
       const cols = await getProjectColumns();
-      
+
       // Step 2: Remove "Potential", dead and deleted statuses from Status dropdown options
       const excludedStatuses = ['Potential', 'DeletedLead', 'Deleted', 'DeadLead', 'Dead', 'Lead'];
       const processedCols = cols.map((f: any) => {
@@ -312,7 +314,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
           defaults[f.key] = "";
         }
       });
-      
+
       setFormValues(defaults);
       setFormErrors({});
       setIsCreateNew(true); // Reset to default state
@@ -344,25 +346,25 @@ const Projects: React.FC<IProjectsProps> = (props) => {
    */
   const validateForm = () => {
     const errs: Record<string, string> = {};
-    
+
     // Check each field
     formFields.forEach((f: any) => {
       if (f.required) {
         const value = formValues[f.key];
-        
+
         // Check if field is empty
-        const isEmpty = 
-          value === undefined || 
-          value === null || 
-          value === "" || 
+        const isEmpty =
+          value === undefined ||
+          value === null ||
+          value === "" ||
           (Array.isArray(value) && value.length === 0);
-        
+
         if (isEmpty) {
           errs[f.key] = `${f.label} is required`;
         }
       }
     });
-    
+
     setFormErrors(errs);
     return Object.keys(errs).length === 0; // Return true if no errors
   };
@@ -376,14 +378,14 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     if (value === "" || value === null || value === undefined) {
       return undefined;
     }
-    
+
     switch (type) {
       // Convert to number for Number and Currency fields
       case "Number":
       case "Currency":
         const num = Number(value);
         return isNaN(num) ? undefined : num;
-      
+
       // Convert to Date object for DateTime fields
       case "DateTime":
         try {
@@ -392,11 +394,11 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         } catch {
           return undefined;
         }
-      
+
       // Convert to boolean for Boolean fields
       case "Boolean":
         return Boolean(value);
-      
+
       // MultiChoice needs special format: { results: ["choice1", "choice2"] }
       case "MultiChoice":
         if (Array.isArray(value)) {
@@ -407,7 +409,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
           return { results: choices };
         }
         return undefined;
-      
+
       // Default: return as-is or wrap in results array if multiple values allowed
       default:
         if (allowMultiple && Array.isArray(value)) {
@@ -429,12 +431,12 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     if (!validateForm()) {
       return; // Stop if validation fails
     }
-    
+
     setIsSaving(true);
     try {
       // Step 2: Build the data object for SharePoint
       const payload: Record<string, any> = {};
-      
+
       // Convert each form value to the correct format
       formFields.forEach((f: any) => {
         const convertedValue = coerceValue(f.type, f.allowMultiple, formValues[f.key]);
@@ -455,11 +457,11 @@ const Projects: React.FC<IProjectsProps> = (props) => {
 
       // Step 4: Save to SharePoint
       await addProject(payload);
-      
+
       // Close modal and refresh the project list
       setShowCreateModal(false);
       void loadProjects(1, serverFilters);
-      
+
       // Show success toast
       toast.success("Project created successfully!", {
         position: "top-right",
@@ -537,11 +539,11 @@ const Projects: React.FC<IProjectsProps> = (props) => {
   };
 
   /* ===================== ORDERED COLUMNS ===================== */
-  const visibleColumns = activeTab === "Non-CMAP" 
+  const visibleColumns = activeTab === "Non-CMAP"
     ? allColumns.filter(col => col.key === "Title")  // Show only Project Title for Non-CMAP
     : orderedColumnKeys
-        .map((k) => allColumns.find((c) => c.key === k))
-        .filter(Boolean) as TableColumn[];
+      .map((k) => allColumns.find((c) => c.key === k))
+      .filter(Boolean) as TableColumn[];
 
   const PROJECT_SECTION_RULES = [
     {
@@ -688,9 +690,15 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             isFilterActive={showFilters}
             onFilterClick={() => setShowFilters((p) => !p)}
             onSettingsClick={() => setShowColumnPopup(true)}
-            onCreateClick={activeTab === "Non-CMAP" ? openCreateModal : undefined}
+            onCreateClick={(activeTab === "Non-CMAP" && canAdd) ? openCreateModal : undefined}
             showFilterControls={showFilters}
             tabCounts={tabCounts}
+            onRowClick={(row) => {
+              // Same logic as Title click for consistency
+              sessionStorage.setItem('projectDetails_navigation_source', 'projects_page');
+              sessionStorage.setItem(`projectDetails_tab_${row.ID}`, 'Dashboard');
+              window.location.href = `/sites/Projects/SitePages/ProjectDetails.aspx?projectId=${row.ID}`;
+            }}
           />
         )}
 
@@ -725,51 +733,51 @@ const Projects: React.FC<IProjectsProps> = (props) => {
 
             <div className={styles.columnList}>
               {/* Toggle for Create New vs Use Existing */}
-              <div style={{ 
-                marginBottom: '20px', 
-                padding: '15px', 
-                backgroundColor: '#f8f9fa', 
-                border: '1px solid #dee2e6', 
-                borderRadius: '6px' 
+              <div style={{
+                marginBottom: '20px',
+                padding: '15px',
+                backgroundColor: '#f8f9fa',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px'
               }}>
-                <div style={{ 
-                  marginBottom: '12px', 
-                  fontWeight: '600', 
+                <div style={{
+                  marginBottom: '12px',
+                  fontWeight: '600',
                   fontSize: '14px',
-                  color: '#495057' 
+                  color: '#495057'
                 }}>
                   Project Setup:
                 </div>
                 <div style={{ display: 'flex', gap: '25px' }}>
-                  <label style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
                     cursor: 'pointer',
                     fontSize: '13px',
                     fontWeight: '500'
                   }}>
-                    <input 
-                      type="radio" 
-                      name="projectSetup" 
-                      checked={isCreateNew} 
+                    <input
+                      type="radio"
+                      name="projectSetup"
+                      checked={isCreateNew}
                       onChange={() => setIsCreateNew(true)}
                       style={{ marginRight: '4px' }}
                     />
                     Create New Project
                   </label>
-                  <label style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
                     cursor: 'pointer',
                     fontSize: '13px',
                     fontWeight: '500'
                   }}>
-                    <input 
-                      type="radio" 
-                      name="projectSetup" 
-                      checked={!isCreateNew} 
+                    <input
+                      type="radio"
+                      name="projectSetup"
+                      checked={!isCreateNew}
                       onChange={() => setIsCreateNew(false)}
                       style={{ marginRight: '4px' }}
                     />
@@ -777,7 +785,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
                   </label>
                 </div>
               </div>
-              
+
               {/* Render only specified fields for create project form */}
               <div className={styles.formGrid}>
                 {formFields.filter((f: any) => {
@@ -794,7 +802,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
                     <label className={styles.formLabel}>
                       {f.label}{f.required ? <span className={styles.required}> *</span> : ""}
                     </label>
-                    
+
                     {/* Dropdown for single choice fields (e.g., Status, Stage) */}
                     {f.type === "Choice" && Array.isArray(f.choices) ? (
                       <select

@@ -9,6 +9,8 @@ import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IReadonlyTheme } from '@microsoft/sp-component-base';
 
 import * as strings from 'RequestsWebPartStrings';
+import { getSP } from '../../pnpjsConfig';
+import { checkPermissions } from '../../Permission/PermissionService';
 import Requests from './components/Requests';
 import { IRequestsProps } from './components/IRequestsProps';
 
@@ -36,10 +38,16 @@ export default class RequestsWebPart extends BaseClientSideWebPart<IRequestsWebP
     ReactDom.render(element, this.domElement);
   }
 
-  protected onInit(): Promise<void> {
-    return this._getEnvironmentMessage().then(message => {
-      this._environmentMessage = message;
-    });
+  protected async onInit(): Promise<void> {
+    await super.onInit();
+    
+    // ✅ Initialize central SP instance and context
+    getSP(this.context);
+    
+    // ✅ Check permissions
+    await checkPermissions(this.context);
+
+    this._environmentMessage = await this._getEnvironmentMessage();
   }
 
 

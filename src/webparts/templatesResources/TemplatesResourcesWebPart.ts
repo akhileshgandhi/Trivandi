@@ -7,7 +7,9 @@ import {
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IReadonlyTheme } from '@microsoft/sp-component-base';
-import { spfi, SPFI, SPFx } from '@pnp/sp';
+import { getSP } from '../../pnpjsConfig';
+import { checkPermissions } from '../../Permission/PermissionService';
+import { SPFI } from '@pnp/sp';
 
 import * as strings from 'TemplatesResourcesWebPartStrings';
 import TemplatesResources from './components/TemplatesResources';
@@ -42,16 +44,19 @@ BaseClientSideWebPart<ITemplatesResourcesWebPartProps> {
     ReactDom.render(element, this.domElement);
   }
 
-  protected onInit(): Promise<void> {
-    // Initialize PnP SP
-    this._sp = spfi().using(SPFx(this.context));
+  protected async onInit(): Promise<void> {
+    await super.onInit();
+
+    // ✅ Initialize global SP instance and context
+    this._sp = getSP(this.context);
     
     // Initialize the templates resources service
     initTemplatesResourcesService(this._sp);
     
-    return this._getEnvironmentMessage().then(message => {
-      this._environmentMessage = message;
-    });
+    // ✅ Check permissions
+    await checkPermissions(this.context);
+    
+    this._environmentMessage = await this._getEnvironmentMessage();
   }
 
 

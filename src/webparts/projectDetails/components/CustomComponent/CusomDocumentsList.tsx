@@ -8,6 +8,8 @@ import { initLibraryDiscoveryService, getProjectLibraryName, getProjectById } fr
 
 import GlobalLoader from "../../../../shared/component/GlobalLoader";
 import FileUploadModal from "./FileUploadModal/FileUploadModal";
+import { usePermissionStore } from "../../../../Permission/PermissionStore";
+import Pagination from "../../../../shared/component/Pagination/Pagination";
 
 interface DocumentItem {
   Id: number;
@@ -77,6 +79,7 @@ const CusomDocumentsList: React.FC<IDocumentsProps> = ({
   hideNewButton = false,
   onNewClick
 }) => {
+  const { canAdd } = usePermissionStore();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [allDocuments, setAllDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -677,7 +680,7 @@ const CusomDocumentsList: React.FC<IDocumentsProps> = ({
 
 
 
-            {!hideNewButton && (
+            {!hideNewButton && canAdd && (
               <button className={styles.newButton} onClick={handleNewDocument}>
                 <span className={styles.plusIcon}>+</span> New
               </button>
@@ -736,88 +739,15 @@ const CusomDocumentsList: React.FC<IDocumentsProps> = ({
         </div>
 
         {allDocuments.length > 0 && (
-          <div className={styles.paginationContainer}>
-            <div className={styles.paginationInfo}>
-              Showing {startItem} to {endItem} of {pagination.totalItems} documents
-            </div>
-
-            <div className={styles.paginationControls}>
-              <div className={styles.pageSizeSelector}>
-                <label>Show:</label>
-                <select
-                  value={pagination.pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className={styles.pageSizeDropdown}
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
-
-              <div className={styles.pageNavigation}>
-                <button
-                  className={styles.pageButton}
-                  onClick={() => handlePageChange(1)}
-                  disabled={pagination.currentPage === 1}
-                >
-                  ««
-                </button>
-                <button
-                  className={styles.pageButton}
-                  onClick={() => handlePageChange(pagination.currentPage - 1)}
-                  disabled={pagination.currentPage === 1}
-                >
-                  ‹
-                </button>
-
-                <div className={styles.pageNumbers}>
-                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                    .filter((page) => {
-                      return (
-                        page === 1 ||
-                        page === pagination.totalPages ||
-                        Math.abs(page - pagination.currentPage) <= 1
-                      );
-                    })
-                    .map((page, index, array) => {
-                      const showEllipsisBefore =
-                        index > 0 && page - array[index - 1] > 1;
-                      return (
-                        <React.Fragment key={page}>
-                          {showEllipsisBefore && (
-                            <span className={styles.ellipsis}>...</span>
-                          )}
-                          <button
-                            className={`${styles.pageButton} ${pagination.currentPage === page ? styles.active : ""
-                              }`}
-                            onClick={() => handlePageChange(page)}
-                          >
-                            {page}
-                          </button>
-                        </React.Fragment>
-                      );
-                    })}
-                </div>
-
-                <button
-                  className={styles.pageButton}
-                  onClick={() => handlePageChange(pagination.currentPage + 1)}
-                  disabled={pagination.currentPage === pagination.totalPages}
-                >
-                  ›
-                </button>
-                <button
-                  className={styles.pageButton}
-                  onClick={() => handlePageChange(pagination.totalPages)}
-                  disabled={pagination.currentPage === pagination.totalPages}
-                >
-                  »»
-                </button>
-              </div>
-            </div>
-          </div>
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            pageSize={pagination.pageSize}
+            totalItems={pagination.totalItems}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            label="documents"
+          />
         )}
       </div>
 

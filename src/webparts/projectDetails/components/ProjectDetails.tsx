@@ -31,6 +31,7 @@ import { ProjectExternalPortalService } from "../services/ProjectExternalPortalS
 import { PrimaryButton } from "@fluentui/react/lib/Button";
 import { Icon } from "@fluentui/react/lib/Icon";
 import portalStyles from "./ProjectExternalPortal.module.scss";
+import { usePermissionStore } from "../../../Permission/PermissionStore";
 
 type ProjectItem = {
   Id?: number;
@@ -104,6 +105,7 @@ const formatDate = (value?: string): string => {
 const STEPS = ["Initial Discussions", "Preparing Proposal", "Proposal Submitted", "Commitment"];
 
 const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
+  const { canAdd, canEdit } = usePermissionStore();
   const [project, setProject] = useState<ProjectItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -554,7 +556,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
         </div>
         <div className={styles.addmemberButtonholder}>
           {/* Dashboard Tab: Show only Add Member button */}
-          {activeTab === "Dashboard" && (
+          {activeTab === "Dashboard" && canAdd && (
             <button
               className={styles.newButton}
               onClick={() => setIsAddMemberModalOpen(true)}
@@ -885,23 +887,23 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
                          restrictionCheckLoading ? 'Checking permissions...' : ''}
                          color="#fff"
                 /> */}
-                <button
-                  onClick={() => setShowInviteGuestDialog(true)}
-                  className={portalStyles.inviteButton}
-                  disabled={isUserRestricted || restrictionCheckLoading}
-                  title={
-                    isUserRestricted
-                      ? 'You do not have permission to invite guests'
-                      : restrictionCheckLoading
-                        ? 'Checking permissions...'
-                        : ''
-                  }
-                  
-                >
-                
-                  <i className="ms-Icon ms-Icon--PeopleAdd" aria-hidden="true"></i>
-                  Invite Guest
-                </button>
+                {canAdd && (
+                  <button
+                    onClick={() => setShowInviteGuestDialog(true)}
+                    className={portalStyles.inviteButton}
+                    disabled={isUserRestricted || restrictionCheckLoading}
+                    title={
+                      isUserRestricted
+                        ? 'You do not have permission to invite guests'
+                        : restrictionCheckLoading
+                          ? 'Checking permissions...'
+                          : ''
+                    }
+                  >
+                    <i className="ms-Icon ms-Icon--PeopleAdd" aria-hidden="true"></i>
+                    Invite Guest
+                  </button>
+                )}
               </div>
 
               <p className={portalStyles.portalDescription}>

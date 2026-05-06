@@ -1,12 +1,12 @@
 import * as React from 'react';
 import styles from './PrivateComponent.module.scss';
 import { PrivateService } from '../APIServices/PrivateService';
-import { 
-  Folder, 
-  Search, 
-  ChevronRight, 
-  Download, 
-  Eye, 
+import {
+  Folder,
+  Search,
+  ChevronRight,
+  Download,
+  Eye,
   FileText,
   File as FileIcon,
   Image as ImageIcon,
@@ -22,6 +22,7 @@ import { BiSolidFilePdf } from "react-icons/bi";
 import { BsFiletypeDoc } from "react-icons/bs";
 import GlobalLoader from '../../../shared/component/GlobalLoader';
 import FilePreview from '../Common/FilePreview';
+import { usePermissionStore } from '../../../Permission/PermissionStore';
 
 interface BreadcrumbItem {
   name: string;
@@ -29,14 +30,14 @@ interface BreadcrumbItem {
 }
 
 export interface IPrivateProps {
-    context: any;
-    libraryName?: string;
+  context: any;
+  libraryName?: string;
 }
 
 const PrivateComponent: React.FC<IPrivateProps> = (props) => {
-  const libraryName = props.libraryName || "Private";
-  const service = React.useMemo(() => new PrivateService(props.context, libraryName), [props.context, libraryName]);
-  
+  const { canAdd } = usePermissionStore();
+  const libraryName = props.libraryName || "Private";  const service = React.useMemo(() => new PrivateService(props.context, libraryName), [props.context, libraryName]);
+
   const [content, setContent] = React.useState<{ folders: any[], files: any[] }>({ folders: [], files: [] });
   const [currentPath, setCurrentPath] = React.useState<string>('');
   const [history, setHistory] = React.useState<BreadcrumbItem[]>([]);
@@ -60,14 +61,14 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
     }
   }, [showAddModal, addModalType]);
 
-    const loadData = React.useCallback(async (path: string = '') => {
+  const loadData = React.useCallback(async (path: string = '') => {
     setLoading(true);
     try {
       const result = await service.getLibraryContents(path);
       console.log("🖼️ Private Component Content:", result);
       setContent({ folders: result.folders, files: result.files });
       setCurrentPath(result.currentPath);
-      
+
       // Update history
       if (!path) {
         setHistory([{ name: libraryName, path: '' }]);
@@ -126,10 +127,10 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "--";
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -161,7 +162,7 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
     try {
       // Parallel upload for smoother/faster experience
       await Promise.all(filesToUpload.map(file => service.uploadFile(currentPath, file)));
-      
+
       setFilesToUpload([]);
       setShowAddModal(false);
       await loadData(currentPath);
@@ -178,7 +179,7 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
       const selectedFiles = Array.from(e.target.files);
       setFilesToUpload(prev => [...prev, ...selectedFiles]);
       // Reset input value to allow selecting the same file again immediately
-      e.target.value = ''; 
+      e.target.value = '';
     }
   };
 
@@ -214,34 +215,36 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
         <div className={styles.rightSection}>
           <div className={styles.searchBox}>
             <div className={styles.searchIcon}><Search size={18} /></div>
-            <input 
-              type="text" 
-              placeholder="Search..." 
+            <input
+              type="text"
+              placeholder="Search..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
             />
           </div>
           <div className={styles.viewToggles}>
-            <button 
-              className={viewMode === 'grid' ? styles.viewActive : ''} 
+            <button
+              className={viewMode === 'grid' ? styles.viewActive : ''}
               onClick={() => setViewMode('grid')}
             >
               <LayoutGrid size={18} />
             </button>
-            <button 
-              className={viewMode === 'list' ? styles.viewActive : ''} 
+            <button
+              className={viewMode === 'list' ? styles.viewActive : ''}
               onClick={() => setViewMode('list')}
             >
               <List size={18} />
             </button>
           </div>
-          <button className={styles.addBtn} onClick={() => {
-            setAddModalType('folder');
-            setShowAddModal(true);
-          }}>
-            <Plus size={18} />
-            Add New
-          </button>
+          {canAdd && (
+            <button className={styles.addBtn} onClick={() => {
+              setAddModalType('folder');
+              setShowAddModal(true);
+            }}>
+              <Plus size={18} />
+              Add New
+            </button>
+          )}
         </div>
       </div>
 
@@ -282,12 +285,12 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
 
                   {filteredFiles.map((file, idx) => (
                     <tr key={`file-${idx}`} className={styles.tableRow} onClick={() => {
-                        const fileObj = {
+                      const fileObj = {
                         name: file.Name,
                         url: window.location.origin + file.ServerRelativeUrl,
                         serverRelativeUrl: file.ServerRelativeUrl
-                        };
-                        setSelectedFileForPreview(fileObj);
+                      };
+                      setSelectedFileForPreview(fileObj);
                     }}>
                       <td>
                         <div className={styles.itemCell}>
@@ -300,10 +303,10 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
                       <td><span className={styles.sizeText}>{service.formatBytes(file.Length)}</span></td>
                     </tr>
                   ))}
-                  
+
                   {!loading && filteredFolders.length === 0 && filteredFiles.length === 0 && (
                     <tr>
-                        <td colSpan={4} className={styles.emptyCell}>No items found</td>
+                      <td colSpan={4} className={styles.emptyCell}>No items found</td>
                     </tr>
                   )}
                 </>
@@ -319,8 +322,8 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
             ) : (
               <>
                 {filteredFolders.map((folder, idx) => (
-                  <div 
-                    key={`folder-${idx}`} 
+                  <div
+                    key={`folder-${idx}`}
                     className={`${styles.gridCard} ${styles['card' + (idx % 6)]}`}
                     onClick={() => handleFolderClick(folder)}
                   >
@@ -342,8 +345,8 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
                   </div>
                 ))}
                 {filteredFiles.map((file, idx) => (
-                  <div 
-                    key={`file-${idx}`} 
+                  <div
+                    key={`file-${idx}`}
                     className={`${styles.gridCard} ${styles['card' + ((filteredFolders.length + idx) % 6)]}`}
                     onClick={() => {
                       const fileObj = {
@@ -394,16 +397,16 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
               <h3>Add to {history[history.length - 1]?.name || libraryName}</h3>
               <button onClick={() => setShowAddModal(false)}><X size={20} /></button>
             </div>
-            
+
             <div className={styles.modalBody}>
               <div className={styles.tabContainer}>
-                <button 
+                <button
                   className={`${styles.tab} ${addModalType === 'folder' ? styles.tabActive : ''}`}
                   onClick={() => setAddModalType('folder')}
                 >
                   <FolderPlus size={18} /> New Folder
                 </button>
-                <button 
+                <button
                   className={`${styles.tab} ${addModalType === 'file' ? styles.tabActive : ''}`}
                   onClick={() => setAddModalType('file')}
                 >
@@ -415,9 +418,9 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
                 {addModalType === 'folder' ? (
                   <div className={styles.formGroup}>
                     <label>Folder Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="Enter folder name..." 
+                    <input
+                      type="text"
+                      placeholder="Enter folder name..."
                       value={newFolderName}
                       onChange={(e) => setNewFolderName(e.target.value)}
                       autoFocus
@@ -425,9 +428,9 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
                   </div>
                 ) : (
                   <div className={styles.fileUploadSection}>
-                    <label 
+                    <label
                       className={`${styles.dropZone} ${isDragging ? styles.dragging : ''}`}
-                      htmlFor="fileInput" 
+                      htmlFor="fileInput"
                       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                       onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
                       onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
@@ -439,11 +442,11 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
                     >
                       <div className={styles.dropIcon}><Upload size={32} /></div>
                       <p>{filesToUpload.length > 0 ? `${filesToUpload.length} files selected` : "Click to select or drag files here"}</p>
-                      <input 
+                      <input
                         id="fileInput"
-                        type="file" 
-                        multiple 
-                        style={{ display: 'none' }} 
+                        type="file"
+                        multiple
+                        style={{ display: 'none' }}
                         onChange={onFileChange}
                       />
                     </label>
@@ -453,8 +456,8 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
                           <div key={idx} className={styles.fileItem}>
                             <div className={styles.fileInfo}>{getFileIcon(file.name)} <span>{file.name}</span></div>
                             <X size={14} className={styles.removeFile} onClick={(e) => {
-                                e.stopPropagation(); 
-                                setFilesToUpload(filesToUpload.filter((_, i) => i !== idx));
+                              e.stopPropagation();
+                              setFilesToUpload(filesToUpload.filter((_, i) => i !== idx));
                             }} />
                           </div>
                         ))}
@@ -467,8 +470,8 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
 
             <div className={styles.modalFooter}>
               <button className={styles.cancelBtn} onClick={() => setShowAddModal(false)} disabled={isSubmitting}>Cancel</button>
-              <button 
-                className={styles.confirmBtn} 
+              <button
+                className={styles.confirmBtn}
                 onClick={addModalType === 'folder' ? handleCreateFolder : handleUploadFiles}
                 disabled={isSubmitting || (addModalType === 'folder' ? !newFolderName.trim() : filesToUpload.length === 0)}
               >

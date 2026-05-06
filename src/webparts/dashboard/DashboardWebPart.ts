@@ -8,7 +8,12 @@ import {
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IReadonlyTheme } from '@microsoft/sp-component-base';
 
+
+
+
 import * as strings from 'DashboardWebPartStrings';
+import { getSP } from "../../pnpjsConfig";
+import { checkPermissions } from "../../Permission/PermissionService";
 import Dashboard from './components/Dashboard';
 import { IDashboardProps } from './components/IDashboardProps';
 
@@ -44,9 +49,15 @@ export default class DashboardWebPart extends BaseClientSideWebPart<IDashboardWe
   public async onInit(): Promise<void> {
     await super.onInit();
 
-    const sp = spfi().using(SPFx(this.context));
+    // Initialize global SP instance and context
+    const sp = getSP(this.context);
+    
+    // Initialize services
     initDashboardService(sp);
     initProjectService(sp);
+    
+    // Check permissions
+    await checkPermissions(this.context);
 
     return this._getEnvironmentMessage().then(message => {
       this._environmentMessage = message;

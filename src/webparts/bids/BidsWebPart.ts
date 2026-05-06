@@ -12,7 +12,8 @@ import Bids from './components/Bids';
 import { IBidsProps } from './components/IBidsProps';
 
 
-import { spfi, SPFx } from "@pnp/sp/presets/all";
+import { getSP } from '../../pnpjsConfig';
+import { checkPermissions } from '../../Permission/PermissionService';
 import { initProjectService } from "../../shared/services/projectService";
 
 export interface IBidsWebPartProps {
@@ -43,9 +44,12 @@ export default class BidsWebPart extends BaseClientSideWebPart<IBidsWebPartProps
 protected async onInit(): Promise<void> {
   await super.onInit();
 
-  // ✅ CORRECT WAY FOR PNPJS v3
-  const sp = spfi().using(SPFx(this.context));
+  // ✅ Initialize global SP instance and context
+  const sp = getSP(this.context);
   initProjectService(sp);
+  
+  // ✅ Check permissions
+  await checkPermissions(this.context);
 
   this._environmentMessage = await this._getEnvironmentMessage();
 }

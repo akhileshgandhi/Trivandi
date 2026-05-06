@@ -11,7 +11,7 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "outDir": "lib",
-      "ignoreDeprecations": "6.0",
+
     "allowJs": true,
     "inlineSources": false,
     "noImplicitAny": false,

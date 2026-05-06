@@ -11,8 +11,9 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 import * as strings from 'ProjectDetailsWebPartStrings';
 import ProjectDetails from './components/ProjectDetails';
 import { IProjectDetailsProps } from './components/IProjectDetailsProps';
+import { getSP } from '../../pnpjsConfig';
+import { checkPermissions } from '../../Permission/PermissionService';
 import { initProjectService } from "../../shared/services/projectService";
-import { spfi, SPFx } from "@pnp/sp";
 
 
 
@@ -42,9 +43,15 @@ export default class ProjectDetailsWebPart extends BaseClientSideWebPart<IProjec
     ReactDom.render(element, this.domElement);
   }
 
- public onInit(): Promise<void> {
-  initProjectService(spfi().using(SPFx(this.context)));
-  return super.onInit();
+ public async onInit(): Promise<void> {
+  await super.onInit();
+  
+  // ✅ Initialize central SP instance and context
+  const sp = getSP(this.context);
+  initProjectService(sp);
+  
+  // ✅ Check permissions
+  await checkPermissions(this.context);
 }
 
 

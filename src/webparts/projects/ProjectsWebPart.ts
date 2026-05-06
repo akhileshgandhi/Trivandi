@@ -12,7 +12,8 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 import * as strings from 'ProjectsWebPartStrings';
 import Projects from './components/Projects';
 
-import { spfi, SPFx } from "@pnp/sp";
+import { getSP } from '../../pnpjsConfig';
+import { checkPermissions } from '../../Permission/PermissionService';
 import { initProjectService } from "../../shared/services/projectService";
 
 
@@ -49,10 +50,14 @@ export default class ProjectsWebPart extends BaseClientSideWebPart<IProjectsWebP
 public async onInit(): Promise<void> {
   await super.onInit();
 
-  const sp = spfi().using(SPFx(this.context));
+  // ✅ Initialize central SP instance and context
+  const sp = getSP(this.context);
 
-  // 🔥 THIS LINE WAS MISSING
+  // ✅ Pass SPFI instance to service
   initProjectService(sp);
+  
+  // ✅ Check permissions
+  await checkPermissions(this.context);
 }
 
 

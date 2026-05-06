@@ -9,8 +9,8 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 
 import * as strings from 'TrivandiProjectTeamWebPartStrings';
 import TrivandiProjectTeam from './components/TrivandiProjectTeam';
-import { getSP } from './loc/pnpjsConfig';
-import { spfi, SPFx } from '@pnp/sp/presets/all';
+import { getSP } from '../../pnpjsConfig';
+import { checkPermissions } from '../../Permission/PermissionService';
 import { initProjectService } from '../../shared/services/projectService';
 
 export interface ITrivandiProjectTeamWebPartProps {
@@ -41,13 +41,17 @@ export default class TrivandiProjectTeamWebPart
   protected async onInit(): Promise<void> {
     this._environmentMessage = this._getEnvironmentMessage();
     await super.onInit();
-    // ✅ Create SPFI instance using SPFx context
-    const sp = spfi().using(SPFx(this.context));
+    
+    // ✅ Initialize central SP instance and context
+    const sp = getSP(this.context);
 
     // ✅ Pass SPFI instance to service
     initProjectService(sp);
+    
+    // ✅ Check permissions for the webpart
+    await checkPermissions(this.context);
 
-    console.log("[WebPart] PnP SPFI initialized");
+    console.log("[WebPart] PnP SPFI and Permissions initialized");
   }
 
   private _getEnvironmentMessage(): string {

@@ -11,7 +11,8 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 import * as strings from 'PrivateWebPartStrings';
 import Private from './components/Private';
 import { IPrivateProps } from './components/IPrivateProps';
-import { getSP } from './loc/pnpjsConfig';
+import { getSP } from '../../pnpjsConfig';
+import { checkPermissions } from '../../Permission/PermissionService';
 
 export interface IPrivateWebPartProps {
   description: string;
@@ -42,7 +43,12 @@ export default class PrivateWebPart extends BaseClientSideWebPart<IPrivateWebPar
   protected async onInit(): Promise<void> {
     this._environmentMessage = this._getEnvironmentMessage();
     await super.onInit();
+    
+    // ✅ Initialize central SP instance and context
     getSP(this.context);
+    
+    // ✅ Check permissions
+    await checkPermissions(this.context);
   }
 
   private _getEnvironmentMessage(): string {

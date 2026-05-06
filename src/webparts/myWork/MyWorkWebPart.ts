@@ -11,7 +11,8 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 import * as strings from 'MyWorkWebPartStrings';
 import MyWork from './components/MyWork';
 import { IMyWorkProps } from './components/IMyWorkProps';
-import { spfi, SPFx } from '@pnp/sp/presets/all';
+import { getSP } from '../../pnpjsConfig';
+import { checkPermissions } from '../../Permission/PermissionService';
 import { initProjectService } from '../../shared/services/projectService';
 
 export interface IMyWorkWebPartProps {
@@ -42,13 +43,17 @@ export default class MyWorkWebPart extends BaseClientSideWebPart<IMyWorkWebPartP
   protected async onInit(): Promise<void> {
     this._environmentMessage = this._getEnvironmentMessage();
     await super.onInit();
-    // ✅ Create SPFI instance using SPFx context
-    const sp = spfi().using(SPFx(this.context));
+    
+    // ✅ Initialize global SP instance and context
+    const sp = getSP(this.context);
 
     // ✅ Pass SPFI instance to service
     initProjectService(sp);
+    
+    // ✅ Check permissions
+    await checkPermissions(this.context);
 
-    console.log("[WebPart] PnP SPFI initialized");
+    console.log("[WebPart] PnP SPFI and Permissions initialized");
   }
 
   private _getEnvironmentMessage(): string {

@@ -36,7 +36,7 @@ const requests = [
 
 const Requests: React.FC<IRequestsProps> = (props) => {
   const [isLoading, setIsLoading] = React.useState(true);
-  
+
   React.useEffect(() => {
     setIsLoading(true);
 

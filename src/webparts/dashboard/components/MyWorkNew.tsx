@@ -64,7 +64,7 @@ const MyWorkNew = ({props}) => {
         <>
           {/* ================= MY WORK ================= */}
           <div className={styles.label}>
-            <span className={styles.labelLine}></span>
+            <span className={styles.labelLine} />
             <h4>My Work</h4>
           </div>
 
@@ -128,7 +128,7 @@ const MyWorkNew = ({props}) => {
 
           {/* ================= STANDARDS & COMPLIANCE ================= */}
           {/* <div className={styles.label}>
-            <span className={styles.labelLine}></span>
+            <span className={styles.labelLine} />
             <h4>Standards & Compliance</h4>
           </div>
 
@@ -171,7 +171,7 @@ const MyWorkNew = ({props}) => {
 
           {/* ================= RECENT DOCUMENTS ================= */}
           <div className={styles.label}>
-            <span className={styles.labelLine}></span>
+            <span className={styles.labelLine} />
             <h4>Recent Documents</h4>
           </div>
 

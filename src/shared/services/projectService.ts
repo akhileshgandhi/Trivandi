@@ -11,6 +11,7 @@ import "@pnp/sp/items";
 import "@pnp/sp/fields";
 import "@pnp/sp/folders";
 import "@pnp/sp/files";
+import "@pnp/sp/search";
 import { spfi, SPFI, SPFx } from "@pnp/sp/presets/all";
 import { Web } from "@pnp/sp/webs";
 
@@ -940,60 +941,47 @@ export const getRecentDocuments = async (limit: number = 10) => {
   try {
     // Get current user
     const currentUser = await sp.web.currentUser();
+    const userEmail = currentUser.Email;
 
-    console.log("Fetching recent documents for user:", currentUser.Title);
+    console.log("Fetching recent documents for user via Search API:", currentUser.Title);
 
-    // Get all document libraries that match the pattern (Code-Title)
-    // You might want to filter this based on your specific needs
-    const lists = await sp.web.lists
-      .filter("BaseTemplate eq 101 and Hidden eq false") // 101 = Document Library
-      .select("Title", "Id")
-      .top(5000)();
+    // Using Search API is much more efficient as it retrieves documents across all libraries in a single call
+    const results = await sp.search({
+      Querytext: `IsDocument:1 AND (AuthorOWSUSER:${userEmail} OR EditorOWSUSER:${userEmail})`,
+      SelectProperties: ["Title", "Path", "LastModifiedTime", "FileExtension", "ListItemID", "SiteTitle", "Filename"],
+      SortList: [{ Property: "LastModifiedTime", Direction: 1 }], // 1 = Descending
+      RowLimit: limit
+    });
 
-    const allDocuments: any[] = [];
-
-    // Fetch recent documents from each library
-    for (const list of lists) {
-      try {
-        const items = await sp.web.lists
-          .getById(list.Id)
-          .items
-          .select(
-            "Id",
-            "FileLeafRef",
-            "Modified",
-            "Editor/Title",
-            "Editor/Id",
-            "File_x0020_Type",
-            "FileRef",
-            "FSObjType"
-          )
-          .expand("Editor")
-          .filter(`Editor/Id eq ${currentUser.Id} and FSObjType eq 0`) // Only files, not folders
-          .orderBy("Modified", false)
-          .top(5)();
-
-        // Add library title to each item
-        const itemsWithLibrary = items.map(item => ({
-          ...item,
-          LibraryTitle: list.Title,
-          ProjectTitle: list.Title // You can parse this to extract project name
-        }));
-
-        allDocuments.push(...itemsWithLibrary);
-      } catch (error) {
-        // Skip libraries that can't be accessed
-        console.log(`Skipping library ${list.Title}:`, error);
-      }
+    if (!results || !results.PrimarySearchResults || results.PrimarySearchResults.length === 0) {
+      console.log("No recent documents found via search.");
+      return [];
     }
 
-    // Sort all documents by modified date and take top N
-    const sortedDocs = allDocuments
-      .sort((a, b) => new Date(b.Modified).getTime() - new Date(a.Modified).getTime())
-      .slice(0, limit);
+    const mappedDocs = results.PrimarySearchResults.map(res => {
+      // Clean up Path to be relative if possible
+      let relativePath = res.Path || "";
+      try {
+        if (relativePath.startsWith("http")) {
+          relativePath = new URL(relativePath).pathname;
+        }
+      } catch (e) {
+        // Fallback to original path
+      }
 
-    console.log("Recent documents found:", sortedDocs.length);
-    return sortedDocs;
+      return {
+        Id: parseInt(res.ListItemID) || Math.floor(Math.random() * 100000),
+        FileLeafRef: res.Filename || res.Title,
+        Modified: res.LastModifiedTime,
+        FileRef: relativePath,
+        File_x0020_Type: res.FileExtension,
+        ProjectTitle: res.SiteTitle,
+        LibraryTitle: res.SiteTitle
+      };
+    });
+
+    console.log(`Found ${mappedDocs.length} recent documents via search.`);
+    return mappedDocs;
 
   } catch (error) {
     console.error("Error fetching recent documents:", error);

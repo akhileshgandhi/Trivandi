@@ -218,7 +218,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
   const loadTabCounts = async () => {
     const counts: Record<string, number> = {};
     const tabs = ["Bid Documents", "Lost"];
-    
+
     try {
       await Promise.all(
         tabs.map(async (tab) => {

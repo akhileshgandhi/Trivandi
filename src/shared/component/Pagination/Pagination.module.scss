@@ -1,0 +1,132 @@
+.paginationContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #eef0f2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.paginationLeft {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.paginationInfo {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 400;
+
+  strong {
+    color: #1e293b;
+    font-weight: 600;
+  }
+}
+
+.pageSizeSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #64748b;
+
+  .pageSizeDropdown {
+    padding: 4px 24px 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    font-size: 13px;
+    color: #1e293b;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 12px;
+
+    &:hover {
+      border-color: #cbd5e1;
+    }
+  }
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pageNumbers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+
+  &:hover:not(:disabled):not(.dots) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+    transform: translateY(-1px);
+  }
+
+  &:disabled:not(.activePage):not(.dots) {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #f1f5f9;
+  }
+
+  &.activePage {
+    background: #0511F2; /* Brand Blue */
+    border-color: #0511F2;
+    color: #ffffff;
+    cursor: default;
+    box-shadow: 0 4px 10px rgba(5, 17, 242, 0.2);
+  }
+
+  &.dots {
+    border: none;
+    cursor: default;
+    background: transparent;
+    min-width: 24px;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .paginationContainer {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    padding: 16px;
+  }
+
+  .paginationLeft {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .paginationInfo {
+    text-align: center;
+  }
+}

@@ -152,7 +152,7 @@ const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
 
           {/* ================= RECENT DOCUMENTS ================= */}
           <div className={styles.label}>
-            <span className={styles.labelLine}></span>
+            <span className={styles.labelLine} />
             <h4>Recent Documents</h4>
           </div>
 

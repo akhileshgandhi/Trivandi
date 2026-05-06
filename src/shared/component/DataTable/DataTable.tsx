@@ -6,6 +6,8 @@ import * as ReactDOM from "react-dom";
 import styles from "./DataTable.module.scss";
 import filterIcon from "../../assets/sort.png";
 import searchIcon from "../../assets/search-normal.png";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import Pagination from "../Pagination/Pagination";
 
 /* ===================== TYPES ===================== */
 
@@ -329,33 +331,17 @@ const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       {/* pagination UI */}
-      {totalPages > 1 && (
-        <div className={styles.pagination}>
-          <button
-            disabled={currentPage === 1}
-            onClick={() => {
-              if (serverSide) onPageChange?.(currentPage - 1);
-              else setLocalPage((p) => Math.max(1, p - 1));
-            }}
-          >
-            Previous
-          </button>
-
-          <span>
-            Page {currentPage} of {totalPages}
-          </span>
-
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => {
-              if (serverSide) onPageChange?.(currentPage + 1);
-              else setLocalPage((p) => Math.min(totalPages, p + 1));
-            }}
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalItems={totalItems ?? filteredRows.length}
+        onPageChange={(p) => {
+          if (serverSide) onPageChange?.(p);
+          else setLocalPage(p);
+        }}
+        onPageSizeChange={serverSide ? undefined : undefined} // DataTable doesn't support local pageSize change yet in props
+      />
 
       {/* filter dropdown */}
       {activeFilter &&

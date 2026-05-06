@@ -11,6 +11,7 @@ import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { Dialog, DialogType, DialogFooter } from '@fluentui/react/lib/Dialog';
 import { ArrowDownToLine } from 'lucide-react';
 import FilePreview from '../FilePreview/FilePreview';
+import { usePermissionStore } from '../../../../Permission/PermissionStore';
 
 export interface ISharedFilesProps {
   context: WebPartContext;
@@ -368,6 +369,8 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
     const { documents, loading, error, selectedDocuments, selectAll, currentPermission, guestRole, showLogDialog, loadingLogs, logsError, selectedLogDocument, accessLogs } = this.state;
     const { breadcrumbs, isUserRestricted } = this.props;
     // Per-document helpers based on the document's own shared permission
+    const { canAdd: globalCanAdd, canEdit: globalCanEdit } = usePermissionStore.getState();
+
     const canPreviewDoc = (doc: ISharedDocument): boolean => {
       if (!isUserRestricted) return true;
       return !!doc.permission; // any assigned permission allows viewing
@@ -378,7 +381,8 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
       return doc.permission === 'Edit' || doc.permission === 'Admin';
     };
     // Whether the guest can edit/upload/import at the current folder level
-    const canEditCurrent = currentPermission === 'Edit' || currentPermission === 'Admin';
+    const canEditCurrent = (currentPermission === 'Edit' || currentPermission === 'Admin') && globalCanEdit;
+    const canAddCurrent = globalCanAdd;
     const selectedDocs = selectedDocuments.map(index => documents[index]);
     const canShareSelection = selectedDocs.length > 0 && canEditCurrent && !selectedDocs.some(doc => doc.permission === 'Read' || doc.permission === 'Review') && !isUserRestricted;
 
@@ -431,7 +435,8 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
               aria-disabled={!canEditCurrent || isUserRestricted}
               title={
                 isUserRestricted ? 'You do not have permission to import documents' :
-                !canEditCurrent ? 'Import requires Edit permission' : ''
+                !globalCanEdit ? 'You do not have global edit permission' :
+                !canEditCurrent ? 'Import requires Edit permission for this folder' : ''
               }
             >
               <ArrowDownToLine width="16px" height="16px" />
@@ -439,17 +444,19 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
             </div>
 
 
-            <PrimaryButton
-              text="New"
-              iconProps={{ iconName: 'Add' }}
-              onClick={this.props.onShowNewDocument}
-              disabled={!canEditCurrent || isUserRestricted}
-              title={
-                isUserRestricted ? 'You do not have permission to upload documents' :
-                !canEditCurrent ? 'Upload requires Edit permission' : ''
-              }
-              className={styles.newButton}
-            />
+            {canAddCurrent && (
+              <PrimaryButton
+                text="New"
+                iconProps={{ iconName: 'Add' }}
+                onClick={this.props.onShowNewDocument}
+                disabled={!canEditCurrent || isUserRestricted}
+                title={
+                  isUserRestricted ? 'You do not have permission to upload documents' :
+                  !canEditCurrent ? 'Upload requires Edit permission for this folder' : ''
+                }
+                className={styles.newButton}
+              />
+            )}
           </div>
         </div>
 
