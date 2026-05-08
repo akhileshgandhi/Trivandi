@@ -19,10 +19,6 @@ const RecentDocuments: React.FC = () => {
   const [documents, setDocuments] = useState<RecentDocument[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    loadRecentDocuments();
-  }, []);
-
   const loadRecentDocuments = async (): Promise<void> => {
     try {
       setLoading(true);
@@ -34,6 +30,10 @@ const RecentDocuments: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadRecentDocuments().catch((err: unknown) => console.error(err));
+  }, []);
 
   const getFileIcon = (fileType?: string): string => {
     const ext = fileType?.toLowerCase();

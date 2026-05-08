@@ -221,11 +221,11 @@ export const getProjectsPage = async (
     }
   });
 
-  // Global search across Project Title and Company
+  // Global search across Project Title, Company and Code
   if (searchTerm && searchTerm.trim()) {
     const safeSearch = searchTerm.replace(/'/g, "''");
-    // User requested to search by Project Title and Company
-    filterParts.push(`(substringof('${safeSearch}',Title) or substringof('${safeSearch}',Company))`);
+    // User requested to search by Project Title, Company and Code
+    filterParts.push(`(substringof('${safeSearch}',Title) or substringof('${safeSearch}',Company) or substringof('${safeSearch}',Code))`);
   }
 
   const filterString = filterParts.join(" and ");
@@ -328,17 +328,18 @@ export const getUniqueValuesForColumn = async (
 ): Promise<string[]> => {
   if (!sp) throw new Error("PnPjs not initialized");
   // lightweight cache to avoid repeated expensive requests during a session
-  const filterStr = filters ? JSON.stringify(filters) : "";
-  const cacheKey = `${status}::${columnKey}::${filterStr}`;
-  (getUniqueValuesForColumn as any)._cache = (getUniqueValuesForColumn as any)._cache || {};
-  const cache = (getUniqueValuesForColumn as any)._cache as Record<string, string[]>;
-  if (cache[cacheKey]) return cache[cacheKey];
+  // const filterStr = filters ? JSON.stringify(filters) : "";
+  // const cacheKey = `${status}::${columnKey}::${filterStr}`;
+  // (getUniqueValuesForColumn as any)._cache = (getUniqueValuesForColumn as any)._cache || {};
+  // const cache = (getUniqueValuesForColumn as any)._cache as Record<string, string[]>;
+  // if (cache[cacheKey]) return cache[cacheKey];
 
   const selectFields = [columnKey];
+  if (columnKey === "Title") selectFields.push("Code");
   if (!selectFields.includes("ID")) selectFields.push("ID");
 
   // limit how many items we fetch for unique values to avoid heavy queries
-  const MAX_TOP = 100;
+  const MAX_TOP = 500;
 
   // try with expand if needed, but fallback to non-expanded request on failure
   const tryQuery = async (useExpand: boolean) => {
@@ -377,11 +378,15 @@ export const getUniqueValuesForColumn = async (
           v = it[columnKey];
         }
         if (v !== undefined && v !== null && String(v).trim() !== "") {
-          set.add(String(v));
+          if (columnKey === "Title" && it.Code) {
+            set.add(`${it.Code} - ${v}`);
+          } else {
+            set.add(String(v));
+          }
         }
       });
       const result = Array.from(set).sort();
-      cache[cacheKey] = result;
+      // cache[cacheKey] = result;
       return result;
     } catch (err) {
       // bubble up for caller to handle
@@ -478,7 +483,7 @@ const parseSiteAndFolder = (serverRelativeUrl: string): { siteUrl: string; folde
  * @param subFolderPath - Optional subfolder navigation within the URL
  */
 export const getDocumentsByServerRelativeUrl = async (
-  serverRelativeUrl: string, 
+  serverRelativeUrl: string,
   subFolderPath: string = "",
   page: number = 1,
   pageSize: number = 10
@@ -555,7 +560,7 @@ export const getDocumentsByServerRelativeUrl = async (
     ];
 
     console.log("✅ Combined items:", allItems.length);
-    
+
     const totalCount = allItems.length;
     const skip = (page - 1) * pageSize;
     const pagedItems = allItems.slice(skip, skip + pageSize);
@@ -580,7 +585,7 @@ export const getDocumentsByServerRelativeUrl = async (
 
 // Update getProjectDocuments - Remove 'Name' field
 export const getProjectDocuments = async (
-  libraryName: string, 
+  libraryName: string,
   folderPath: string = "",
   page: number = 1,
   pageSize: number = 10
@@ -626,7 +631,7 @@ export const getProjectDocuments = async (
       }));
 
       console.log("Root items found:", mappedRootItems.length);
-      
+
       const totalCount = mappedRootItems.length;
       const skip = (page - 1) * pageSize;
       const pagedItems = mappedRootItems.slice(skip, skip + pageSize);
@@ -672,7 +677,7 @@ export const getProjectDocuments = async (
       }));
 
       console.log("Folder items found:", mappedFolderItems.length);
-      
+
       const totalCount = mappedFolderItems.length;
       const skip = (page - 1) * pageSize;
       const pagedItems = mappedFolderItems.slice(skip, skip + pageSize);

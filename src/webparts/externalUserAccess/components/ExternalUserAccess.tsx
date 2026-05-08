@@ -526,17 +526,9 @@ const ExternalUserAccess: React.FC<IExternalUserAccessProps> = ({ context }) => 
       e.stopPropagation();
     };
 
-    // Block keyboard shortcuts: Ctrl+S, Ctrl+P, Ctrl+U, F12, Ctrl+Shift+I
+    // Block all keyboard shortcuts (Ctrl + any key)
     const blockShortcuts = (e: KeyboardEvent): void => {
-      const key = e.key?.toLowerCase();
-      const ctrl = e.ctrlKey || e.metaKey;
-      if (
-        (ctrl && key === 's') ||
-        (ctrl && key === 'p') ||
-        (ctrl && key === 'u') ||
-        key === 'f12' ||
-        (ctrl && e.shiftKey && key === 'i')
-      ) {
+      if (e.ctrlKey || e.metaKey || e.key === 'F12') {
         e.preventDefault();
         e.stopPropagation();
       }
@@ -975,7 +967,7 @@ const ExternalUserAccess: React.FC<IExternalUserAccessProps> = ({ context }) => 
                           </td>
 
                         </tr>
-                        
+
                       );
                     })}
                   </tbody>

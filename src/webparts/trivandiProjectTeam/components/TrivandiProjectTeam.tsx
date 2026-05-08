@@ -23,7 +23,7 @@ const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
   const [liveBids, setLiveBids] = React.useState<IDashboardProject[]>([]);
 
   React.useEffect(() => {
-    const loadData = async () => {
+    const loadData = async (): Promise<void> => {
       try {
         console.log("[Dashboard] Loading dashboard data...");
         setIsLoading(true);
@@ -45,7 +45,7 @@ const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
       }
     };
 
-    void loadData();
+    loadData().catch((err: unknown) => console.error(err));
   }, []);
 
   // ✅ Resolve greeting from current user

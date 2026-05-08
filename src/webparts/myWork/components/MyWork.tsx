@@ -115,7 +115,7 @@ const MyWork: React.FC<IMyWorkProps> = (props) => {
                         customIcon={require("../../../shared/assets/airg.png")}
                         border="2px solid #EC008C"
                         noIconBg
-                            onClick={() => {
+                        onClick={() => {
                           window.location.href = `/sites/Projects/SitePages/PipelineDetails.aspx?projectId=${item.Id}`;
                         }}
                       />

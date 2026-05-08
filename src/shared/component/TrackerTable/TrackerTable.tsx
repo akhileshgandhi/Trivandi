@@ -42,6 +42,7 @@ interface TrackerTableProps {
   // Search
   searchTerm?: string;
   onSearch?: (value: string) => void;
+  searchPlaceholder?: string;
 }
 
 const TrackerTable: React.FC<TrackerTableProps> = ({
@@ -77,6 +78,7 @@ const TrackerTable: React.FC<TrackerTableProps> = ({
   onSort,
   searchTerm,
   onSearch,
+  searchPlaceholder = "Search Projects...",
 }) => {
   return (
     <div className={styles.trackerWrapper}>
@@ -109,7 +111,7 @@ const TrackerTable: React.FC<TrackerTableProps> = ({
           <div className={styles.searchBox}>
             <input
               type="text"
-              placeholder="Search Projects..."
+              placeholder={searchPlaceholder}
               value={searchTerm || ""}
               onChange={(e) => onSearch?.(e.target.value)}
               className={styles.searchInput}

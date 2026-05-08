@@ -40,6 +40,10 @@ $font-stack: 'DM Sans', 'Segoe UI', sans-serif;
   font-family: $font-stack;
   background-color: $bg-page;
   min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 // ─────────────────────────────────────────────

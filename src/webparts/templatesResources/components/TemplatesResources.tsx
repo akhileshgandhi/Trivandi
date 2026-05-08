@@ -939,7 +939,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
   };
  
   React.useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (): Promise<void> => {
       try {
         setIsLoading(true);
         setDataError(null);
@@ -984,10 +984,10 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
       }
     };
  
-    fetchData();
+    fetchData().catch((err: unknown) => console.error(err));
   }, []);
  
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string): string => {
     if (!dateStr) return "--";
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', {

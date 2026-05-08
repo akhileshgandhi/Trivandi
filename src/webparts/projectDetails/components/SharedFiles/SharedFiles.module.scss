@@ -22,8 +22,23 @@ $color-subtle:   #605e5c;
   .headerRow {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+
+    .titleArea {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .headerActions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
   }
 
   .accentBar {

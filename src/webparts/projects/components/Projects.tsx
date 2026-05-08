@@ -12,6 +12,15 @@ import TrackerTable from "../../../shared/component/TrackerTable/TrackerTable";
 import { TableColumn } from "../../../shared/component/DataTable/DataTable";
 
 import styles from "./Projects.module.scss";
+
+interface IFormField {
+  key: string;
+  label: string;
+  type?: string;
+  required?: boolean;
+  allowMultiple?: boolean;
+  choices?: string[];
+}
 import GlobalLoader from "../../../shared/component/GlobalLoader";
 import CompletedCell from "../../../shared/component/CompletedCell/CompletedCell";
 import "../../../shared/globalcss/globalcss.scss";
@@ -61,7 +70,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Stores all fields from SharePoint (field name, type, choices, required, etc.)
-  const [formFields, setFormFields] = useState<any[]>([]);
+  const [formFields, setFormFields] = useState<IFormField[]>([]);
 
   // Stores user input for each field (e.g., { Title: "Project Name", Status: "Live" })
   const [formValues, setFormValues] = useState<Record<string, any>>({});
@@ -186,9 +195,10 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     tab?: string,
     sCol?: string,
     sAsc?: boolean,
-    sTerm?: string
+    sTerm?: string,
+    silent: boolean = false
   ) => {
-    setIsLoading(true);
+    if (!silent) setIsLoading(true);
     try {
       const currentTab = tab || activeTab;
       const statusToUse = status || mapTabToStatus(currentTab);
@@ -238,7 +248,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
-    void loadProjects(1, serverFilters, undefined, undefined, sortColumn, sortAscending, value);
+    void loadProjects(1, serverFilters, undefined, undefined, sortColumn, sortAscending, value, true);
   };
 
   const loadUniqueValues = async (tab?: string) => {
@@ -256,9 +266,26 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       const map: Record<string, string[]> = {};
 
       filterableKeys.forEach((k) => {
-        const values = Array.from(
-          new Set(items.map((item: any) => String(item[k] ?? "")).filter((v: string) => v !== ""))
-        ).sort() as string[];
+        let values: string[];
+        if (k === "Title") {
+          // For Title, combine Code + Title so the dropdown shows e.g. "25048b - Extension..."
+          values = Array.from(
+            new Set(
+              items
+                .map((item: any) => {
+                  const title = String(item["Title"] ?? "").trim();
+                  if (!title) return "";
+                  const code = String(item["Code"] ?? "").trim();
+                  return code ? `${code} - ${title}` : title;
+                })
+                .filter((v: string) => v !== "")
+            )
+          ).sort() as string[];
+        } else {
+          values = Array.from(
+            new Set(items.map((item: any) => String(item[k] ?? "")).filter((v: string) => v !== ""))
+          ).sort() as string[];
+        }
         map[k] = values;
       });
 
@@ -396,7 +423,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
    * Converts form input values to SharePoint-compatible formats
    * Different field types need different formats (numbers, dates, multi-choice, etc.)
    */
-  const coerceValue = (type: string | undefined, allowMultiple: boolean | undefined, value: any) => {
+  const coerceValue = (type: string | undefined, allowMultiple: boolean | undefined, value: any): any => {
     // Skip empty values
     if (value === "" || value === null || value === undefined) {
       return undefined;
@@ -405,25 +432,27 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     switch (type) {
       // Convert to number for Number and Currency fields
       case "Number":
-      case "Currency":
+      case "Currency": {
         const num = Number(value);
         return isNaN(num) ? undefined : num;
+      }
 
       // Convert to Date object for DateTime fields
-      case "DateTime":
+      case "DateTime": {
         try {
           const date = new Date(value);
           return isNaN(date.getTime()) ? undefined : date;
         } catch {
           return undefined;
         }
+      }
 
       // Convert to boolean for Boolean fields
       case "Boolean":
         return Boolean(value);
 
       // MultiChoice needs special format: { results: ["choice1", "choice2"] }
-      case "MultiChoice":
+      case "MultiChoice": {
         if (Array.isArray(value)) {
           return { results: value };
         }
@@ -432,13 +461,15 @@ const Projects: React.FC<IProjectsProps> = (props) => {
           return { results: choices };
         }
         return undefined;
+      }
 
       // Default: return as-is or wrap in results array if multiple values allowed
-      default:
+      default: {
         if (allowMultiple && Array.isArray(value)) {
           return { results: value };
         }
         return value;
+      }
     }
   };
 
@@ -449,7 +480,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
    * Step 3: Add NonCmap=true to the data
    * Step 4: Save to SharePoint and refresh the list
    */
-  const submitCreate = async () => {
+  const submitCreate = async (): Promise<void> => {
     // Step 1: Check if form is valid
     if (!validateForm()) {
       return; // Stop if validation fails
@@ -461,7 +492,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       const payload: Record<string, any> = {};
 
       // Convert each form value to the correct format
-      formFields.forEach((f: any) => {
+      formFields.forEach((f: IFormField) => {
         const convertedValue = coerceValue(f.type, f.allowMultiple, formValues[f.key]);
         if (convertedValue !== undefined) {
           payload[f.key] = convertedValue;
@@ -469,7 +500,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       });
 
       // Make sure Status has a value (default to Live if missing)
-      const hasStatusField = formFields.some((f: any) => f.key === "Status");
+      const hasStatusField = formFields.some((f: IFormField) => f.key === "Status");
       if (!payload.Status && hasStatusField) {
         const tab = activeTab === "Non-CMAP" ? "Live" : activeTab;
         payload.Status = mapTabToStatus(tab);
@@ -483,17 +514,18 @@ const Projects: React.FC<IProjectsProps> = (props) => {
 
       // Close modal and refresh the project list
       setShowCreateModal(false);
-      void loadProjects(1, serverFilters);
+      loadProjects(1, serverFilters).catch(console.error);
 
       // Show success toast
       toast.success("Project created successfully!", {
         position: "top-right",
         autoClose: 3000,
       });
-    } catch (e: any) {
-      console.error("Create failed", e);
+    } catch (e: unknown) {
+      const error = e as Error;
+      console.error("Create failed", error);
       // Show error toast
-      toast.error(e?.message || "Failed to create project", {
+      toast.error(error?.message || "Failed to create project", {
         position: "top-right",
         autoClose: 5000,
       });
@@ -516,21 +548,21 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       setOrderedColumnKeys(DEFAULT_COLUMN_KEYS);
     }
     const status = mapTabToStatus(savedTab);
-    void loadProjects(1, {}, status, savedTab, undefined, undefined, searchTerm);
+    loadProjects(1, {}, status, savedTab, undefined, undefined, searchTerm).catch(console.error);
   }, []);
 
   useEffect(() => {
     if (allColumns.length > 0) {
-      void loadUniqueValues();
+      loadUniqueValues().catch(console.error);
     }
   }, [allColumns, activeTab]);
 
   useEffect(() => {
-    void loadTabCounts();
+    loadTabCounts().catch(console.error);
   }, [allColumns]);
 
   /* ===================== TAB CHANGE ===================== */
-  const onTabChange = (tab: string) => {
+  const onTabChange = (tab: string): void => {
     setActiveTab(tab);
     sessionStorage.setItem(STORAGE_KEY, tab);
     setShowFilters(false);
@@ -541,8 +573,8 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       setOrderedColumnKeys(DEFAULT_COLUMN_KEYS);
     }
     const status = mapTabToStatus(tab);
-    void loadProjects(1, {}, status, tab);
-    void loadUniqueValues(tab);
+    loadProjects(1, {}, status, tab).catch(console.error);
+    loadUniqueValues(tab).catch(console.error);
   };
 
   /* ===================== PAGE CHANGE HANDLER ===================== */
@@ -551,15 +583,15 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     setCurrentPage(p);
     const status = mapTabToStatus(activeTab);
     console.log("Calling loadProjects with page:", p, "status:", status, "filters:", serverFilters);
-    void loadProjects(p, serverFilters, status, activeTab, undefined, undefined, searchTerm);
+    loadProjects(p, serverFilters, status, activeTab, undefined, undefined, searchTerm).catch(console.error);
   }, [activeTab, serverFilters, searchTerm]);
 
-  const handleResetFilters = () => {
+  const handleResetFilters = (): void => {
     setServerFilters({});
     setCurrentPage(1);
     setSearchTerm("");
     const status = mapTabToStatus(activeTab);
-    void loadProjects(1, {}, status, activeTab, undefined, undefined, "");
+    loadProjects(1, {}, status, activeTab, undefined, undefined, "").catch(console.error);
   };
 
   /* ===================== ORDERED COLUMNS ===================== */
@@ -617,7 +649,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     "ProjectID",
   ];
 
-  const groupProjectFields = (project: any) => {
+  const groupProjectFields = (project: Record<string, any>): Record<string, [string, any][]> => {
     const cleanEntries = Object.entries(project).filter(
       ([key, value]) =>
         value && !HIDDEN_SYSTEM_FIELDS.includes(key) && key !== "MoreInfo"
@@ -637,7 +669,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     return grouped;
   };
 
-  const formatFieldValue = (value: any) => {
+  const formatFieldValue = (value: any): string | null => {
     if (value === null || value === undefined || value === "") return null;
 
     // ✅ Handle ISO date strings (SharePoint)
@@ -669,7 +701,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     return String(value);
   };
 
-  const prettifyLabel = (key: string) =>
+  const prettifyLabel = (key: string): string =>
     key
       .replace(/([A-Z])/g, " $1")
       .replace(/^./, (s) => s.toUpperCase())
@@ -705,7 +737,14 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             onFilterChange={(filters) => {
               setServerFilters(filters);
               const status = mapTabToStatus(activeTab);
-              void loadProjects(1, filters, status, activeTab, undefined, undefined, searchTerm);
+              
+              // Clean Title filter if it contains the Code separator
+              const cleanedFilters = { ...filters };
+              if (cleanedFilters.Title && cleanedFilters.Title.includes(" - ")) {
+                cleanedFilters.Title = cleanedFilters.Title.split(" - ").slice(1).join(" - ");
+              }
+              
+              loadProjects(1, cleanedFilters, status, activeTab, undefined, undefined, searchTerm).catch(console.error);
             }}
             onResetFilters={handleResetFilters}
             activeFilters={serverFilters}
@@ -728,6 +767,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             onSort={handleSort}
             searchTerm={searchTerm}
             onSearch={handleSearch}
+            searchPlaceholder="Search by Title, Company or Code..."
           />
         )}
 
@@ -817,7 +857,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
 
               {/* Render only specified fields for create project form */}
               <div className={styles.formGrid}>
-                {formFields.filter((f: any) => {
+                {formFields.filter((f: IFormField) => {
                   if (isCreateNew) {
                     // When "Create New" is selected, only show Title field
                     return ["Title"].includes(f.key);
@@ -825,7 +865,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
                     // When "Use Existing" is selected, show all fields
                     return ["Title", "ProjectDocumentsUrl", "ContractsDocumentsUrl", "BidDocumentsUrl"].includes(f.key);
                   }
-                }).map((f: any) => (
+                }).map((f: IFormField) => (
                   <div key={f.key} className={styles.formField}>
                     {/* Field Label with red * for required fields */}
                     <label className={styles.formLabel}>

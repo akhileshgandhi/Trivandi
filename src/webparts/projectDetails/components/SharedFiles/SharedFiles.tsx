@@ -422,8 +422,45 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
     return (
       <div className={styles.sharedFiles}>
         <div className={styles.headerRow}>
-          <span className={styles.accentBar}></span>
-          <h4 className={styles.sectionTitle}>Shared Files</h4>
+          <div className={styles.titleArea}>
+            <span className={styles.accentBar}></span>
+            <h4 className={styles.sectionTitle}>Shared Files</h4>
+          </div>
+
+          <div className={styles.headerActions}>
+            <div
+              className={styles.importButton}
+              onClick={() => {
+                if (canEditCurrent && !isUserRestricted) {
+                  this.props.onShowImportDialog();
+                }
+              }}
+              aria-disabled={!canEditCurrent || isUserRestricted}
+              title={
+                isUserRestricted ? 'You do not have permission to import documents' :
+                !globalCanEdit ? 'You do not have global edit permission' :
+                !canEditCurrent ? 'Import requires Edit permission for this folder' : ''
+              }
+            >
+              <ArrowDownToLine width="16px" height="16px" />
+              Import
+            </div>
+
+            {canAddCurrent && (
+              <PrimaryButton
+                text="New"
+                iconProps={{ iconName: 'Add' }}
+                onClick={this.props.onShowNewDocument}
+                disabled={!canEditCurrent || isUserRestricted}
+                title={
+                  isUserRestricted ? 'You do not have permission to add documents' :
+                  !globalCanAdd ? 'You do not have global add permission' :
+                  !canEditCurrent ? 'Adding requires Edit permission for this folder' : ''
+                }
+                className={styles.newButton}
+              />
+            )}
+          </div>
         </div>
 
 
@@ -448,40 +485,6 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                   !canShareSelection ? 'Sharing requires Edit permission' : ''
                 }
                 className={styles.shareButton}
-              />
-            )}
-
-
-            <div
-              className={styles.importButton}
-              onClick={() => {
-                if (canEditCurrent && !isUserRestricted) {
-                  this.props.onShowImportDialog();
-                }
-              }}
-              aria-disabled={!canEditCurrent || isUserRestricted}
-              title={
-                isUserRestricted ? 'You do not have permission to import documents' :
-                !globalCanEdit ? 'You do not have global edit permission' :
-                !canEditCurrent ? 'Import requires Edit permission for this folder' : ''
-              }
-            >
-              <ArrowDownToLine width="16px" height="16px" />
-              Import
-            </div>
-
-
-            {canAddCurrent && (
-              <PrimaryButton
-                text="New"
-                iconProps={{ iconName: 'Add' }}
-                onClick={this.props.onShowNewDocument}
-                disabled={!canEditCurrent || isUserRestricted}
-                title={
-                  isUserRestricted ? 'You do not have permission to upload documents' :
-                  !canEditCurrent ? 'Upload requires Edit permission for this folder' : ''
-                }
-                className={styles.newButton}
               />
             )}
           </div>

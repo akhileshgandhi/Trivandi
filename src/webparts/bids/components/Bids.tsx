@@ -96,8 +96,8 @@ const Bids: React.FC<IBidsProps> = (props) => {
   };
 
   /* ===================== LOAD BIDS ===================== */
-  const loadBids = async (page = 1, filters: Record<string, string> = {}, sTerm?: string) => {
-    setIsLoading(true);
+  const loadBids = async (page = 1, filters: Record<string, string> = {}, sTerm?: string, silent: boolean = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const termToUse = sTerm ?? searchTerm;
       console.log(`🔍 Loading ${activeTab} tab`);
@@ -150,6 +150,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
           return (
             String(item.Title ?? "").toLowerCase().includes(lowerTerm) ||
             String(item.Company ?? "").toLowerCase().includes(lowerTerm) ||
+            String(item.Code ?? "").toLowerCase().includes(lowerTerm) ||
             String(item.Owner ?? "").toLowerCase().includes(lowerTerm) ||
             String(item.Sector ?? "").toLowerCase().includes(lowerTerm) ||
             String(item.Country ?? "").toLowerCase().includes(lowerTerm)
@@ -201,7 +202,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
-    void loadBids(1, serverFilters, value);
+    void loadBids(1, serverFilters, value, true);
   };
 
   const loadUniqueValues = async (tab?: string) => {
@@ -233,6 +234,21 @@ const Bids: React.FC<IBidsProps> = (props) => {
       filterableKeys.forEach((k) => {
         if (k === 'Status') {
           map[k] = statuses;
+        } else if (k === "Title") {
+          // For Title, combine Code + Title so the dropdown shows e.g. "25048b - Extension..."
+          const values = Array.from(
+            new Set(
+              uniqueItems
+                .map((item: any) => {
+                  const title = String(item["Title"] ?? "").trim();
+                  if (!title) return "";
+                  const code = String(item["Code"] ?? "").trim();
+                  return code ? `${code} - ${title}` : title;
+                })
+                .filter((v: string) => v !== "")
+            )
+          ).sort() as string[];
+          map[k] = values;
         } else {
           const values = Array.from(
             new Set(uniqueItems.map((item: any) => String(item[k] ?? "")).filter((v: string) => v !== ""))
@@ -381,7 +397,14 @@ const Bids: React.FC<IBidsProps> = (props) => {
             onFilterChange={(filters) => {
               // Filters use SharePoint column names directly
               setServerFilters(filters);
-              void loadBids(1, filters, searchTerm);
+              
+              // Clean Title filter if it contains the Code separator
+              const cleanedFilters = { ...filters };
+              if (cleanedFilters.Title && cleanedFilters.Title.includes(" - ")) {
+                cleanedFilters.Title = cleanedFilters.Title.split(" - ").slice(1).join(" - ");
+              }
+              
+              void loadBids(1, cleanedFilters, searchTerm);
             }}
             onResetFilters={handleResetFilters}
             activeFilters={serverFilters}
@@ -399,6 +422,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
             onSort={handleSort}
             searchTerm={searchTerm}
             onSearch={handleSearch}
+            searchPlaceholder="Search by Title, Company or Code..."
           />
         </div>
       )}

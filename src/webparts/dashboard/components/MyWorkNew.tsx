@@ -8,7 +8,7 @@ import Card from '../../../shared/component/Card/Card';
 import RecentDocuments from './RecentDocuments/RecentDocuments';
 import heroBg from '../../../shared/assets/hero_new.jpg';
 import '../../../shared/globalcss/globalcss.scss';
-const MyWorkNew = ({props}) => {
+const MyWorkNew = ({ props }) => {
 
   const [isLoading, setIsLoading] = React.useState(true);
   const [liveProjects, setLiveProjects] = React.useState<IDashboardProject[]>(
@@ -56,7 +56,7 @@ const MyWorkNew = ({props}) => {
 
   return (
     <div className={styles.dashboard}>
-     
+
 
       {isLoading ? (
         <GlobalLoader variant="content" />
@@ -115,7 +115,7 @@ const MyWorkNew = ({props}) => {
                         customIcon={require("../../../shared/assets/airg.png")}
                         border="2px solid #EC008C"
                         noIconBg
-                            onClick={() => {
+                        onClick={() => {
                           window.location.href = `/sites/Projects/SitePages/PipelineDetails.aspx?projectId=${item.Id}`;
                         }}
                       />

@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import styles from "./Documents.module.scss";
 import { getProjectDocuments, uploadProjectDocument, deleteProjectDocument, downloadProjectDocument, initializePnP, getDocumentsByServerRelativeUrl, uploadDocumentByServerRelativeUrl, deleteDocumentByServerRelativeUrl, createFolderByServerRelativeUrl, uploadDocumentWithFolderCreation } from "../../../../shared/services/projectService";
-import { initLibraryDiscoveryService, getProjectLibraryName, getProjectById } from "../../../../shared/services/libraryDiscoveryService";
+import { initLibraryDiscoveryService, getProjectLibraryName, getProjectById, findProjectLibraryByProject } from "../../../../shared/services/libraryDiscoveryService";
 
 import GlobalLoader from "../../../../shared/component/GlobalLoader";
 import FileUploadModal from "./FileUploadModal/FileUploadModal";
@@ -111,39 +111,51 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
         console.log('📊 Project Data fetched:', projectData);
         
         if (projectData && typeof projectData === 'object' && 'ProjectDocumentsUrl' in projectData) {
-          const projUrl = projectData.ProjectDocumentsUrl || '';
-          const bidUrl = projectData.BidDocumentsUrl || '';
-          const contractUrl = projectData.ContractsDocumentsUrl || '';
+          const cleanUrl = (url: any) => {
+            if (!url) return '';
+            const trimmed = String(url).trim();
+            // Valid path should start with '/sites' or 'http'
+            const isValidPath = trimmed.toLowerCase().startsWith('/sites') || trimmed.startsWith('http');
+            return (trimmed === '-' || trimmed === '' || !isValidPath) ? '' : trimmed;
+          };
+
+          const projUrl = cleanUrl(projectData.ProjectDocumentsUrl);
+          const bidUrl = cleanUrl(projectData.BidDocumentsUrl);
+          const contractUrl = cleanUrl(projectData.ContractsDocumentsUrl);
           const status = projectData.Status || '';
+
+          let fetchedLibraryName = '';
+          if (!projUrl) {
+            // Strict check: only show if library actually exists in SharePoint
+            const found = await findProjectLibraryByProject(projectCode, projectTitle);
+            fetchedLibraryName = found || '';
+          }
 
           setProjectDocumentsUrl(projUrl);
           setBidDocumentsUrl(bidUrl);
           setContractsDocumentsUrl(contractUrl);
           setProjectStatus(status);
+          setLibraryName(fetchedLibraryName);
 
-          if (status === 'Potential' && bidUrl) {
-            setActiveDocTab('bid');
-          }
-          else if (projUrl) {
+          if (projUrl || fetchedLibraryName) {
             setActiveDocTab('project');
-          } else if (contractUrl) {
-            setActiveDocTab('contract');
           } else if (bidUrl) {
             setActiveDocTab('bid');
-          }
-
-          if (!projUrl && !bidUrl && !contractUrl) {
-            const name = await getProjectLibraryName(projectCode, projectTitle);
-            setLibraryName(name);
+          } else if (contractUrl) {
+            setActiveDocTab('contract');
+          } else {
+            // Default to project, but if hasAnyUrl is false, nothing will show in render
+            setActiveDocTab('project');
           }
         } else {
-          const name = await getProjectLibraryName(projectCode, projectTitle);
-          setLibraryName(name);
+          const found = await findProjectLibraryByProject(projectCode, projectTitle);
+          setLibraryName(found || '');
+          setActiveDocTab('project');
         }
       } catch (error) {
         console.error('Error fetching project URLs:', error);
-        const name = await getProjectLibraryName(projectCode, projectTitle);
-        setLibraryName(name);
+        const found = await findProjectLibraryByProject(projectCode, projectTitle);
+        setLibraryName(found || '');
       }
     };
     void fetchProjectUrls();
@@ -493,55 +505,62 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
 
   if (loading) return <GlobalLoader variant="content" />;
 
-  const hasAnyUrl = projectDocumentsUrl || bidDocumentsUrl || contractsDocumentsUrl;
+  const hasAnyUrl = projectDocumentsUrl || bidDocumentsUrl || contractsDocumentsUrl || libraryName;
   const isPipelineProject = projectStatus === 'Potential';
 
   return (
     <>
       <div className={styles.documentsWrapper}>
-        {hasAnyUrl && (
-          <div className={styles.documentTabs}>
-            {!isPipelineProject && (projectDocumentsUrl || (!bidDocumentsUrl && !contractsDocumentsUrl)) && (
-              <button
-                className={`${styles.docTab} ${activeDocTab === 'project' ? styles.activeDocTab : ''}`}
-                onClick={() => {
-                  setActiveDocTab('project');
-                  setCurrentFolderPath('');
-                  setSelectedItems(new Set());
-                }}
-              >
-                Project Documents
-              </button>
-            )}
-            
-            {isPipelineProject && bidDocumentsUrl && (
-              <button
-                className={`${styles.docTab} ${activeDocTab === 'bid' ? styles.activeDocTab : ''}`}
-                onClick={() => {
-                  setActiveDocTab('bid');
-                  setCurrentFolderPath('');
-                  setSelectedItems(new Set());
-                }}
-              >
-                Bid Documents
-              </button>
-            )}
+        <div className={styles.tabRow}>
+          {hasAnyUrl && (
+            <div className={styles.documentTabs}>
+              {(projectDocumentsUrl || libraryName) && (
+                <button
+                  className={`${styles.docTab} ${activeDocTab === 'project' ? styles.activeDocTab : ''}`}
+                  onClick={() => {
+                    setActiveDocTab('project');
+                    setCurrentFolderPath('');
+                    setSelectedItems(new Set());
+                  }}
+                >
+                  Project Documents
+                </button>
+              )}
+              
+              {bidDocumentsUrl && (
+                <button
+                  className={`${styles.docTab} ${activeDocTab === 'bid' ? styles.activeDocTab : ''}`}
+                  onClick={() => {
+                    setActiveDocTab('bid');
+                    setCurrentFolderPath('');
+                    setSelectedItems(new Set());
+                  }}
+                >
+                  Bid Documents
+                </button>
+              )}
 
-            {contractsDocumentsUrl && (
-              <button
-                className={`${styles.docTab} ${activeDocTab === 'contract' ? styles.activeDocTab : ''}`}
-                onClick={() => {
-                  setActiveDocTab('contract');
-                  setCurrentFolderPath('');
-                  setSelectedItems(new Set());
-                }}
-              >
-                Contract Documents
-              </button>
-            )}
+              {contractsDocumentsUrl && (
+                <button
+                  className={`${styles.docTab} ${activeDocTab === 'contract' ? styles.activeDocTab : ''}`}
+                  onClick={() => {
+                    setActiveDocTab('contract');
+                    setCurrentFolderPath('');
+                    setSelectedItems(new Set());
+                  }}
+                >
+                  Contract Documents
+                </button>
+              )}
+            </div>
+          )}
 
-          </div>
-        )}
+          {!hideNewButton && canAdd && (
+            <button className={styles.newButton} onClick={handleNewDocument}>
+              <span className={styles.plusIcon}>+</span> New
+            </button>
+          )}
+        </div>
 
         <div className={styles.h}>
           <div className={styles.breadcrumbsContainer}>
@@ -588,12 +607,6 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
           )}
 
           <div className={styles.toolbar}>
-
-            {!hideNewButton && canAdd && (
-              <button className={styles.newButton} onClick={handleNewDocument}>
-                <span className={styles.plusIcon}>+</span> New
-              </button>
-            )}
           </div>
         </div>
 
