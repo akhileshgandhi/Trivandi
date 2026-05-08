@@ -25,8 +25,10 @@ const DEFAULT_COLUMNS: TableColumn[] = [
     key: "Title",
     label: "Project Title",
     filterable: true,
-    render: (value: any) => (
-      <span className={styles.pipelineTitle}>{value ?? "-"}</span>
+    render: (value: any, row: any) => (
+      <span className={styles.pipelineTitle}>
+        {row.Code ? `${row.Code} - ` : ""}{value ?? "-"}
+      </span>
     ),
     sortable: true,
   },
@@ -55,7 +57,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
 
   const COLUMN_STORAGE_KEY = `bids_column_order_${props.userDisplayName}`;
   const COLUMN_VERSION_KEY = `bids_column_version_${props.userDisplayName}`;
-  const CURRENT_COLUMN_VERSION = '2'; // Increment when changing default columns
+  const CURRENT_COLUMN_VERSION = '5'; // Increment when changing default columns
 
   const [allColumns, setAllColumns] = useState<TableColumn[]>(DEFAULT_COLUMNS);
 

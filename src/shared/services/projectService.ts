@@ -65,7 +65,7 @@ const EXCLUDED_FIELDS = [
  */
 export const DEFAULT_COLUMN_KEYS = [
   "Title",
-  "Company", 
+  "Company",
   "Owner",
   "BusinessUnit",
   "Sector",
@@ -429,12 +429,12 @@ export const addProject = async (data: Record<string, any>) => {
  */
 const toServerRelativeUrl = (url: string): string => {
   if (!url) return '';
-  
+
   // If already server relative (starts with /), decode and return
   if (url.startsWith('/')) {
     return decodeURIComponent(url);
   }
-  
+
   // If full URL, extract the path part and decode
   try {
     const urlObj = new URL(url);
@@ -456,18 +456,18 @@ const toServerRelativeUrl = (url: string): string => {
 const parseSiteAndFolder = (serverRelativeUrl: string): { siteUrl: string; folderPath: string } => {
   // Format: /sites/sitename/library/folder
   const parts = serverRelativeUrl.split('/').filter(Boolean);
-  
+
   if (parts.length < 2) {
     return { siteUrl: '', folderPath: serverRelativeUrl };
   }
-  
+
   // Check if it's a /sites/ URL
   if (parts[0] === 'sites' && parts.length >= 2) {
     const siteUrl = `/${parts[0]}/${parts[1]}`;
     const folderPath = parts.slice(2).join('/');
     return { siteUrl, folderPath: folderPath ? `/${folderPath}` : '' };
   }
-  
+
   // Default: treat first part as site
   return { siteUrl: `/${parts[0]}`, folderPath: `/${parts.slice(1).join('/')}` };
 };
@@ -483,11 +483,11 @@ export const getDocumentsByServerRelativeUrl = async (serverRelativeUrl: string,
   try {
     console.log("🔍 Input URL:", serverRelativeUrl);
     console.log("🔍 SubFolder:", subFolderPath);
-    
+
     // Convert to server relative URL if it's a full URL
     const relativeUrl = toServerRelativeUrl(serverRelativeUrl);
     const fullPath = subFolderPath ? `${relativeUrl}/${subFolderPath}` : relativeUrl;
-    
+
     console.log("🔗 Converted to server relative:", relativeUrl);
     console.log("📁 Full path with subfolder:", fullPath);
 
@@ -499,9 +499,9 @@ export const getDocumentsByServerRelativeUrl = async (serverRelativeUrl: string,
     // Get the web context for the target site using absolute URL
     const absoluteSiteUrl = `${window.location.protocol}//${window.location.hostname}${siteUrl}`;
     console.log("🌍 Absolute site URL:", absoluteSiteUrl);
-    
+
     const targetWeb = Web([sp.web, absoluteSiteUrl]);
-    
+
     // Get files from the folder
     const items = await targetWeb
       .getFolderByServerRelativePath(fullPath)
@@ -555,7 +555,7 @@ export const getDocumentsByServerRelativeUrl = async (serverRelativeUrl: string,
     console.error("❌ Error fetching documents by server relative URL:", error);
     console.error("📍 Failed URL:", serverRelativeUrl);
     console.error("📍 SubFolder:", subFolderPath);
-    
+
     // Provide more specific error information
     if (error instanceof Error) {
       console.error("📍 Error message:", error.message);
@@ -563,7 +563,7 @@ export const getDocumentsByServerRelativeUrl = async (serverRelativeUrl: string,
         console.error("💡 Folder may not exist or access denied. Check URL format and permissions.");
       }
     }
-    
+
     return [];
   }
 };
@@ -617,9 +617,9 @@ export const getProjectDocuments = async (libraryName: string, folderPath: strin
       // First, get the root folder path to construct the full server-relative path
       const rootFolder = await sp.web.lists.getByTitle(libraryName).rootFolder();
       const rootFolderPath = rootFolder.ServerRelativeUrl;
-      
+
       // Construct the full server-relative path
-      const fullFolderPath = folderPath.startsWith('/') 
+      const fullFolderPath = folderPath.startsWith('/')
         ? `${rootFolderPath}${folderPath}`
         : `${rootFolderPath}/${folderPath}`;
 
@@ -716,7 +716,7 @@ export const ensureFolderPathByServerRelativeUrl = async (serverRelativeUrl: str
 
     for (const folderName of pathParts) {
       const newPath = `${currentPath}/${folderName}`;
-      
+
       try {
         // Check if folder exists
         await targetWeb.getFolderByServerRelativePath(newPath).select("Name")();
@@ -729,10 +729,10 @@ export const ensureFolderPathByServerRelativeUrl = async (serverRelativeUrl: str
           .addUsingPath(folderName);
         console.log("✅ Created folder:", newPath);
       }
-      
+
       currentPath = newPath;
     }
-    
+
     console.log("✅ Folder path ensured:", folderPath);
   } catch (error) {
     console.error("❌ Error ensuring folder path:", error);
@@ -806,12 +806,12 @@ export const deleteDocumentByServerRelativeUrl = async (fileServerRelativeUrl: s
     // Convert to server relative URL if it's a full URL
     const relativeUrl = toServerRelativeUrl(fileServerRelativeUrl);
     console.log("🗑️ Deleting file at:", relativeUrl);
-    
+
     // Parse site URL
     const { siteUrl } = parseSiteAndFolder(relativeUrl);
     const absoluteSiteUrl = `https://${window.location.hostname}${siteUrl}`;
     const targetWeb = Web([sp.web, absoluteSiteUrl]);
-    
+
     await targetWeb.getFileByServerRelativePath(relativeUrl).delete();
     console.log("File deleted successfully");
   } catch (error) {

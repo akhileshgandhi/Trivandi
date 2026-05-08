@@ -310,6 +310,13 @@
 .projectLink {
   font-weight: 700;
   cursor: pointer;
+  color: #484848;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    color: #0511F2; /* Optional: keep blue on hover to show it's a link */
+  }
 }
 
 /* ================= PROJECT POPUP ================= */

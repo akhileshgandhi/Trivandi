@@ -118,13 +118,11 @@ const Projects: React.FC<IProjectsProps> = (props) => {
                   href={`/sites/Projects/SitePages/ProjectDetails.aspx?projectId=${row.ID}`}
                   className={styles.projectLink}
                   onClick={() => {
-                    // Set flag to indicate navigation from Projects page - Dashboard should be default
                     sessionStorage.setItem('projectDetails_navigation_source', 'projects_page');
-                    // Set Dashboard as default for this specific project
                     sessionStorage.setItem(`projectDetails_tab_${row.ID}`, 'Dashboard');
                   }}
                 >
-                  {row.Title}
+                  {row.Code ? `${row.Code} - ` : ""}{row.Title}
                 </a>
               ),
             };
