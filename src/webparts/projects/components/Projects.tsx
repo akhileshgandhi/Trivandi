@@ -88,6 +88,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({});
   const [sortColumn, setSortColumn] = useState<string>("ID");
   const [sortAscending, setSortAscending] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   /* ===================== LOAD COLUMNS ===================== */
   useEffect(() => {
@@ -186,7 +187,8 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     status?: string,
     tab?: string,
     sCol?: string,
-    sAsc?: boolean
+    sAsc?: boolean,
+    sTerm?: string
   ) => {
     setIsLoading(true);
     try {
@@ -194,6 +196,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       const statusToUse = status || mapTabToStatus(currentTab);
       const sColToUse = sCol ?? sortColumn;
       const sAscToUse = sAsc ?? sortAscending;
+      const sTermToUse = sTerm ?? searchTerm;
 
       // Add noncmap filter: include only NonCmap items for Non-CMAP tab, exclude them for Live/Closed
       const finalFilters = currentTab === "Non-CMAP"
@@ -208,7 +211,8 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         PAGE_SIZE,
         finalFilters,
         sColToUse,
-        sAscToUse
+        sAscToUse,
+        sTermToUse
       );
 
       console.log("Loaded projects - Count:", items.length, "Total:", totalCount, "Page:", page, items, "items:");
@@ -230,7 +234,13 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     setSortColumn(columnKey);
     setSortAscending(ascending);
     setCurrentPage(1);
-    void loadProjects(1, serverFilters, undefined, undefined, columnKey, ascending);
+    void loadProjects(1, serverFilters, undefined, undefined, columnKey, ascending, searchTerm);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+    void loadProjects(1, serverFilters, undefined, undefined, sortColumn, sortAscending, value);
   };
 
   const loadUniqueValues = async (tab?: string) => {
@@ -508,7 +518,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       setOrderedColumnKeys(DEFAULT_COLUMN_KEYS);
     }
     const status = mapTabToStatus(savedTab);
-    void loadProjects(1, {}, status);
+    void loadProjects(1, {}, status, savedTab, undefined, undefined, searchTerm);
   }, []);
 
   useEffect(() => {
@@ -543,14 +553,15 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     setCurrentPage(p);
     const status = mapTabToStatus(activeTab);
     console.log("Calling loadProjects with page:", p, "status:", status, "filters:", serverFilters);
-    void loadProjects(p, serverFilters, status, activeTab);
-  }, [activeTab, serverFilters]);
+    void loadProjects(p, serverFilters, status, activeTab, undefined, undefined, searchTerm);
+  }, [activeTab, serverFilters, searchTerm]);
 
   const handleResetFilters = () => {
     setServerFilters({});
     setCurrentPage(1);
+    setSearchTerm("");
     const status = mapTabToStatus(activeTab);
-    void loadProjects(1, {}, status, activeTab);
+    void loadProjects(1, {}, status, activeTab, undefined, undefined, "");
   };
 
   /* ===================== ORDERED COLUMNS ===================== */
@@ -696,7 +707,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             onFilterChange={(filters) => {
               setServerFilters(filters);
               const status = mapTabToStatus(activeTab);
-              void loadProjects(1, filters, status, activeTab);
+              void loadProjects(1, filters, status, activeTab, undefined, undefined, searchTerm);
             }}
             onResetFilters={handleResetFilters}
             activeFilters={serverFilters}
@@ -717,6 +728,8 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             sortColumn={sortColumn}
             sortAscending={sortAscending}
             onSort={handleSort}
+            searchTerm={searchTerm}
+            onSearch={handleSearch}
           />
         )}
 

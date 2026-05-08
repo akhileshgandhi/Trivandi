@@ -175,7 +175,8 @@ export const getProjectsPage = async (
   pageSize: number,
   filters: Record<string, string> = {},
   sortColumn?: string,
-  sortAscending: boolean = true
+  sortAscending: boolean = true,
+  searchTerm?: string
 ): Promise<PagedResult<any>> => {
   if (!sp) throw new Error("PnPjs not initialized");
 
@@ -220,7 +221,15 @@ export const getProjectsPage = async (
     }
   });
 
+  // Global search across Project Title and Company
+  if (searchTerm && searchTerm.trim()) {
+    const safeSearch = searchTerm.replace(/'/g, "''");
+    // User requested to search by Project Title and Company
+    filterParts.push(`(substringof('${safeSearch}',Title) or substringof('${safeSearch}',Company))`);
+  }
+
   const filterString = filterParts.join(" and ");
+  console.log("Generated OData filter:", filterString);
 
   // Check expand fields from filters too
   Object.keys(filters).forEach((k) => {

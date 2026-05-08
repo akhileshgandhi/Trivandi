@@ -51,6 +51,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({});
   const [sortColumn, setSortColumn] = useState<string>("ID");
   const [sortAscending, setSortAscending] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   const COLUMN_STORAGE_KEY = `bids_column_order_${props.userDisplayName}`;
   const COLUMN_VERSION_KEY = `bids_column_version_${props.userDisplayName}`;
@@ -93,9 +94,10 @@ const Bids: React.FC<IBidsProps> = (props) => {
   };
 
   /* ===================== LOAD BIDS ===================== */
-  const loadBids = async (page = 1, filters: Record<string, string> = {}) => {
+  const loadBids = async (page = 1, filters: Record<string, string> = {}, sTerm?: string) => {
     setIsLoading(true);
     try {
+      const termToUse = sTerm ?? searchTerm;
       console.log(`🔍 Loading ${activeTab} tab`);
 
       let allItems: any[] = [];
@@ -123,18 +125,6 @@ const Bids: React.FC<IBidsProps> = (props) => {
             // const { items } = await getProjectsPage(status, 1, 5000, {});
             const { items } = await getProjectsPage(status, 1, 5000, filters);
             allItems.push(...items);
-            // Client-side filter by Status field
-            // const lostItems = items.filter((item: any) => {
-            //   const itemStatus = item.Status?.toLowerCase();
-            //   return lostStatusValues.some(lostStatus =>
-            //     lostStatus.toLowerCase() === itemStatus
-            //   );
-            // });
-
-            // if (lostItems.length > 0) {
-            //   console.log(`✅ Found ${lostItems.length} lost items from ${status} query`);
-            //   allItems.push(...lostItems);
-            // }
           } catch (err) {
             console.error(`Error checking ${status}:`, err);
           }
@@ -149,6 +139,20 @@ const Bids: React.FC<IBidsProps> = (props) => {
             });
           });
         }
+      }
+
+      // Apply global search
+      if (termToUse && termToUse.trim()) {
+        const lowerTerm = termToUse.toLowerCase();
+        allItems = allItems.filter(item => {
+          return (
+            String(item.Title ?? "").toLowerCase().includes(lowerTerm) ||
+            String(item.Company ?? "").toLowerCase().includes(lowerTerm) ||
+            String(item.Owner ?? "").toLowerCase().includes(lowerTerm) ||
+            String(item.Sector ?? "").toLowerCase().includes(lowerTerm) ||
+            String(item.Country ?? "").toLowerCase().includes(lowerTerm)
+          );
+        });
       }
 
       console.log(`📊 Total items for ${activeTab}: ${allItems.length}`);
@@ -178,18 +182,24 @@ const Bids: React.FC<IBidsProps> = (props) => {
   const handleSort = (columnKey: string, ascending: boolean) => {
     setSortColumn(columnKey);
     setSortAscending(ascending);
-    
+
     // Client-side sort for Bids since it fetches 5000 items
     const sortedRows = [...rows].sort((a, b) => {
       const valA = a[columnKey] ?? "";
       const valB = b[columnKey] ?? "";
-      
+
       if (valA < valB) return ascending ? -1 : 1;
       if (valA > valB) return ascending ? 1 : -1;
       return 0;
     });
-    
+
     setRows(sortedRows);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+    void loadBids(1, serverFilters, value);
   };
 
   const loadUniqueValues = async (tab?: string) => {
@@ -281,8 +291,9 @@ const Bids: React.FC<IBidsProps> = (props) => {
 
   const handleResetFilters = () => {
     setServerFilters({});
+    setSearchTerm("");
     setCurrentPage(1);
-    void loadBids(1, {});
+    void loadBids(1, {}, "");
   };
 
   const handleTabChange = (tab: string) => {
@@ -368,7 +379,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
             onFilterChange={(filters) => {
               // Filters use SharePoint column names directly
               setServerFilters(filters);
-              void loadBids(1, filters);
+              void loadBids(1, filters, searchTerm);
             }}
             onResetFilters={handleResetFilters}
             activeFilters={serverFilters}
@@ -384,6 +395,8 @@ const Bids: React.FC<IBidsProps> = (props) => {
             sortColumn={sortColumn}
             sortAscending={sortAscending}
             onSort={handleSort}
+            searchTerm={searchTerm}
+            onSearch={handleSearch}
           />
         </div>
       )}

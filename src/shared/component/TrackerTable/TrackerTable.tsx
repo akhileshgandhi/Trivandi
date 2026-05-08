@@ -39,6 +39,9 @@ interface TrackerTableProps {
   sortColumn?: string;
   sortAscending?: boolean;
   onSort?: (columnKey: string, ascending: boolean) => void;
+  // Search
+  searchTerm?: string;
+  onSearch?: (value: string) => void;
 }
 
 const TrackerTable: React.FC<TrackerTableProps> = ({
@@ -72,6 +75,8 @@ const TrackerTable: React.FC<TrackerTableProps> = ({
   sortColumn,
   sortAscending,
   onSort,
+  searchTerm,
+  onSearch,
 }) => {
   return (
     <div className={styles.trackerWrapper}>
@@ -100,6 +105,52 @@ const TrackerTable: React.FC<TrackerTableProps> = ({
               </button>
             ))}
           </div>
+
+          <div className={styles.searchBox}>
+            <input
+              type="text"
+              placeholder="Search Projects..."
+              value={searchTerm || ""}
+              onChange={(e) => onSearch?.(e.target.value)}
+              className={styles.searchInput}
+            />
+            <svg
+              className={styles.searchIcon}
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M21 21L16.65 16.65"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {searchTerm && (
+              <button
+                type="button"
+                className={styles.clearSearchBtn}
+                onClick={() => onSearch?.("")}
+                title="Clear search"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+          </div>
+
           <div className={styles.reset}>
             {/* RESET FILTERS BUTTON */}
             {/* {onResetFilters && activeFilters && Object.keys(activeFilters).length > 0 && (
