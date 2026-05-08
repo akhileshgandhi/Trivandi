@@ -16,7 +16,7 @@ import {
 } from "../../../shared/services/teamMemberService";
 import styles from "./ProjectDetails.module.scss";
 import { IProjectDetailsProps } from "./IProjectDetailsProps";
-import CusomDocumentsList from "./CustomComponent/CusomDocumentsList";
+import CustomDocumentsList from "./CustomComponent/CustomDocumentsList";
 import AddTeamMemberModal from "./CustomComponent/AddTeamMemberModal/AddTeamMemberModal";
 import "../../../shared/globalcss/globalcss.scss";
 import { ArrowLeft, CalendarDays, MapPin, User } from "lucide-react";
@@ -855,7 +855,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
       )}
 
       {activeTab === "Documents" && (
-        <CusomDocumentsList
+        <CustomDocumentsList
           projectId={project.Id || Number(project.ProjectId) || 0}
           projectCode={project.Code || project.ProjectId || ""}
           projectTitle={project.Title}

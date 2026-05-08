@@ -477,7 +477,12 @@ const parseSiteAndFolder = (serverRelativeUrl: string): { siteUrl: string; folde
  * @param serverRelativeUrl - The full or server relative URL to the folder
  * @param subFolderPath - Optional subfolder navigation within the URL
  */
-export const getDocumentsByServerRelativeUrl = async (serverRelativeUrl: string, subFolderPath: string = "") => {
+export const getDocumentsByServerRelativeUrl = async (
+  serverRelativeUrl: string, 
+  subFolderPath: string = "",
+  page: number = 1,
+  pageSize: number = 10
+): Promise<{ items: any[]; totalCount: number }> => {
   if (!sp) throw new Error("PnPjs not initialized");
 
   try {
@@ -550,7 +555,12 @@ export const getDocumentsByServerRelativeUrl = async (serverRelativeUrl: string,
     ];
 
     console.log("✅ Combined items:", allItems.length);
-    return allItems;
+    
+    const totalCount = allItems.length;
+    const skip = (page - 1) * pageSize;
+    const pagedItems = allItems.slice(skip, skip + pageSize);
+
+    return { items: pagedItems, totalCount };
   } catch (error) {
     console.error("❌ Error fetching documents by server relative URL:", error);
     console.error("📍 Failed URL:", serverRelativeUrl);
@@ -564,12 +574,17 @@ export const getDocumentsByServerRelativeUrl = async (serverRelativeUrl: string,
       }
     }
 
-    return [];
+    return { items: [], totalCount: 0 };
   }
 };
 
 // Update getProjectDocuments - Remove 'Name' field
-export const getProjectDocuments = async (libraryName: string, folderPath: string = "") => {
+export const getProjectDocuments = async (
+  libraryName: string, 
+  folderPath: string = "",
+  page: number = 1,
+  pageSize: number = 10
+): Promise<{ items: any[]; totalCount: number }> => {
   if (!sp) throw new Error("PnPjs not initialized");
 
   try {
@@ -611,7 +626,12 @@ export const getProjectDocuments = async (libraryName: string, folderPath: strin
       }));
 
       console.log("Root items found:", mappedRootItems.length);
-      return mappedRootItems;
+      
+      const totalCount = mappedRootItems.length;
+      const skip = (page - 1) * pageSize;
+      const pagedItems = mappedRootItems.slice(skip, skip + pageSize);
+
+      return { items: pagedItems, totalCount };
     } else {
       // Get items from specific folder
       // First, get the root folder path to construct the full server-relative path
@@ -652,11 +672,16 @@ export const getProjectDocuments = async (libraryName: string, folderPath: strin
       }));
 
       console.log("Folder items found:", mappedFolderItems.length);
-      return mappedFolderItems;
+      
+      const totalCount = mappedFolderItems.length;
+      const skip = (page - 1) * pageSize;
+      const pagedItems = mappedFolderItems.slice(skip, skip + pageSize);
+
+      return { items: pagedItems, totalCount };
     }
   } catch (error) {
     console.error("Error fetching documents:", error);
-    return [];
+    return { items: [], totalCount: 0 };
   }
 };
 

@@ -387,82 +387,26 @@ export class ProjectExternalPortalService {
   //      ];
   //    }
   //  }
-  public async getProjectDocuments(libraryName: string, folderPath: string = ""): Promise<any[]> {
+  public async getProjectDocuments(
+    libraryName: string, 
+    folderPath: string = "",
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<any[]> {
     if (!this.sp) throw new Error("PnPjs not initialized");
 
     try {
       console.log("Library:", libraryName, "Folder:", folderPath || "root");
 
-      // If no folder path, get items from root
       if (!folderPath) {
-        const items = await this.sp.web.lists
-          .getByTitle(libraryName)
-          .items
-          .select(
-            "Id",
-            "FileLeafRef",
-            "Modified",
-            "Editor/Title",
-            "File_x0020_Type",
-            "FileRef",
-            "FSObjType",
-            "OData__UIVersionString",
-          )
-          .expand("Editor")
-          .filter("FSObjType eq 1 or FSObjType eq 0")
-          .orderBy("FSObjType", false)
-          .orderBy("FileLeafRef", true)
-          .top(500)();
-
-        // Filter to only root level items
-        const rootPath = await this.sp.web.lists.getByTitle(libraryName).rootFolder.select("ServerRelativeUrl")();
-        const rootItems = items.filter(item => {
-          const itemPath = item.FileRef || "";
-          const relativePath = itemPath.replace(rootPath.ServerRelativeUrl + "/", "");
-          return !relativePath.includes("/");
-        });
-
-        // Map SharePoint internal version field to expected VersionLabel
-        const mappedRootItems = rootItems.map((item: any) => ({
-          ...item,
-          VersionLabel: item.OData__UIVersionString,
-        }));
+        const result = await getProjectDocuments(libraryName, folderPath, page, pageSize);
+        const mappedRootItems = result.items;
 
         console.log("Root items found:", mappedRootItems.length);
         return mappedRootItems;
       } else {
-        // Get items from specific folder
-        const folder = await this.sp.web.lists
-          .getByTitle(libraryName)
-          .rootFolder
-          .folders
-          .getByUrl(folderPath)();
-
-        const items = await this.sp.web.lists
-          .getByTitle(libraryName)
-          .items
-          .select(
-            "Id",
-            "FileLeafRef",
-            "Modified",
-            "Editor/Title",
-            "File_x0020_Type",
-            "FileRef",
-            "FSObjType",
-            "OData__UIVersionString",
-            "FileDirRef"
-          )
-          .expand("Editor")
-          .filter(`FileDirRef eq '${folder.ServerRelativeUrl}'`)
-          .orderBy("FSObjType", false)
-          .orderBy("FileLeafRef", true)
-          .top(500)();
-
-        // Map SharePoint internal version field to expected VersionLabel
-        const mappedFolderItems = items.map((item: any) => ({
-          ...item,
-          VersionLabel: item.OData__UIVersionString,
-        }));
+        const result = await getProjectDocuments(libraryName, folderPath, page, pageSize);
+        const mappedFolderItems = result.items;
 
         console.log("Folder items found:", mappedFolderItems.length);
         return mappedFolderItems;
@@ -476,7 +420,11 @@ export class ProjectExternalPortalService {
    * Get project documents and folders for import (with caching)
    * Uses project-specific document library
    */
-  public async getProjectDocumentsForImport(folderPath: string = ''): Promise<any[]> {
+  public async getProjectDocumentsForImport(
+    folderPath: string = '',
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<any[]> {
     if (!this.projectLibraryName) {
       console.warn('Project library name not set. Using mock data.');
       return this._getMockDocuments();
@@ -486,7 +434,7 @@ export class ProjectExternalPortalService {
 
     return this._getCachedOrFetch(cacheKey, async () => {
       try {
-        const items = await getProjectDocuments(this.projectLibraryName, folderPath);
+        const items = await this.getProjectDocuments(this.projectLibraryName, folderPath, page, pageSize);
 
         return items.map((item: any) => ({
           id: item.Id,
@@ -506,7 +454,12 @@ export class ProjectExternalPortalService {
    * Get documents from all 3 document types for import (Project, Bid, Contract Documents)
    * This method fetches documents from ProjectDocumentsUrl, BidDocumentsUrl, and ContractsDocumentsUrl
    */
-  public async getAllProjectDocumentsForImport(projectId: string, folderPath: string = ''): Promise<any[]> {
+  public async getAllProjectDocumentsForImport(
+    projectId: string, 
+    folderPath: string = '',
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<any[]> {
     const cacheKey = `all_project_documents_import_${projectId}_${folderPath}`;
 
     return this._getCachedOrFetch(cacheKey, async () => {
@@ -547,7 +500,8 @@ export class ProjectExternalPortalService {
         // Load documents from Project Documents URL
         if (projectDocUrl) {
           try {
-            const projectDocs = await getDocumentsByServerRelativeUrl(projectDocUrl, folderPath);
+            const result = await getDocumentsByServerRelativeUrl(projectDocUrl, folderPath, page, pageSize);
+            const projectDocs = result.items;
             const mappedProjectDocs = projectDocs.map((item: any) => ({
               id: item.Id,
               name: item.FileLeafRef,
@@ -565,7 +519,8 @@ export class ProjectExternalPortalService {
         // Load documents from Bid Documents URL
         if (bidDocUrl) {
           try {
-            const bidDocs = await getDocumentsByServerRelativeUrl(bidDocUrl, folderPath);
+            const result = await getDocumentsByServerRelativeUrl(bidDocUrl, folderPath, page, pageSize);
+            const bidDocs = result.items;
             const mappedBidDocs = bidDocs.map((item: any) => ({
               id: item.Id + 10000, // Offset ID to avoid conflicts
               name: item.FileLeafRef,
@@ -583,7 +538,8 @@ export class ProjectExternalPortalService {
         // Load documents from Contract Documents URL
         if (contractDocUrl) {
           try {
-            const contractDocs = await getDocumentsByServerRelativeUrl(contractDocUrl, folderPath);
+            const result = await getDocumentsByServerRelativeUrl(contractDocUrl, folderPath, page, pageSize);
+            const contractDocs = result.items;
             const mappedContractDocs = contractDocs.map((item: any) => ({
               id: item.Id + 20000, // Offset ID to avoid conflicts
               name: item.FileLeafRef,
@@ -1224,9 +1180,13 @@ export class ProjectExternalPortalService {
    * Only returns documents the current user has access to
    * For users in ExternalGuestAccess, only shows documents explicitly shared with them
    */
-  public async getSharedDocumentsFromExternalLibrary(folderPath: string = ''): Promise<ISharedDocument[]> {
+  public async getSharedDocumentsFromExternalLibrary(
+    folderPath: string = '',
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<ISharedDocument[]> {
     const libraryName = this.externalLibraryName;
-    const cacheKey = `shared_docs_${libraryName}_${folderPath}`;
+    const cacheKey = `shared_docs_${libraryName}_${folderPath}_p${page}_s${pageSize}`;
 
     return this._getCachedOrFetch(cacheKey, async () => {
       try {
@@ -1255,7 +1215,8 @@ export class ProjectExternalPortalService {
           }
         }
 
-        const items = await getProjectDocuments(libraryName, folderPath);
+        const result = await getProjectDocuments(libraryName, folderPath, page, pageSize);
+        const items = result.items;
         console.log(`Found ${items.length} documents in ${libraryName}${folderPath ? '/' + folderPath : ''}`);
 
         const documents: ISharedDocument[] = items.map((item: any) => ({
@@ -1322,6 +1283,36 @@ export class ProjectExternalPortalService {
         throw error;
       }
     });
+  }
+
+  public async getSharedDocumentsFromExternalArea(
+    folderPath: string,
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<ISharedDocument[]> {
+    try {
+      const { getProjectDocuments } = await import('../../../shared/services/projectService');
+      const libraryName = this.externalLibraryName;
+      const result = await getProjectDocuments(libraryName, folderPath, page, pageSize);
+      const items = result.items;
+
+      if (!items || items.length === 0) {
+        return [];
+      }
+
+      return items.map((item: any) => ({
+        id: item.Id,
+        name: item.FileLeafRef,
+        modified: new Date(item.Modified),
+        modifiedBy: item.Editor?.Title || 'Unknown',
+        path: folderPath ? `${folderPath}/${item.FileLeafRef}` : item.FileLeafRef,
+        fileRef: item.FileRef,
+        isFolder: item.FSObjType === 1
+      }));
+    } catch (error) {
+      console.error('Error fetching documents from external area:', error);
+      return [];
+    }
   }
 
   /**
