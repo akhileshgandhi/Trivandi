@@ -86,6 +86,8 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     {}
   );
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({});
+  const [sortColumn, setSortColumn] = useState<string>("ID");
+  const [sortAscending, setSortAscending] = useState<boolean>(false);
 
   /* ===================== LOAD COLUMNS ===================== */
   useEffect(() => {
@@ -111,18 +113,18 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             return {
               ...col,
               render: (_: any, row: any) => (
-                <span
+                <a
+                  href={`/sites/Projects/SitePages/ProjectDetails.aspx?projectId=${row.ID}`}
                   className={styles.projectLink}
                   onClick={() => {
                     // Set flag to indicate navigation from Projects page - Dashboard should be default
                     sessionStorage.setItem('projectDetails_navigation_source', 'projects_page');
                     // Set Dashboard as default for this specific project
                     sessionStorage.setItem(`projectDetails_tab_${row.ID}`, 'Dashboard');
-                    window.location.href = `/sites/Projects/SitePages/ProjectDetails.aspx?projectId=${row.ID}`;
                   }}
                 >
                   {row.Title}
-                </span>
+                </a>
               ),
             };
           }
@@ -182,12 +184,16 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     page = 1,
     filters: Record<string, string> = {},
     status?: string,
-    tab?: string
+    tab?: string,
+    sCol?: string,
+    sAsc?: boolean
   ) => {
     setIsLoading(true);
     try {
       const currentTab = tab || activeTab;
       const statusToUse = status || mapTabToStatus(currentTab);
+      const sColToUse = sCol ?? sortColumn;
+      const sAscToUse = sAsc ?? sortAscending;
 
       // Add noncmap filter: include only NonCmap items for Non-CMAP tab, exclude them for Live/Closed
       const finalFilters = currentTab === "Non-CMAP"
@@ -200,7 +206,9 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         statusToUse,
         page,
         PAGE_SIZE,
-        finalFilters
+        finalFilters,
+        sColToUse,
+        sAscToUse
       );
 
       console.log("Loaded projects - Count:", items.length, "Total:", totalCount, "Page:", page, items, "items:");
@@ -216,6 +224,13 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSort = (columnKey: string, ascending: boolean) => {
+    setSortColumn(columnKey);
+    setSortAscending(ascending);
+    setCurrentPage(1);
+    void loadProjects(1, serverFilters, undefined, undefined, columnKey, ascending);
   };
 
   const loadUniqueValues = async (tab?: string) => {
@@ -699,6 +714,9 @@ const Projects: React.FC<IProjectsProps> = (props) => {
               sessionStorage.setItem(`projectDetails_tab_${row.ID}`, 'Dashboard');
               window.location.href = `/sites/Projects/SitePages/ProjectDetails.aspx?projectId=${row.ID}`;
             }}
+            sortColumn={sortColumn}
+            sortAscending={sortAscending}
+            onSort={handleSort}
           />
         )}
 

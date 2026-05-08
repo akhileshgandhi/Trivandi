@@ -35,6 +35,10 @@ interface TrackerTableProps {
   onRowClick?: (row: any) => void;
   // Tab counts
   tabCounts?: Record<string, number>;
+  // Sorting
+  sortColumn?: string;
+  sortAscending?: boolean;
+  onSort?: (columnKey: string, ascending: boolean) => void;
 }
 
 const TrackerTable: React.FC<TrackerTableProps> = ({
@@ -65,6 +69,9 @@ const TrackerTable: React.FC<TrackerTableProps> = ({
   showFilterControls = false,
   onRowClick,
   tabCounts,
+  sortColumn,
+  sortAscending,
+  onSort,
 }) => {
   return (
     <div className={styles.trackerWrapper}>
@@ -161,6 +168,9 @@ const TrackerTable: React.FC<TrackerTableProps> = ({
           showFilterControls={showFilterControls}
           activeFilters={activeFilters}
           onRowClick={onRowClick}
+          sortColumn={sortColumn}
+          sortAscending={sortAscending}
+          onSort={onSort}
         />
       </div>
     </div>

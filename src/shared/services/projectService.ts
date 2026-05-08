@@ -91,6 +91,7 @@ export const getProjectColumns = async () => {
       key: f.InternalName,
       label: f.Title,
       filterable: true,
+      sortable: true,
       type: f.TypeAsString,
       required: !!f.Required,
       choices: Array.isArray(f.Choices) ? f.Choices : undefined,
@@ -172,7 +173,9 @@ export const getProjectsPage = async (
   status: string,
   page: number,
   pageSize: number,
-  filters: Record<string, string> = {}
+  filters: Record<string, string> = {},
+  sortColumn?: string,
+  sortAscending: boolean = true
 ): Promise<PagedResult<any>> => {
   if (!sp) throw new Error("PnPjs not initialized");
 
@@ -199,13 +202,9 @@ export const getProjectsPage = async (
     filterParts.push(`startswith(Status,'${status}')`);
   }
 
-  // Exclude specific dead/deleted/lead statuses using NE (not equal)
-  // const excludedStatuses = ['DeletedLead', 'Deleted', 'DeadLead', 'Dead', 'Lead'];
-  // excludedStatuses.forEach(excluded => {
-  //   filterParts.push(`Status ne '${excluded}'`);
-  // });
-
   Object.entries(filters).forEach(([k, v]) => {
+    if (!v) return; // Skip empty filter values
+
     // Handle boolean fields - SharePoint requires numeric comparison without quotes
     if (k === "NonCmap" || k === "Noncmap" || k.toLowerCase() === "noncmap") {
       const boolValue = (v === "1" || v === "true") ? 1 : 0;
@@ -236,10 +235,13 @@ export const getProjectsPage = async (
     // Use a reasonable limit to avoid performance issues
     const MAX_FETCH = 5000;
 
+    // Use passed sortColumn or default to "ID"
+    const finalSortCol = sortColumn || "ID";
+
     let query = sp.web.lists.getByTitle("ProjectsNew").items
       .select(...regularFields)
       .filter(filterString)
-      .orderBy("ID", true)
+      .orderBy(finalSortCol, sortAscending)
       .top(MAX_FETCH);
 
     // Add expand if needed

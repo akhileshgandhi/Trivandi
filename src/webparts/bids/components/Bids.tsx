@@ -28,14 +28,15 @@ const DEFAULT_COLUMNS: TableColumn[] = [
     render: (value: any) => (
       <span className={styles.pipelineTitle}>{value ?? "-"}</span>
     ),
+    sortable: true,
   },
-  { key: "Company", label: "Company", filterable: true },
-  { key: "Owner", label: "Owner", filterable: true },
-  { key: "BusinessUnit", label: "Business Unit", filterable: true },
-  { key: "Sector", label: "Sector", filterable: true },
-  { key: "ContractedEntity", label: "Contracted Entity", filterable: true },
-  { key: "Country", label: "Country", filterable: true },
-  { key: "EndDate", label: "End Date", filterable: true },
+  { key: "Company", label: "Company", filterable: true, sortable: true },
+  { key: "Owner", label: "Owner", filterable: true, sortable: true },
+  { key: "BusinessUnit", label: "Business Unit", filterable: true, sortable: true },
+  { key: "Sector", label: "Sector", filterable: true, sortable: true },
+  { key: "ContractedEntity", label: "Contracted Entity", filterable: true, sortable: true },
+  { key: "Country", label: "Country", filterable: true, sortable: true },
+  { key: "EndDate", label: "End Date", filterable: true, sortable: true },
 ];
 
 const Bids: React.FC<IBidsProps> = (props) => {
@@ -48,6 +49,8 @@ const Bids: React.FC<IBidsProps> = (props) => {
   const [serverFilters, setServerFilters] = useState<Record<string, string>>({});
   const [uniqueValues, setUniqueValues] = useState<Record<string, string[]>>({});
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({});
+  const [sortColumn, setSortColumn] = useState<string>("ID");
+  const [sortAscending, setSortAscending] = useState<boolean>(false);
 
   const COLUMN_STORAGE_KEY = `bids_column_order_${props.userDisplayName}`;
   const COLUMN_VERSION_KEY = `bids_column_version_${props.userDisplayName}`;
@@ -170,6 +173,23 @@ const Bids: React.FC<IBidsProps> = (props) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSort = (columnKey: string, ascending: boolean) => {
+    setSortColumn(columnKey);
+    setSortAscending(ascending);
+    
+    // Client-side sort for Bids since it fetches 5000 items
+    const sortedRows = [...rows].sort((a, b) => {
+      const valA = a[columnKey] ?? "";
+      const valB = b[columnKey] ?? "";
+      
+      if (valA < valB) return ascending ? -1 : 1;
+      if (valA > valB) return ascending ? 1 : -1;
+      return 0;
+    });
+    
+    setRows(sortedRows);
   };
 
   const loadUniqueValues = async (tab?: string) => {
@@ -361,6 +381,9 @@ const Bids: React.FC<IBidsProps> = (props) => {
               setShowColumnPopup(true);
             }}
             tabCounts={tabCounts}
+            sortColumn={sortColumn}
+            sortAscending={sortAscending}
+            onSort={handleSort}
           />
         </div>
       )}

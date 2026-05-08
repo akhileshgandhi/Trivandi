@@ -6,7 +6,7 @@ import * as ReactDOM from "react-dom";
 import styles from "./DataTable.module.scss";
 import filterIcon from "../../assets/sort.png";
 import searchIcon from "../../assets/search-normal.png";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import Pagination from "../Pagination/Pagination";
 
 /* ===================== TYPES ===================== */
@@ -16,6 +16,7 @@ export interface TableColumn {
   label: string;
   filterable?: boolean;
   filterType?: "search";
+  sortable?: boolean;
   render?: (value: any, row: any) => React.ReactNode;
 }
 
@@ -28,6 +29,10 @@ interface DataTableProps {
   currentPage?: number;
   pageSize?: number;
   onPageChange?: (page: number) => void;
+  // Sorting support
+  sortColumn?: string;
+  sortAscending?: boolean;
+  onSort?: (columnKey: string, ascending: boolean) => void;
   // Provide unique values for dropdowns from parent when server-side
   uniqueValues?: Record<string, string[]>;
   // Controlled filter handlers (server-side)
@@ -60,6 +65,9 @@ const DataTable: React.FC<DataTableProps> = ({
   showFilterControls = false,
   activeFilters: propsActiveFilters,
   onRowClick,
+  sortColumn,
+  sortAscending,
+  onSort,
 }) => {
   const [activeFilter, setActiveFilter] = React.useState<string | null>(null);
   const [searchText, setSearchText] = React.useState("");
@@ -281,6 +289,20 @@ const DataTable: React.FC<DataTableProps> = ({
                       <span>{col.label}</span>
 
                       <div className={styles.headerActions}>
+                        {col.sortable && (
+                          <button
+                            type="button"
+                            className={styles.sortIconBtn}
+                            onClick={() => onSort?.(col.key, sortColumn === col.key ? !sortAscending : true)}
+                            title={`Sort by ${col.label}`}
+                          >
+                            {sortColumn === col.key ? (
+                              sortAscending ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                            ) : (
+                              <ArrowUpDown size={14} />
+                            )}
+                          </button>
+                        )}
                         {col.filterable && (
                           <button
                             type="button"

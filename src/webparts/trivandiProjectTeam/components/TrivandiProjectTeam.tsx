@@ -68,7 +68,7 @@ const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
         <>
           {/* ================= MY WORK ================= */}
           <div className={styles.label}>
-            <span className={styles.labelLine}></span>
+            <span className={styles.labelLine} />
             <h4>My Work</h4>
           </div>
 
@@ -109,7 +109,7 @@ const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
 
           {/* ================= STANDARDS & COMPLIANCE ================= */}
           <div className={styles.label}>
-            <span className={styles.labelLine}></span>
+            <span className={styles.labelLine} />
             <h4>Standards & Compliance</h4>
           </div>
 
