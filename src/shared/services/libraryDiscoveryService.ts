@@ -113,6 +113,7 @@ export const getProjectById = async (projectId: any) => {
       "BidDocumentsUrl": project.BidDocumentsUrl,
       "ContractsDocumentsUrl": project.ContractsDocumentsUrl,
       "ProjectTitle": project.ProjectTitle,
+      "Code": project.Code,
       "Status": project.Status,
       "NonCmap": project.NonCmap
     }

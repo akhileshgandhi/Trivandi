@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import styles from './ImportFromProjectDocsDialog.module.scss';
@@ -7,9 +8,8 @@ import { PrimaryButton, DefaultButton } from '@fluentui/react/lib/Button';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
 import { Icon } from '@fluentui/react/lib/Icon';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
-import { ProjectExternalPortalService } from '../../services/ProjectExternalPortalService';
-import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
-import { Breadcrumb } from '@fluentui/react/lib/Breadcrumb';
+import { getDocumentsByServerRelativeUrl, getProjectDocuments, getProjectById } from '../../../../shared/services/projectService';
+import { findProjectLibraryByProject } from '../../../../shared/services/libraryDiscoveryService';
 
 export interface IImportFromProjectDocsDialogProps {
   isOpen: boolean;
@@ -17,326 +17,283 @@ export interface IImportFromProjectDocsDialogProps {
   onSuccess: () => void;
   context: WebPartContext;
   targetPath: string;
-  service?: ProjectExternalPortalService;
+  projectId: string | number;
   projectCode?: string;
-  projectName?: string;
-  projectId?: string;
+  projectTitle?: string;
+  service?: any;
 }
 
 export interface IProjectDocument {
-  id: number;
-  name: string;
-  location: string;
-  selected: boolean;
-  isFolder?: boolean;
-  serverRelativeUrl?: string;
-  documentType?: string;
+  Id: number | string;
+  FileLeafRef: string;
+  FileRef: string;
+  Modified: string;
+  Editor: { Title: string };
+  FSObjType: number;
+  selected?: boolean;
+  isImported?: boolean;
 }
 
-export interface IImportFromProjectDocsDialogState {
-  documents: IProjectDocument[];
-  loading: boolean;
-  importing: boolean;
-  error?: string;
-  success?: string;
-  currentFolderPath: string;
-  breadcrumbs: Array<{ text: string; key: string; path: string }>;
-  discoveredLibraryName?: string;
-}
+const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> = (props) => {
+  const [documents, setDocuments] = useState<IProjectDocument[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [importing, setImporting] = useState<boolean>(false);
+  const [currentFolderPath, setCurrentFolderPath] = useState<string>('');
+  const [activeDocTab, setActiveDocTab] = useState<string>('project');
+  const [libraryName, setLibraryName] = useState<string>('');
 
-export default class ImportFromProjectDocsDialog extends React.Component<IImportFromProjectDocsDialogProps, IImportFromProjectDocsDialogState> {
-  private portalService: ProjectExternalPortalService;
+  const [projectDocumentsUrl, setProjectDocumentsUrl] = useState<string>('');
+  const [bidDocumentsUrl, setBidDocumentsUrl] = useState<string>('');
+  const [contractsDocumentsUrl, setContractsDocumentsUrl] = useState<string>('');
+  const [existingFiles, setExistingFiles] = useState<Set<string>>(new Set());
 
-  constructor(props: IImportFromProjectDocsDialogProps) {
-    super(props);
-    
-    this.state = {
-      documents: [],
-      loading: false,
-      importing: false,
-      currentFolderPath: '',
-      breadcrumbs: [{ text: 'Root', key: 'root', path: '' }]
+  // 1. Initial Discovery and Metadata Fetch (Mirroring CustomDocumentsList.tsx)
+  useEffect(() => {
+    const initializeModal = async (): Promise<void> => {
+      try {
+        if (props.projectCode && props.projectTitle) {
+          const found = await findProjectLibraryByProject(props.projectCode, props.projectTitle);
+          if (found) setLibraryName(found);
+        }
+
+        const id = Number(props.projectId);
+        if (!isNaN(id) && id > 0) {
+          const projectData = await getProjectById(id);
+          if (projectData) {
+            const cleanUrl = (url: any) => {
+              if (!url) return '';
+              const trimmed = String(url).trim();
+              const isValidPath = trimmed.toLowerCase().startsWith('/sites') || trimmed.startsWith('http');
+              return (trimmed === '-' || trimmed === '' || !isValidPath) ? '' : trimmed;
+            };
+
+            const projUrl = cleanUrl(projectData.ProjectDocumentsUrl || projectData.projectDocumentsUrl);
+            const bidUrl = cleanUrl(projectData.BidDocumentsUrl || projectData.bidDocumentsUrl);
+            const contractUrl = cleanUrl(projectData.ContractsDocumentsUrl || projectData.contractsDocumentsUrl);
+
+            setProjectDocumentsUrl(projUrl);
+            setBidDocumentsUrl(bidUrl);
+            setContractsDocumentsUrl(contractUrl);
+
+            // Tab selection logic from CustomDocumentsList
+            if (projUrl || libraryName) {
+              setActiveDocTab('project');
+            } else if (bidUrl) {
+              setActiveDocTab('bid');
+            } else if (contractUrl) {
+              setActiveDocTab('contract');
+            }
+          }
+        }
+
+        // Fetch existing files in target path to mark them as "Imported"
+        if (props.service && props.targetPath) {
+          try {
+            const result = await props.service.getSharedDocumentsFromExternalArea(props.targetPath, 1, 500);
+            const names = new Set<string>((result.items || []).map((f: any) => String(f.name || '')));
+            setExistingFiles(names);
+          } catch (e) {
+            console.warn('Could not fetch existing files:', e);
+          }
+        }
+
+      } catch (err) {
+        console.error('Initialization error:', err);
+      }
     };
 
-    this.portalService = props.service || new ProjectExternalPortalService(props.context);
-  }
-
-  public async componentDidUpdate(prevProps: IImportFromProjectDocsDialogProps): Promise<void> {
-    // Only load when dialog is opened (not on every update)
-    if (this.props.isOpen && !prevProps.isOpen && !this.state.loading && this.state.documents.length === 0) {
-      // Discover library name
-      if (this.props.projectCode || this.props.projectName) {
-        const libraryName = await this.portalService.findProjectLibrary(this.props.projectCode, this.props.projectName);
-        if (libraryName) {
-          this.setState({ discoveredLibraryName: libraryName });
-        }
-      }
-      this._loadProjectDocuments();
+    if (props.isOpen) {
+      void initializeModal();
     }
-  }
+  }, [props.isOpen, props.projectId, props.projectCode, props.projectTitle]);
 
-  private _loadProjectDocuments = async (): Promise<void> => {
-    // Prevent duplicate calls
-    if (this.state.loading) {
-      return;
+  // Load documents flow
+  useEffect(() => {
+    if (props.isOpen) {
+      loadDocuments();
     }
-    
-    this.setState({ loading: true });
+  }, [props.isOpen, activeDocTab, currentFolderPath, libraryName, projectDocumentsUrl]);
+
+  const loadDocuments = async (): Promise<void> => {
     try {
-      // Use new method to get documents from all 3 types if projectId is available
-      let documents: any[];
-      
-      if (this.props.projectId) {
-        // Get documents from all 3 document types (Project, Bid, Contract)
-        documents = await this.portalService.getAllProjectDocumentsForImport(this.props.projectId, this.state.currentFolderPath);
-      } else {
-        // Fallback to original method
-        documents = await this.portalService.getProjectDocumentsForImport(this.state.currentFolderPath);
+      setLoading(true);
+      let targetUrl = '';
+      let targetLibrary = '';
+
+      switch (activeDocTab) {
+        case 'project': targetUrl = projectDocumentsUrl; targetLibrary = libraryName; break;
+        case 'bid': targetUrl = bidDocumentsUrl; break;
+        case 'contract': targetUrl = contractsDocumentsUrl; break;
       }
-      
-      this.setState({ 
-        documents: documents.map(doc => ({ ...doc, selected: false })),
-        loading: false 
-      });
-    } catch (error) {
-      const errorMessage = error.message || 'Failed to load documents';
-      console.error('Error loading project documents:', error);
-      this.setState({ 
-        error: errorMessage.includes('429') || errorMessage.includes('throttle')
-          ? 'Too many requests. Please wait a moment and try again.'
-          : errorMessage,
-        loading: false 
-      });
+
+      let result: { items: any[]; totalCount: number } = { items: [], totalCount: 0 };
+      if (targetUrl) {
+        result = await getDocumentsByServerRelativeUrl(targetUrl, currentFolderPath, 1, 100);
+      } else if (targetLibrary && activeDocTab === 'project') {
+        result = await getProjectDocuments(targetLibrary, currentFolderPath, 1, 100);
+      }
+
+      setDocuments((result.items || []).map(item => {
+        const name = item.FileLeafRef || item.name;
+        const isImported = existingFiles.has(name) && (item.FSObjType !== 1);
+        return { ...item, FileLeafRef: name, selected: false, isImported };
+      }));
+    } catch (err) {
+      console.error("Error loading documents:", err);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  private _onToggleDocument = (index: number): void => {
-    const documents = [...this.state.documents];
-    documents[index].selected = !documents[index].selected;
-    this.setState({ documents });
-  }
+  const handleItemClick = (item: any) => {
+    if (item.isImported) return; // Prevent selection of already imported files
 
-  private _onFolderClick = (folder: IProjectDocument): void => {
-    const newPath = this.state.currentFolderPath ? `${this.state.currentFolderPath}/${folder.name}` : folder.name;
-    const newBreadcrumbs = [
-      ...this.state.breadcrumbs,
-      { text: folder.name, key: folder.name, path: newPath }
-    ];
-    
-    this.setState({ 
-      currentFolderPath: newPath,
-      breadcrumbs: newBreadcrumbs,
-      documents: []
-    }, () => {
-      this._loadProjectDocuments();
+    // Toggle selection for both files and folders
+    setDocuments(docs => docs.map(d => d.Id === item.Id ? { ...d, selected: !d.selected } : d));
+  };
+
+  const handleFolderClick = (item: any) => {
+    const newPath = currentFolderPath ? `${currentFolderPath}/${item.FileLeafRef}` : item.FileLeafRef;
+    setCurrentFolderPath(newPath);
+  };
+
+  const handleBreadcrumbClick = (path: string) => {
+    setCurrentFolderPath(path);
+  };
+
+  const breadcrumbs = React.useMemo(() => {
+    const parts = currentFolderPath.split('/').filter(Boolean);
+    const crumbs = [{ name: 'Root', path: '' }];
+    let currentPath = '';
+    parts.forEach(part => {
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      crumbs.push({ name: part, path: currentPath });
     });
-  }
+    return crumbs;
+  }, [currentFolderPath]);
 
-  private _onBreadcrumbClick = (item: any): void => {
-    const index = this.state.breadcrumbs.findIndex(b => b.key === item.key);
-    const newBreadcrumbs = this.state.breadcrumbs.slice(0, index + 1);
-    const newPath = newBreadcrumbs[newBreadcrumbs.length - 1].path;
-    
-    this.setState({
-      currentFolderPath: newPath,
-      breadcrumbs: newBreadcrumbs,
-      documents: []
-    }, () => {
-      this._loadProjectDocuments();
-    });
-  }
-
-  private _onImportSelected = async (): Promise<void> => {
-    const selectedDocs = this.state.documents.filter(doc => doc.selected);
-    
-    if (selectedDocs.length === 0) {
-      this.setState({ error: 'Please select at least one document to import' });
-      return;
-    }
-
-    this.setState({ importing: true, error: undefined, success: undefined });
-
+  const handleImport = async () => {
+    const selectedDocs = documents.filter(doc => doc.selected);
+    if (selectedDocs.length === 0) return;
+    setImporting(true);
     try {
-      // Import documents and cache will be cleared inside this method
-      await this.portalService.copyDocumentsToExternalLibrary(
-        selectedDocs,
-        this.props.targetPath
-      );
-      
-      console.log('✓ Import completed, cache cleared');
-      
-      this.setState({ 
-        success: `Successfully imported ${selectedDocs.length} item(s) to External Shared Area!`,
-        importing: false 
-      });
-
-      toast.success(`Successfully imported ${selectedDocs.length} item(s) to External Shared Area!`, {
-        position: "top-right",
-        autoClose: 3000,
-      });
-
-      // Call onSuccess to trigger refresh after cache is cleared
-      console.log('→ Calling onSuccess to refresh parent list');
-      this.props.onSuccess();
-
-      // Close dialog after showing success message
-      setTimeout(() => {
-        this.props.onClose();
-      }, 1500);
-    } catch (error) {
-      this.setState({ error: error.message, importing: false });
-      toast.error(`Failed to import: ${error.message}`, {
-        position: "top-right",
-        autoClose: 5000,
-      });
+      if (props.service) {
+        await props.service.importDocuments(selectedDocs, props.targetPath);
+        toast.success('Imported successfully');
+        props.onSuccess();
+        props.onClose();
+      }
+    } catch (err) {
+      toast.error('Import failed');
+    } finally {
+      setImporting(false);
     }
-  }
+  };
 
-  public render(): React.ReactElement<IImportFromProjectDocsDialogProps> {
-    const { isOpen, onClose } = this.props;
-    const { documents, loading, importing, error, success, breadcrumbs } = this.state;
+  const getFileIcon = (item: IProjectDocument) => {
+    if (item.FSObjType === 1) return <Icon iconName="FolderHorizontal" style={{ color: '#ffb900' }} />;
+    return <Icon iconName="TextDocument" style={{ color: '#605e5c' }} />;
+  };
 
-    const selectedCount = documents.filter(doc => doc.selected).length;
-
-    const breadcrumbItems = breadcrumbs.map(b => ({
-      text: b.text,
-      key: b.key,
-      onClick: () => this._onBreadcrumbClick(b)
-    }));
-
-    // Use discovered library name if available, otherwise fallback to constructed name
-    const dialogTitle = this.state.discoveredLibraryName || 
-      (this.props.projectCode && this.props.projectName 
-        ? `${this.props.projectCode}-${this.props.projectName}` 
-        : 'Import from Project Docs');
-
-    return (
-      <Dialog
-        hidden={!isOpen}
-        onDismiss={onClose}
-        dialogContentProps={{
-          type: DialogType.close,
-          title: dialogTitle,
-          showCloseButton: true
-        }}
-        modalProps={{
-          isBlocking: importing,
-          className: styles.dialog
-        }}
-      >
-        <div className={styles.dialogContent}>
-          {success && (
-            <MessageBar messageBarType={MessageBarType.success}>
-              {success}
-            </MessageBar>
-          )}
-
-          {error && (
-            <MessageBar messageBarType={MessageBarType.error}>
-              {error}
-            </MessageBar>
-          )}
-
-          <div className={styles.infoBox}>
-            <Icon iconName="Info" className={styles.infoIcon} />
-            <p className={styles.infoText}>
-              Select files and folders to copy to the External Shared Area. The originals will remain intact; copies will be visible to invited guests.
-            </p>
+  return (
+    <Dialog
+      hidden={!props.isOpen}
+      onDismiss={props.onClose}
+      dialogContentProps={{ type: DialogType.normal, title: `Import from ${props.projectTitle || 'Project'}` }}
+      maxWidth={850}
+      modalProps={{ isBlocking: true, className: styles.importDialog }}
+    >
+      <div className={styles.documentsWrapper}>
+        <div className={styles.tabRow}>
+          <div className={styles.documentTabs}>
+            {(projectDocumentsUrl || libraryName) && (
+              <button className={`${styles.docTab} ${activeDocTab === 'project' ? styles.activeDocTab : ''}`}
+                onClick={() => { setActiveDocTab('project'); setCurrentFolderPath(''); }}>
+                Project Documents
+              </button>
+            )}
+            {bidDocumentsUrl && (
+              <button className={`${styles.docTab} ${activeDocTab === 'bid' ? styles.activeDocTab : ''}`}
+                onClick={() => { setActiveDocTab('bid'); setCurrentFolderPath(''); }}>
+                Bid Documents
+              </button>
+            )}
+            {contractsDocumentsUrl && (
+              <button className={`${styles.docTab} ${activeDocTab === 'contract' ? styles.activeDocTab : ''}`}
+                onClick={() => { setActiveDocTab('contract'); setCurrentFolderPath(''); }}>
+                Contract Documents
+              </button>
+            )}
           </div>
-
-          {loading ? (
-            <div className={styles.loadingContainer}>
-              <Spinner size={SpinnerSize.large} label="Loading project documents..." />
-            </div>
-          ) : (
-            <>
-              {/* Breadcrumb Navigation */}
-              {breadcrumbs.length > 1 && (
-                <div style={{ marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #edebe9' }}>
-                  <Breadcrumb
-                    items={breadcrumbItems}
-                    maxDisplayedItems={5}
-                  />
-                </div>
-              )}
-
-              <div className={styles.tableContainer}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th className={styles.checkboxColumn}></th>
-                      <th className={styles.nameColumn}>Name</th>
-                      <th className={styles.locationColumn}>Location</th>
-                      <th className={styles.typeColumn}>Type</th>
-                      <th className={styles.sourceColumn}>Source</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {documents.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className={styles.emptyState}>
-                          <Icon iconName="FabricFolder" className={styles.emptyIcon} />
-                          <p>No project documents available for import.</p>
-                        </td>
-                      </tr>
-                    ) : (
-                      documents.map((doc, index) => (
-                        <tr key={index} className={styles.row}>
-                          <td className={styles.checkboxColumn}>
-                            <input
-                              type="checkbox"
-                              checked={doc.selected}
-                              onChange={() => this._onToggleDocument(index)}
-                              className={styles.checkbox}
-                              disabled={importing}
-                            />
-                          </td>
-                          <td 
-                            className={styles.nameColumn}
-                            onClick={() => doc.isFolder ? this._onFolderClick(doc) : null}
-                            style={{ cursor: doc.isFolder ? 'pointer' : 'default' }}
-                          >
-                            <div className={styles.nameCell}>
-                              <Icon 
-                                iconName={doc.isFolder ? "FabricFolder" : "Page"} 
-                                className={styles.fileIcon} 
-                              />
-                              <span>{doc.name}</span>
-                            </div>
-                          </td>
-                          <td className={styles.locationColumn}>{doc.location}</td>
-                          <td className={styles.typeColumn}>{doc.isFolder ? 'Folder' : 'File'}</td>
-                          <td className={styles.sourceColumn}>{doc.documentType || 'Project Library'}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {selectedCount > 0 && (
-                <MessageBar messageBarType={MessageBarType.info}>
-                  {selectedCount} item{selectedCount > 1 ? 's' : ''} selected for import
-                </MessageBar>
-              )}
-            </>
-          )}
         </div>
 
-        <DialogFooter>
-          <PrimaryButton
-            text={importing ? "Importing..." : "Import Selected"}
-            onClick={this._onImportSelected}
-            disabled={loading || importing || selectedCount === 0}
-            className={styles.primaryButton}
-          />
-          <DefaultButton
-            text="Cancel"
-            onClick={onClose}
-            disabled={importing}
-          />
-        </DialogFooter>
-      </Dialog>
-    );
-  }
-}
+        <div className={styles.breadcrumbHeader}>
+          <div className={styles.breadcrumbsContainer}>
+            {breadcrumbs.map((crumb, index) => (
+              <React.Fragment key={index}>
+                <button className={`${styles.breadcrumb} ${index === breadcrumbs.length - 1 ? styles.active : ""}`}
+                  onClick={() => handleBreadcrumbClick(crumb.path)} disabled={index === breadcrumbs.length - 1}>
+                  {crumb.name}
+                </button>
+                {index < breadcrumbs.length - 1 && <span className={styles.breadcrumbSeparator}>›</span>}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.tableContainer}>
+          {loading ? <Spinner size={SpinnerSize.large} label="Loading..." /> : (
+            <table className={styles.documentsTable}>
+              <thead>
+                <tr>
+                  <th style={{ width: '40px' }}></th>
+                  <th>Name</th>
+                  <th>Modified</th>
+                  <th>By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {documents.length === 0 ? (
+                  <tr><td colSpan={4} style={{ textAlign: 'center', padding: '20px' }}>No documents found</td></tr>
+                ) : (
+                  documents.map((doc) => (
+                    <tr key={doc.Id} className={`${styles.tableRow} ${doc.selected ? styles.selected : ''} ${doc.isImported ? styles.imported : ''}`} onClick={() => handleItemClick(doc)}>
+                      <td>
+                        {doc.isImported ? (
+                          <Icon iconName="CheckMark" style={{ color: '#107c10' }} />
+                        ) : (
+                          <Icon iconName={doc.selected ? "CheckMark" : "CircleRing"} style={{ color: '#0078d4' }} />
+                        )}
+                      </td>
+                      <td className={styles.nameCol}>
+                        <span className={styles.fileIcon}>{getFileIcon(doc)}</span>
+                        <span className={doc.FSObjType === 1 ? styles.folderName : styles.fileName}
+                          onClick={(e) => {
+                            if (doc.FSObjType === 1) {
+                              e.stopPropagation(); // Don't toggle selection when navigating
+                              handleFolderClick(doc);
+                            }
+                          }}>
+                          {doc.FileLeafRef}
+                          {doc.isImported && <span className={styles.importedLabel}>Imported</span>}
+                        </span>
+                      </td>
+                      <td className={styles.modifiedCol}>{new Date(doc.Modified).toLocaleDateString()}</td>
+                      <td className={styles.byCol}>{doc.Editor?.Title || ""}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+      <DialogFooter>
+        <PrimaryButton onClick={handleImport} disabled={loading || importing || documents.filter(d => d.selected).length === 0} text={importing ? "Importing..." : "Import"} />
+        <DefaultButton onClick={props.onClose} text="Cancel" />
+      </DialogFooter>
+    </Dialog>
+  );
+};
+
+export default ImportFromProjectDocsDialog;

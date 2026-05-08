@@ -64,21 +64,21 @@ export class ProjectExternalPortalService {
    */
   public async checkExternalLibraryAccess(): Promise<{ exists: boolean; hasAccess: boolean; error?: string }> {
     if (this._libraryCheckCache !== null) return this._libraryCheckCache;
-    
+
     try {
       const libraryName = this.externalLibraryName;
-      
+
       // First check if library exists
       const lists = await this.sp.web.lists();
       const libraryExists = lists.some(list => list.Title === libraryName);
-      
+
       if (!libraryExists) {
         console.log(`Library '${libraryName}' does not exist`);
         const result = { exists: false, hasAccess: false, error: 'Library does not exist' };
         this._libraryCheckCache = result;
         return result;
       }
-      
+
       // Check if user has access to the library
       try {
         const list = this.sp.web.lists.getByTitle(libraryName);
@@ -191,18 +191,18 @@ export class ProjectExternalPortalService {
    */
   private _parseSiteAndFolder(serverRelativeUrl: string): { siteUrl: string; folderPath: string } {
     const parts = serverRelativeUrl.split('/').filter(Boolean);
-    
+
     if (parts.length < 2) {
       return { siteUrl: '', folderPath: serverRelativeUrl };
     }
-    
+
     // Check if it's a /sites/ URL
     if (parts[0] === 'sites' && parts.length >= 2) {
       const siteUrl = `/${parts[0]}/${parts[1]}`;
       const folderPath = parts.slice(2).join('/');
       return { siteUrl, folderPath: folderPath ? `/${folderPath}` : '' };
     }
-    
+
     // Default: treat first part as site
     return { siteUrl: `/${parts[0]}`, folderPath: `/${parts.slice(1).join('/')}` };
   }
@@ -212,16 +212,16 @@ export class ProjectExternalPortalService {
    */
   private _isCurrentSiteUrl(serverRelativeUrl: string): boolean {
     if (!serverRelativeUrl) return false;
-    
+
     const currentSiteUrl = this.siteUrl;
     const urlObj = new URL(currentSiteUrl);
     const currentPathname = urlObj.pathname;
-    
+
     // If current site is root (/), only root URLs should match
     if (currentPathname === '/') {
       return serverRelativeUrl.startsWith('/') && !serverRelativeUrl.startsWith('/sites/');
     }
-    
+
     // Otherwise, URL should start with the current site's path
     return serverRelativeUrl.startsWith(currentPathname);
   }
@@ -239,23 +239,23 @@ export class ProjectExternalPortalService {
       } else {
         // File is from external site - need to create context for that site
         console.log(`🌐 Downloading from external site: ${fileName}`);
-        
+
         // Parse the URL to get the site
         const { siteUrl } = this._parseSiteAndFolder(serverRelativeUrl);
-        
+
         if (!siteUrl) {
           throw new Error(`Cannot determine site URL from: ${serverRelativeUrl}`);
         }
-        
+
         // Build absolute URL for the external site
         const urlObj = new URL(this.siteUrl);
         const absoluteSiteUrl = `${urlObj.protocol}//${urlObj.hostname}${siteUrl}`;
-        
+
         console.log(`🔗 Absolute site URL: ${absoluteSiteUrl}, File URL: ${serverRelativeUrl}`);
-        
+
         // Get the web context for the external site
         const externalWeb = Web([this.sp.web, absoluteSiteUrl]);
-        
+
         // Download the file from the external site using its server relative URL
         const sourceFile = externalWeb.getFileByServerRelativePath(serverRelativeUrl);
         return await sourceFile.getBuffer();
@@ -271,9 +271,13 @@ export class ProjectExternalPortalService {
    */
   public clearCache(cacheKey?: string): void {
     if (cacheKey) {
+      console.log(`🧹 [PortalService] Clearing specific cache: ${cacheKey}`);
       this.cache.delete(cacheKey);
+      this.pendingRequests.delete(cacheKey);
     } else {
+      console.log("🧹 [PortalService] Clearing all cache...");
       this.cache.clear();
+      this.pendingRequests.clear();
     }
   }
 
@@ -399,7 +403,7 @@ export class ProjectExternalPortalService {
   //    }
   //  }
   public async getProjectDocuments(
-    libraryName: string, 
+    libraryName: string,
     folderPath: string = "",
     page: number = 1,
     pageSize: number = 10
@@ -437,8 +441,8 @@ export class ProjectExternalPortalService {
     pageSize: number = 10
   ): Promise<any[]> {
     if (!this.projectLibraryName) {
-      console.warn('Project library name not set. Using mock data.');
-      return this._getMockDocuments();
+      console.warn('Project library name not set.');
+      return [];
     }
 
     const cacheKey = `project_documents_import_${this.projectLibraryName}_${folderPath}`;
@@ -456,7 +460,7 @@ export class ProjectExternalPortalService {
         }));
       } catch (error) {
         console.error('Error loading project documents:', error);
-        return this._getMockDocuments();
+        return [];
       }
     });
   }
@@ -466,7 +470,7 @@ export class ProjectExternalPortalService {
    * This method fetches documents from ProjectDocumentsUrl, BidDocumentsUrl, and ContractsDocumentsUrl
    */
   public async getAllProjectDocumentsForImport(
-    projectId: string, 
+    projectId: string,
     folderPath: string = '',
     page: number = 1,
     pageSize: number = 10
@@ -477,25 +481,25 @@ export class ProjectExternalPortalService {
       try {
         // Get project details with URL fields
         const projectData = await this.getProjectById(projectId);
-        
+
         if (!projectData || typeof projectData !== 'object') {
-          console.warn('No project data found. Using mock data.');
-          return this._getMockDocuments();
+          console.warn('No project data found.');
+          return [];
         }
 
         // Import from libraryDiscoveryService to get URLs
         const libraryService = await import('../../../shared/services/libraryDiscoveryService');
         const projectDetails = await libraryService.getProjectById(parseInt(projectId));
-        
+
         if (!projectDetails || typeof projectDetails !== 'object') {
           console.warn('No project URL details found. Using fallback.');
-          return this._getMockDocuments();
+          return [];
         }
 
         const projectDocUrl = projectDetails.ProjectDocumentsUrl || '';
         const bidDocUrl = projectDetails.BidDocumentsUrl || '';
         const contractDocUrl = projectDetails.ContractsDocumentsUrl || '';
-        
+
         console.log('📁 Found document URLs:', {
           ProjectDocumentsUrl: projectDocUrl,
           BidDocumentsUrl: bidDocUrl,
@@ -508,7 +512,7 @@ export class ProjectExternalPortalService {
         const projectService = await import('../../../shared/services/projectService');
         const getDocumentsByServerRelativeUrl = projectService.getDocumentsByServerRelativeUrl;
 
-        // Load documents from Project Documents URL
+        // Load documents from Project Documents source
         if (projectDocUrl) {
           try {
             const result = await getDocumentsByServerRelativeUrl(projectDocUrl, folderPath, page, pageSize);
@@ -523,7 +527,27 @@ export class ProjectExternalPortalService {
             }));
             allDocuments.push(...mappedProjectDocs);
           } catch (error) {
-            console.error('Error loading Project Documents:', error);
+            console.error('Error loading Project Documents from URL:', error);
+          }
+        } else {
+          // Fallback: Try to discover library name if URL is missing
+          try {
+            const discoveredLibrary = await libraryService.findProjectLibraryByProject(projectDetails.Code, projectDetails.ProjectTitle);
+            if (discoveredLibrary) {
+              const result = await projectService.getProjectDocuments(discoveredLibrary, folderPath, page, pageSize);
+              const projectDocs = result.items;
+              const mappedProjectDocs = projectDocs.map((item: any) => ({
+                id: item.Id,
+                name: item.FileLeafRef,
+                location: folderPath || '/',
+                isFolder: item.FSObjType === 1,
+                serverRelativeUrl: item.FileRef,
+                documentType: 'Project Documents'
+              }));
+              allDocuments.push(...mappedProjectDocs);
+            }
+          } catch (fallbackError) {
+            console.error('Error loading fallback Project Documents:', fallbackError);
           }
         }
 
@@ -565,10 +589,10 @@ export class ProjectExternalPortalService {
           }
         }
 
-        // If no documents found, return mock data
+        // If no documents found, return empty array
         if (allDocuments.length === 0) {
-          console.warn('No documents found from any source. Using mock data.');
-          return this._getMockDocuments();
+          console.warn('No documents found from any source.');
+          return [];
         }
 
         console.log(`📊 Loaded ${allDocuments.length} documents from all sources`);
@@ -576,25 +600,12 @@ export class ProjectExternalPortalService {
 
       } catch (error) {
         console.error('Error in getAllProjectDocumentsForImport:', error);
-        return this._getMockDocuments();
+        return [];
       }
     });
   }
 
-  /**
-   * Get mock documents for fallback
-   */
-  private _getMockDocuments(): any[] {
-    return [
-      { id: 1, name: '01_Admin', location: '/', isFolder: true },
-      { id: 2, name: '02_Bid_Documents', location: '/', isFolder: true },
-      { id: 3, name: '03_Contracts (FINAL & SIGNED)', location: '/', isFolder: true },
-      { id: 4, name: '04_Final_Deliverables', location: '/', isFolder: true },
-      { id: 5, name: '05_Working_Documents', location: '/', isFolder: true },
-      { id: 6, name: '06_Reports_Invoices', location: '/', isFolder: true },
-      { id: 7, name: '07_Risks_Actions_HS', location: '/', isFolder: true }
-    ];
-  }
+
 
   /**
    * Get project by ID
@@ -885,20 +896,103 @@ export class ProjectExternalPortalService {
   }
 
   /**
-   * Import documents (placeholder copy)
+   * Import documents from source library to external library (supports files and folders recursively)
    */
   public async importDocuments(
     documents: any[],
     targetPath: string
   ): Promise<void> {
     try {
-      for (const doc of documents) {
-        const targetUrl = `${this.siteUrl}${targetPath}/${doc.name}`;
-        await this._logShareActivity('Imported', doc.name, targetUrl, [], 0);
+      console.log(`🚀 [PortalService] Starting import of ${documents.length} items to ${targetPath}`);
+      
+      const libraryName = this.externalLibraryName;
+      let cleanTargetPath = targetPath.startsWith('/') ? targetPath.slice(1) : targetPath;
+      if (cleanTargetPath.startsWith(libraryName)) {
+        const slashIndex = cleanTargetPath.indexOf('/');
+        cleanTargetPath = slashIndex !== -1 ? cleanTargetPath.substring(slashIndex + 1) : "";
       }
+      
+      const fullTargetPath = `${libraryName}/${cleanTargetPath}`.replace(/\/+/g, '/').replace(/\/$/, "");
+
+      for (const doc of documents) {
+        await this._importItemRecursive(doc, fullTargetPath);
+      }
+      
+      this.clearCache();
     } catch (error) {
-      console.error('Error importing documents:', error);
+      console.error('Error in importDocuments:', error);
       throw new Error(`Failed to import documents: ${error.message}`);
+    }
+  }
+
+  /**
+   * Helper to import an item (file or folder) recursively
+   */
+  private async _importItemRecursive(item: any, targetParentPath: string): Promise<void> {
+    const itemName = item.FileLeafRef || item.name || item.Title;
+    const itemPath = item.FileRef || item.path || item.ServerRelativeUrl;
+    
+    // Improved folder detection: Check FSObjType or look for lack of extension
+    const hasExtension = itemName.indexOf('.') !== -1;
+    const isFolder = item.FSObjType === 1 || (!hasExtension && !item.File_x0020_Type);
+    
+    try {
+      if (isFolder) {
+        console.log(`📂 [Import] Detected Folder: ${itemName}`);
+        const newFolderPath = `${targetParentPath}/${itemName}`.replace(/\/+/g, '/');
+        await this.ensureFolderPathExists(newFolderPath);
+        
+        // Fetch children from source
+        console.log(`🔍 [Import] Fetching contents for source folder: ${itemPath}`);
+        
+        // Parse source site and library from path
+        const { siteUrl, folderPath } = this._parseSiteAndFolder(itemPath);
+        const sourceWeb = siteUrl ? Web([this.sp.web, `${window.location.protocol}//${window.location.host}${siteUrl}`]) : this.sp.web;
+        
+        const [files, folders] = await Promise.all([
+          sourceWeb.getFolderByServerRelativePath(itemPath).files.select("Name", "ServerRelativeUrl", "UniqueId").expand("ListItemAllFields")(),
+          sourceWeb.getFolderByServerRelativePath(itemPath).folders.select("Name", "ServerRelativeUrl", "UniqueId").expand("ListItemAllFields").filter("Name ne 'Forms'")()
+        ]);
+        
+        const children = [
+          ...folders.map(f => ({ ...f, name: f.Name, path: f.ServerRelativeUrl, FSObjType: 1 })),
+          ...files.map(f => ({ ...f, name: f.Name, path: f.ServerRelativeUrl, FSObjType: 0 }))
+        ];
+
+        console.log(`📦 [Import] Found ${children.length} items in folder ${itemName}`);
+
+        if (children.length > 0) {
+          for (const child of children) {
+            await this._importItemRecursive(child, newFolderPath);
+          }
+        }
+      } else {
+        console.log(`📄 [Import] Detected File: ${itemName}`);
+        const fileBuffer = await this._downloadFileBuffer(itemPath, itemName);
+        await this.ensureFolderPathExists(targetParentPath);
+        
+        await this.sp.web.getFolderByServerRelativePath(targetParentPath)
+          .files.addUsingPath(itemName, fileBuffer, { Overwrite: true });
+          
+        const targetUrl = `${this.siteUrl}/${targetParentPath}/${itemName}`.replace(/\/+/g, '/');
+        const serverRelativeTargetUrl = new URL(targetUrl).pathname;
+        await this._logShareActivity('Imported', itemName, serverRelativeTargetUrl, [], 0);
+      }
+    } catch (err) {
+      console.error(`❌ [Import] Failed for ${itemName}:`, err);
+    }
+  }
+
+  /**
+   * Ensures a full folder path exists in the external library
+   */
+  public async ensureFolderPathExists(fullPath: string): Promise<void> {
+    const parts = fullPath.split('/').filter(Boolean);
+    let currentPath = "";
+    
+    for (const part of parts) {
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      await this.ensureFolderExists(currentPath);
     }
   }
 
@@ -973,7 +1067,7 @@ export class ProjectExternalPortalService {
       if (guestData.projectId) itemData.ProjectId = guestData.projectId;
 
       await this.sp.web.lists.getByTitle('ExternalGuestAccess').items.add(itemData);
-      
+
       // Clear all guests cache entries to ensure fresh data is fetched
       this.clearCache(`guests_${guestData.projectId || 'all'}`);
       this.clearCache(`guests_all`); // Also clear the 'all' cache
@@ -995,16 +1089,23 @@ export class ProjectExternalPortalService {
   ): Promise<void> {
     try {
       console.log(`Logging share activity for document: ${documentUrl}`);
-      
+
       // Enhanced document ID retrieval from ExternalShareDocument library
       let docId: number | null = null;
-      
+
       try {
         // First, try to get as a file
+        if (!documentUrl || documentUrl.includes('undefined')) {
+          console.warn(`⚠️ [PortalService] Skipping DocId lookup for invalid URL: ${documentUrl}`);
+          return;
+        }
+
         console.log(`Attempting to get DocId for file: ${documentUrl}`);
-        const file = this.sp.web.getFileByServerRelativePath(documentUrl);
+        // Ensure path is server relative for these calls if it's currently a full URL
+        const serverRelativeUrl = documentUrl.startsWith('http') ? new URL(documentUrl).pathname : documentUrl;
+        const file = this.sp.web.getFileByServerRelativePath(serverRelativeUrl);
         const fileItem = await file.getItem();
-        
+
         if (fileItem) {
           docId = (fileItem as any).Id || (fileItem as any).ID || (fileItem as any).id;
           if (docId) {
@@ -1013,12 +1114,12 @@ export class ProjectExternalPortalService {
         }
       } catch (fileError) {
         console.log(`File lookup failed, trying as folder: ${documentUrl}`);
-        
+
         // If file lookup fails, try to get as a folder
         try {
           const folder = this.sp.web.getFolderByServerRelativePath(documentUrl);
           const folderItem = await folder.listItemAllFields();
-          
+
           if (folderItem) {
             docId = (folderItem as any).Id || (folderItem as any).ID || (folderItem as any).id;
             if (docId) {
@@ -1027,7 +1128,7 @@ export class ProjectExternalPortalService {
           }
         } catch (folderError) {
           console.log(`Folder lookup also failed, trying list item lookup: ${documentUrl}`);
-          
+
           // If both fail, try to find by searching in the ExternalShareDocument library
           try {
             const libraryName = this.externalLibraryName;
@@ -1036,7 +1137,7 @@ export class ProjectExternalPortalService {
               .items
               .select('Id', 'FileRef', 'FileDirRef', 'FileLeafRef')
               .filter(`FileRef eq '${documentUrl.replace(/'/g, "''")}'`)();
-              
+
             if (items && items.length > 0) {
               docId = items[0].Id;
               if (docId) {
@@ -1051,7 +1152,7 @@ export class ProjectExternalPortalService {
                   .items
                   .select('Id', 'FileRef', 'FileLeafRef')
                   .filter(`FileLeafRef eq '${fileName.replace(/'/g, "''")}'`)();
-                  
+
                 if (fileItems && fileItems.length > 0) {
                   // If multiple files with same name, try to match the path
                   const matchingItem = fileItems.find(item => item.FileRef === documentUrl) || fileItems[0];
@@ -1161,7 +1262,7 @@ export class ProjectExternalPortalService {
           throw addError;
         }
       }
-      
+
       // Clear shared documents cache to ensure updated access is reflected immediately
       // This is especially important for restricted external guests who see documents based on SharedDocumentLog
       // Clear all cached shared documents entries for different folder paths
@@ -1172,7 +1273,7 @@ export class ProjectExternalPortalService {
         }
       }
       cacheKeysToDelete.forEach(key => this.cache.delete(key));
-      
+
       return result.data?.Id;
     } catch (error) {
       console.error('Error logging share activity:', error);
@@ -1202,6 +1303,9 @@ export class ProjectExternalPortalService {
   ): Promise<{ items: ISharedDocument[]; totalCount: number }> {
     const libraryName = this.externalLibraryName;
     const cacheKey = `shared_docs_${libraryName}_${folderPath}_p${page}_s${pageSize}`;
+
+    // Always skip cache for first page or when refreshing
+    const shouldSkipCache = page === 1;
 
     return this._getCachedOrFetch(cacheKey, async () => {
       try {
@@ -1245,7 +1349,7 @@ export class ProjectExternalPortalService {
 
         // For internal users and unrestricted guests, proceed with normal permission checks
         const accessibleDocuments: ISharedDocument[] = [];
-        
+
         // Cache library-level permissions once
         const [isOwner, libraryPermission] = await Promise.all([
           this._checkIfUserIsSiteOwner(),
@@ -1288,16 +1392,16 @@ export class ProjectExternalPortalService {
         return { items: accessibleDocuments, totalCount: result.totalCount };
       } catch (error) {
         console.error('Error loading documents from ExternalShareDocument library:', error);
-        
+
         // Check if it's a "list not found" error
         if (error.message && error.message.includes('does not exist')) {
           console.warn('ExternalShareDocument library not found - this may be an external user or library not set up');
           return { items: [], totalCount: 0 };
         }
-        
+
         throw error;
       }
-    });
+    }, shouldSkipCache);
   }
 
   public async getSharedDocumentsFromExternalArea(
@@ -1340,15 +1444,22 @@ export class ProjectExternalPortalService {
       const libraryName = this.externalLibraryName;
       const rootFolder = await this.sp.web.lists.getByTitle(libraryName).rootFolder();
       const rootFolderPath = rootFolder.ServerRelativeUrl;
-      
+
       if (!folderPath || folderPath === '/' || folderPath.trim() === '') {
         return; // Root folder always exists
       }
+
+      // Clean the folder path and deduplicate library name
+      let cleanPath = folderPath.startsWith('/') ? folderPath.substring(1) : folderPath;
+      // libraryName is already declared above at line 1444
       
-      // Clean the folder path
-      const cleanPath = folderPath.startsWith('/') ? folderPath.substring(1) : folderPath;
-      const fullFolderPath = `${rootFolderPath}/${cleanPath}`;
-      
+      if (cleanPath.startsWith(libraryName)) {
+        const slashIndex = cleanPath.indexOf('/');
+        cleanPath = slashIndex !== -1 ? cleanPath.substring(slashIndex + 1) : "";
+      }
+
+      const fullFolderPath = `${rootFolderPath}/${cleanPath}`.replace(/\/+/g, '/').replace(/\/$/, "");
+
       try {
         // Try to get the folder first
         await this.sp.web.getFolderByServerRelativePath(fullFolderPath)();
@@ -1357,13 +1468,13 @@ export class ProjectExternalPortalService {
         if (error.status === 404) {
           // Folder doesn't exist, create it recursively
           console.log('Creating folder:', fullFolderPath);
-          
+
           const folders = cleanPath.split('/');
           let currentPath = rootFolderPath;
-          
+
           for (const folderName of folders) {
             if (folderName.trim() === '') continue;
-            
+
             currentPath = `${currentPath}/${folderName}`;
             try {
               await this.sp.web.getFolderByServerRelativePath(currentPath)();
@@ -1403,15 +1514,15 @@ export class ProjectExternalPortalService {
       if (targetPath && targetPath !== '/' && targetPath.trim() !== '') {
         // Ensure the target folder exists first
         await this.ensureFolderExists(targetPath);
-        
+
         // Construct full server-relative path
         const fullFolderPath = `${rootFolderPath}${targetPath.startsWith('/') ? targetPath : '/' + targetPath}`;
-        
+
         console.log('Uploading to folder path:', fullFolderPath);
-        
+
         const folder = await this.sp.web.getFolderByServerRelativePath(fullFolderPath);
         const uploadResult = await folder.files.addUsingPath(file.name, file, { Overwrite: true });
-        
+
         console.log('File uploaded to folder:', uploadResult.data.ServerRelativeUrl);
 
         // Clear cache for this specific folder AND all related folders
@@ -1617,7 +1728,7 @@ export class ProjectExternalPortalService {
           } else {
             // Copy file to target path - handle both current site and external site URLs
             console.log(`📋 Processing file: ${doc.name} from ${doc.serverRelativeUrl}`);
-            
+
             const fileBuffer = await this._downloadFileBuffer(doc.serverRelativeUrl, doc.name);
 
             const targetFolder = await this.sp.web.getFolderByServerRelativePath(destFolderPath);
@@ -1676,9 +1787,9 @@ export class ProjectExternalPortalService {
     try {
       // Prioritize user.email so B2B guest email matches the plain email stored in logs
       const currentUserEmail = this.context.pageContext.user.email ||
-                              this.context.pageContext.user.loginName ||
-                              this.context.pageContext.user.displayName;
-      
+        this.context.pageContext.user.loginName ||
+        this.context.pageContext.user.displayName;
+
       // Check if user is site owner or admin - they should have full access
       const isOwner = await this._checkIfUserIsSiteOwner();
       if (isOwner) {
@@ -1696,7 +1807,7 @@ export class ProjectExternalPortalService {
       } catch (permError) {
         console.log(`SharePoint permission check failed, falling back to SharedDocumentLog: ${permError.message}`);
       }
-      
+
       // Fallback: Query SharedDocumentLog to find this user's permission for external sharing
       const escapedUrl = documentUrl.replace(/'/g, "''");
       const logs = await this.sp.web.lists
@@ -1723,14 +1834,14 @@ export class ProjectExternalPortalService {
       const now = new Date();
 
       for (const log of logs) {
-        const guestEmails = log.GuestEmail ? 
-          log.GuestEmail.split(';').map((e: string) => e.trim().toLowerCase()) : 
+        const guestEmails = log.GuestEmail ?
+          log.GuestEmail.split(';').map((e: string) => e.trim().toLowerCase()) :
           [];
 
-        const hasAccess = userEmailVariants.some(variant => 
-          guestEmails.some(email => 
-            email === variant || 
-            email.includes(variant) || 
+        const hasAccess = userEmailVariants.some(variant =>
+          guestEmails.some(email =>
+            email === variant ||
+            email.includes(variant) ||
             variant.includes(email.split('@')[0])
           )
         );
@@ -1778,40 +1889,40 @@ export class ProjectExternalPortalService {
   private async _checkSharePointPermissions(): Promise<'Read' | 'Review' | 'Edit' | 'Admin' | null> {
     try {
       const libraryName = this.externalLibraryName;
-      
+
       // First check if library exists and is accessible
       const libraryCheck = await this.checkExternalLibraryAccess();
       if (!libraryCheck.exists || !libraryCheck.hasAccess) {
         console.log(`Library access check failed: exists=${libraryCheck.exists}, hasAccess=${libraryCheck.hasAccess}`);
         return null;
       }
-      
+
       // Check permissions on the ExternalShareDocument library
       const list = this.sp.web.lists.getByTitle(libraryName);
       const listPerms = await list.getCurrentUserEffectivePermissions();
-      
+
       // Check for specific permission levels
       // Full Control: High bit 0, Low bit 0x40000001
       const hasFullControl = (listPerms.High & 0x1) !== 0;
-      
+
       // Contribute: Low bit 0x40000000 (includes add, edit, delete items)
       const hasContribute = (listPerms.Low & 0x40000000) !== 0;
-      
+
       // Edit: Low bit 0x6 (EditListItems + AddListItems)
       const hasEdit = (listPerms.Low & 0x6) === 0x6;
-      
+
       // Read: Low bit 0x1
       const hasRead = (listPerms.Low & 0x1) !== 0;
-      
+
       console.log(`Permission check for ${libraryName}:`, {
         fullControl: hasFullControl,
-        contribute: hasContribute, 
+        contribute: hasContribute,
         edit: hasEdit,
         read: hasRead,
         high: listPerms.High,
         low: listPerms.Low
       });
-      
+
       if (hasFullControl) {
         console.log(`User has Admin (Full Control) permission on ${libraryName} library`);
         return 'Admin';
@@ -1822,12 +1933,12 @@ export class ProjectExternalPortalService {
         console.log(`User has Read permission on ${libraryName} library`);
         return 'Read';
       }
-      
+
       console.log(`User has no recognized permissions on ${libraryName} library`);
       return null;
     } catch (error) {
       console.warn(`Library permission check failed:`, error.message);
-      
+
       // For external users or when library doesn't exist, return null
       return null;
     }
@@ -1843,26 +1954,26 @@ export class ProjectExternalPortalService {
       // Try to check current user's groups
       const web = this.sp.web;
       const currentUser = await web.currentUser();
-      
+
       // Get site owners group
       const ownerGroup = await web.associatedOwnerGroup();
       if (ownerGroup) {
         const siteGroups = await web.siteGroups.getById(ownerGroup.Id).users();
-        const isOwner = siteGroups.some((member: any) => 
-          member.Id === currentUser.Id || 
+        const isOwner = siteGroups.some((member: any) =>
+          member.Id === currentUser.Id ||
           member.LoginName === currentUser.LoginName
         );
-        
+
         if (isOwner) {
           return true;
         }
       }
-      
+
       // Check if user is site admin by trying to get site admin role
       const userPerms = await web.getCurrentUserEffectivePermissions();
       // Check if has manage web permission (bit 12)
       const hasManageWeb = (userPerms.Low & 268435456) !== 0 || (userPerms.High & 1) !== 0;
-      
+
       this._isSiteOwnerCache = hasManageWeb;
       return hasManageWeb;
     } catch (error) {
@@ -1878,14 +1989,14 @@ export class ProjectExternalPortalService {
   public async getUserPermissionForFolderPath(folderPath: string): Promise<'Read' | 'Review' | 'Edit' | 'Admin' | null> {
     try {
       const libraryName = this.externalLibraryName;
-      
+
       // First check if user has library-level permissions
       const libraryPermission = await this._checkSharePointPermissions();
       if (libraryPermission) {
         console.log(`User has ${libraryPermission} permission on library root`);
         return libraryPermission;
       }
-      
+
       // If no library permission, check specific folder path
       if (folderPath && folderPath !== '' && folderPath !== '/') {
         const rootFolder = await this.sp.web.lists.getByTitle(libraryName).rootFolder();
@@ -1893,7 +2004,7 @@ export class ProjectExternalPortalService {
         const fullFolderPath = `${rootFolderPath}${folderPath.startsWith('/') ? folderPath : '/' + folderPath}`;
         return this.getUserPermissionForDocument(fullFolderPath);
       }
-      
+
       return null;
     } catch (error) {
       console.warn('Error fetching folder permission:', error);
@@ -2044,8 +2155,8 @@ export class ProjectExternalPortalService {
   public async getCurrentGuestRole(): Promise<'Viewer' | 'Editor' | null> {
     try {
       const currentUserEmail = this.context.pageContext.user.loginName ||
-                              this.context.pageContext.user.email ||
-                              this.context.pageContext.user.displayName;
+        this.context.pageContext.user.email ||
+        this.context.pageContext.user.displayName;
 
       if (!currentUserEmail) return null;
 
@@ -2087,8 +2198,8 @@ export class ProjectExternalPortalService {
       // (e.g. spweb94_gmail.com#EXT#@tenant.onmicrosoft.com) which does NOT match
       // the plain email stored in ExternalGuestAccess.
       const currentUserEmail = this.context.pageContext.user.email ||
-                              this.context.pageContext.user.loginName ||
-                              this.context.pageContext.user.displayName;
+        this.context.pageContext.user.loginName ||
+        this.context.pageContext.user.displayName;
 
       if (!currentUserEmail) {
         console.warn('No user email found for restriction check');
@@ -2114,11 +2225,11 @@ export class ProjectExternalPortalService {
       // Check if the user's overall access has expired
       const userRecord = items[0];
       const accessExpiryDate = userRecord.AccessExpiryDate;
-      
+
       if (accessExpiryDate) {
         const expiryDate = new Date(accessExpiryDate);
         const currentDate = new Date();
-        
+
         if (currentDate > expiryDate) {
           console.log(`User ${normalizedEmail} access expired on ${expiryDate.toISOString()} - treating as non-restricted`);
           return false; // Expired users should not be considered restricted (they get no access at all)
@@ -2130,7 +2241,7 @@ export class ProjectExternalPortalService {
       }
 
       const isRestricted = true;
-      
+
       if (isRestricted) {
         console.log(`User ${normalizedEmail} is restricted - found in ExternalGuestAccess list`);
       } else {
@@ -2154,9 +2265,9 @@ export class ProjectExternalPortalService {
     try {
       // Prioritize user.email so B2B guest email matches the plain email stored in SharedDocumentLog
       const currentUserEmail = this.context.pageContext.user.email ||
-                              this.context.pageContext.user.loginName ||
-                              this.context.pageContext.user.displayName;
-      
+        this.context.pageContext.user.loginName ||
+        this.context.pageContext.user.displayName;
+
       if (!currentUserEmail) {
         console.warn('No user email found for document filtering');
         return [];

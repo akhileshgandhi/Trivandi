@@ -25,6 +25,7 @@ export interface ISharedFilesProps {
   onRefresh?: () => void;
   service?: ProjectExternalPortalService; // Optional shared service instance
   isUserRestricted?: boolean; // Whether current user is restricted from sharing
+  onFolderChange?: (path: string) => void;
 }
 
 export interface ISharedFilesState {
@@ -40,8 +41,8 @@ export interface ISharedFilesState {
   logsError?: string;
   selectedLogDocument?: ISharedDocument;
   accessLogs: ISharedFileAccessLog[];
-  totalDocumentsFound?: number; // Track total documents before access filtering
-  accessFilteredCount?: number; // Track how many were filtered out due to access
+  totalDocumentsFound?: number;
+  accessFilteredCount?: number;
   filePreview: {
     isOpen: boolean;
     fileUrl: string;
@@ -100,6 +101,10 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
 
   public componentDidUpdate(prevProps: ISharedFilesProps): void {
     if (prevProps.currentPath !== this.props.currentPath) {
+      // Notify parent of folder change
+      if (this.props.onFolderChange) {
+        this.props.onFolderChange(this.props.currentPath);
+      }
       this._loadDocuments();
     }
   }
@@ -266,6 +271,19 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
     this.props.onFolderNavigate(item.path, newBreadcrumbs);
   }
 
+  private _handleFolderClick = (folderPath: string): void => {
+    // Notify parent of folder change
+    if (this.props.onFolderChange) {
+      this.props.onFolderChange(folderPath);
+    }
+    
+    this.setState({
+      loading: true
+    }, () => {
+      this._loadDocuments();
+    });
+  }
+
   private _onFolderClick = (folder: ISharedDocument): void => {
     const newPath = `${this.props.currentPath}/${folder.name}`;
     const newBreadcrumbs = [
@@ -428,23 +446,22 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
           </div>
 
           <div className={styles.headerActions}>
-            <div
+            <DefaultButton
+              text="Import"
+              iconProps={{ iconName: 'CloudDownload' }}
               className={styles.importButton}
               onClick={() => {
                 if (canEditCurrent && !isUserRestricted) {
                   this.props.onShowImportDialog();
                 }
               }}
-              aria-disabled={!canEditCurrent || isUserRestricted}
+              disabled={!canEditCurrent || isUserRestricted}
               title={
                 isUserRestricted ? 'You do not have permission to import documents' :
                 !globalCanEdit ? 'You do not have global edit permission' :
                 !canEditCurrent ? 'Import requires Edit permission for this folder' : ''
               }
-            >
-              <ArrowDownToLine width="16px" height="16px" />
-              Import
-            </div>
+            />
 
             {canAddCurrent && (
               <PrimaryButton

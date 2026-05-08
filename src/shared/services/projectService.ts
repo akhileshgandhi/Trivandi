@@ -507,10 +507,15 @@ export const getDocumentsByServerRelativeUrl = async (
     console.log("📂 Folder path:", folderPath);
 
     // Get the web context for the target site using absolute URL
-    const absoluteSiteUrl = `${window.location.protocol}//${window.location.hostname}${siteUrl}`;
+    let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
+    
+    // Ensure the URL is valid and doesn't have double slashes (except after protocol)
+    absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
+    
     console.log("🌍 Absolute site URL:", absoluteSiteUrl);
 
-    const targetWeb = Web([sp.web, absoluteSiteUrl]);
+    // Fallback to current web if siteUrl is empty or root
+    const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
 
     // Get files from the folder
     const items = await targetWeb
@@ -639,48 +644,59 @@ export const getProjectDocuments = async (
       return { items: pagedItems, totalCount };
     } else {
       // Get items from specific folder
-      // First, get the root folder path to construct the full server-relative path
-      const rootFolder = await sp.web.lists.getByTitle(libraryName).rootFolder();
+      // Construct the full server-relative path accurately
+      const rootFolder = await sp.web.lists.getByTitle(libraryName).rootFolder.select("ServerRelativeUrl")();
       const rootFolderPath = rootFolder.ServerRelativeUrl;
+      
+      let cleanFolderPath = folderPath.startsWith('/') ? folderPath.substring(1) : folderPath;
+      
+      // Deduplicate library name if it's already in the folderPath
+      const libNameClean = libraryName.replace(/\s/g, '');
+      const folderPathClean = cleanFolderPath.replace(/\s/g, '');
+      if (folderPathClean.startsWith(libNameClean)) {
+        const slashIndex = cleanFolderPath.indexOf('/');
+        cleanFolderPath = slashIndex !== -1 ? cleanFolderPath.substring(slashIndex + 1) : "";
+      }
 
-      // Construct the full server-relative path
-      const fullFolderPath = folderPath.startsWith('/')
-        ? `${rootFolderPath}${folderPath}`
-        : `${rootFolderPath}/${folderPath}`;
+      const fullFolderPath = `${rootFolderPath}/${cleanFolderPath}`.replace(/\/+/g, '/').replace(/\/$/, "");
+      console.log("📂 Sanitized Fetch Path:", fullFolderPath);
 
-      console.log("Getting items from folder:", fullFolderPath);
+      // Get files and folders separately from the folder object (more reliable than filtering list items)
+      const folderObj = sp.web.getFolderByServerRelativePath(fullFolderPath);
+      
+      const [files, folders] = await Promise.all([
+        folderObj.files.select("Name", "TimeLastModified", "Length", "ServerRelativeUrl", "UniqueId").expand("ListItemAllFields")(),
+        folderObj.folders.select("Name", "ServerRelativeUrl", "UniqueId").expand("ListItemAllFields").filter("Name ne 'Forms'")()
+      ]);
 
-      const items = await sp.web.lists
-        .getByTitle(libraryName)
-        .items
-        .select(
-          "Id",
-          "FileLeafRef",
-          "Modified",
-          "Editor/Title",
-          "File_x0020_Type",
-          "FileRef",
-          "FSObjType",
-          "OData__UIVersionString",
-          "FileDirRef"
-        )
-        .expand("Editor")
-        .filter(`FileDirRef eq '${fullFolderPath}'`)
-        .orderBy("FSObjType", false)
-        .orderBy("FileLeafRef", true)
-        .top(500)();
+      const allItems = [
+        ...folders.map((f: any) => ({
+          Id: f.ListItemAllFields?.Id || Math.random(),
+          FileLeafRef: f.Name,
+          Modified: f.ListItemAllFields?.Modified || new Date().toISOString(),
+          Editor: { Title: f.ListItemAllFields?.Editor?.Title || "System" },
+          File_x0020_Type: "",
+          FileRef: f.ServerRelativeUrl,
+          FSObjType: 1,
+          VersionLabel: f.ListItemAllFields?.OData__UIVersionString || "1.0"
+        })),
+        ...files.map((f: any) => ({
+          Id: f.ListItemAllFields?.Id || Math.random(),
+          FileLeafRef: f.Name,
+          Modified: f.TimeLastModified || new Date().toISOString(),
+          Editor: { Title: f.ListItemAllFields?.Editor?.Title || "System" },
+          File_x0020_Type: f.Name.split('.').pop() || "",
+          FileRef: f.ServerRelativeUrl,
+          FSObjType: 0,
+          VersionLabel: f.ListItemAllFields?.OData__UIVersionString || "1.0"
+        }))
+      ];
 
-      // Map SharePoint internal version field to expected VersionLabel
-      const mappedFolderItems = items.map((item: any) => ({
-        ...item,
-        VersionLabel: item.OData__UIVersionString,
-      }));
+      console.log("✅ Items found in folder:", allItems.length);
 
-      console.log("Folder items found:", mappedFolderItems.length);
-
-      const totalCount = mappedFolderItems.length;
+      const totalCount = allItems.length;
       const skip = (page - 1) * pageSize;
-      const pagedItems = mappedFolderItems.slice(skip, skip + pageSize);
+      const pagedItems = allItems.slice(skip, skip + pageSize);
 
       return { items: pagedItems, totalCount };
     }
@@ -707,8 +723,10 @@ export const createFolderByServerRelativeUrl = async (serverRelativeUrl: string,
 
     // Parse site and folder path
     const { siteUrl } = parseSiteAndFolder(parentPath);
-    const absoluteSiteUrl = `https://${window.location.hostname}${siteUrl}`;
-    const targetWeb = Web([sp.web, absoluteSiteUrl]);
+    let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
+    absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
+    
+    const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
 
     const result = await targetWeb.getFolderByServerRelativePath(parentPath)
       .folders
@@ -737,8 +755,10 @@ export const ensureFolderPathByServerRelativeUrl = async (serverRelativeUrl: str
 
     // Parse site and folder path
     const { siteUrl } = parseSiteAndFolder(relativeUrl);
-    const absoluteSiteUrl = `https://${window.location.hostname}${siteUrl}`;
-    const targetWeb = Web([sp.web, absoluteSiteUrl]);
+    let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
+    absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
+    
+    const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
 
     // Split the folder path and create each folder in the hierarchy
     const pathParts = folderPath.split("/").filter(part => part.length > 0);
@@ -787,8 +807,10 @@ export const uploadDocumentByServerRelativeUrl = async (serverRelativeUrl: strin
 
     // Parse site and folder path
     const { siteUrl } = parseSiteAndFolder(fullPath);
-    const absoluteSiteUrl = `https://${window.location.hostname}${siteUrl}`;
-    const targetWeb = Web([sp.web, absoluteSiteUrl]);
+    let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
+    absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
+    
+    const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
 
     const result = await targetWeb.getFolderByServerRelativePath(fullPath)
       .files
@@ -839,8 +861,10 @@ export const deleteDocumentByServerRelativeUrl = async (fileServerRelativeUrl: s
 
     // Parse site URL
     const { siteUrl } = parseSiteAndFolder(relativeUrl);
-    const absoluteSiteUrl = `https://${window.location.hostname}${siteUrl}`;
-    const targetWeb = Web([sp.web, absoluteSiteUrl]);
+    let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
+    absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
+    
+    const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
 
     await targetWeb.getFileByServerRelativePath(relativeUrl).delete();
     console.log("File deleted successfully");

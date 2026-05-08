@@ -45,7 +45,7 @@ interface PaginationInfo {
   totalPages: number;
 }
 
-type DocumentTabType = 'project' | 'contract' |'bid' ;
+type DocumentTabType = 'project' | 'contract' | 'bid';
 
 // Helper function to extract library and folder path from server relative URL
 const extractLibraryFromUrl = (url: string): { library: string; basePath: string } | null => {
@@ -109,7 +109,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
       try {
         const projectData = await getProjectById(projectId);
         console.log('📊 Project Data fetched:', projectData);
-        
+
         if (projectData && typeof projectData === 'object' && 'ProjectDocumentsUrl' in projectData) {
           const cleanUrl = (url: any) => {
             if (!url) return '';
@@ -306,7 +306,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
     setSelectedItems(newSelected);
   };
 
-  
+
   const handleNewDocument = (): void => {
     if (onNewClick) {
       onNewClick();
@@ -376,7 +376,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
       }
 
       if (targetUrl) {
-        const folderPath = currentFolderPath ? `${currentFolderPath}/${folderName}` : folderName;
+        const folderPath = currentFolderPath ? `${currentFolderPath}` : folderName;
         await createFolderByServerRelativeUrl(targetUrl, folderPath);
       } else {
         throw new Error('No document URL configured for this tab');
@@ -526,7 +526,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
                   Project Documents
                 </button>
               )}
-              
+
               {bidDocumentsUrl && (
                 <button
                   className={`${styles.docTab} ${activeDocTab === 'bid' ? styles.activeDocTab : ''}`}

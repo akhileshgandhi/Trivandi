@@ -737,13 +737,13 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             onFilterChange={(filters) => {
               setServerFilters(filters);
               const status = mapTabToStatus(activeTab);
-              
+
               // Clean Title filter if it contains the Code separator
               const cleanedFilters = { ...filters };
               if (cleanedFilters.Title && cleanedFilters.Title.includes(" - ")) {
                 cleanedFilters.Title = cleanedFilters.Title.split(" - ").slice(1).join(" - ");
               }
-              
+
               loadProjects(1, cleanedFilters, status, activeTab, undefined, undefined, searchTerm).catch(console.error);
             }}
             onResetFilters={handleResetFilters}

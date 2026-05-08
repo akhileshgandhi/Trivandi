@@ -27,6 +27,7 @@ import ShareDocumentDialog from "../components/Dialogs/ShareDocumentDialog";
 import ImportFromProjectDocsDialog from "../components/Dialogs/ImportFromProjectDocsDialog";
 import NewDocumentDialog from "../components/Dialogs/NewDocumentDialog";
 import ShareAccessDialog from "../components/Dialogs/ShareAccessDialog";
+import { IBreadcrumb } from './IProjectExternalPortalState';
 import { ProjectExternalPortalService } from "../services/ProjectExternalPortalService";
 import { PrimaryButton } from "@fluentui/react/lib/Button";
 import { Icon } from "@fluentui/react/lib/Icon";
@@ -137,7 +138,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
   // External Portal State
   const [showInviteGuestDialog, setShowInviteGuestDialog] = useState<boolean>(false);
   const [showShareDocumentDialog, setShowShareDocumentDialog] = useState<boolean>(false);
-  const [showImportDialog, setShowImportDialog] = useState<boolean>(false);
+  const [showImportDialog, setShowImportDialog] = React.useState(false);
   const [showNewDocumentDialog, setShowNewDocumentDialog] = useState<boolean>(false);
   const [showShareAccessDialog, setShowShareAccessDialog] = useState<boolean>(false);
   const [selectedDocumentsForSharing, setSelectedDocumentsForSharing] = useState<any[]>([]);
@@ -160,7 +161,9 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
     const folderName = `Project-${pid}`;
     portalService.setProjectId(pid);
     setCurrentFolderPath(folderName);
-    setBreadcrumbs([{ text: folderName, key: 'project-root', path: folderName }]);
+    setBreadcrumbs([
+      { text: folderName, key: folderName, path: folderName }
+    ]);
   };
 
   useEffect((): void => {
@@ -265,6 +268,22 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
       setActiveTab("Documents");
     }
   }, [project, activeTab]);
+
+  // Sync portal folder when project data is loaded or from URL directly
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlProjectId = params.get("projectId");
+    const id = urlProjectId || project?.Id || project?.ProjectId;
+    
+    if (id && currentFolderPath === "") {
+      const targetFolder = `Project-${id}`;
+      console.log('🎯 Locking portal to folder:', targetFolder);
+      setCurrentFolderPath(targetFolder);
+      setBreadcrumbs([
+        { text: targetFolder, key: targetFolder, path: targetFolder }
+      ]);
+    }
+  }, [project]);
 
   // Check if current user is restricted (in ExternalGuestAccess list)
   useEffect(() => {
@@ -934,18 +953,19 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
             <SharedFiles
               ref={sharedFilesRef}
               context={props.context}
+              onShowNewDocument={handleShowNewDocument}
+              onShowShareAccess={handleShowShareAccess}
+              onShowImportDialog={handleShowImportDialog}
               currentPath={currentFolderPath}
               breadcrumbs={breadcrumbs}
               onFolderNavigate={(path, crumbs) => {
                 setCurrentFolderPath(path);
                 setBreadcrumbs(crumbs);
               }}
-              onShowNewDocument={handleShowNewDocument}
-              onShowShareAccess={handleShowShareAccess}
-              onShowImportDialog={handleShowImportDialog}
               onRefresh={handleOperationSuccess}
               service={portalService}
               isUserRestricted={isUserRestricted}
+              onFolderChange={(path) => setCurrentFolderPath(path)}
             />
 
             {/* Active Guests Section */}
@@ -1024,11 +1044,11 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
           handleOperationSuccess();
         }}
         context={props.context}
-        targetPath={currentFolderPath}
+        targetPath={`ExternalShareDocument/${currentFolderPath}`}
         service={portalService}
-        projectCode={project?.Code}
-        projectName={project?.Title}
-        projectId={String(project?.Id || project?.ProjectId || "")}
+        projectCode={project?.Code || project?.ProjectId || ""}
+        projectId={project?.Id || Number(project?.ProjectId) || 0}
+        projectTitle={project?.Title}
       />
     </div>
   );
