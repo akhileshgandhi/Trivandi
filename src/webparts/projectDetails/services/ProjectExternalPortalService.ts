@@ -32,6 +32,9 @@ export class ProjectExternalPortalService {
   private readonly CACHE_DURATION = 60000; // 1 minute cache
   private readonly RETRY_DELAY = 2000; // 2 seconds retry delay for throttle
   private readonly MAX_RETRIES = 3;
+  private _isRestrictedGuestCache: boolean | null = null;
+  private _isSiteOwnerCache: boolean | null = null;
+  private _libraryCheckCache: { exists: boolean; hasAccess: boolean; error?: string } | null = null;
 
   constructor(context: WebPartContext) {
     this.context = context;
@@ -60,6 +63,8 @@ export class ProjectExternalPortalService {
    * Check if ExternalShareDocument library exists and user has access
    */
   public async checkExternalLibraryAccess(): Promise<{ exists: boolean; hasAccess: boolean; error?: string }> {
+    if (this._libraryCheckCache !== null) return this._libraryCheckCache;
+    
     try {
       const libraryName = this.externalLibraryName;
       
@@ -69,7 +74,9 @@ export class ProjectExternalPortalService {
       
       if (!libraryExists) {
         console.log(`Library '${libraryName}' does not exist`);
-        return { exists: false, hasAccess: false, error: 'Library does not exist' };
+        const result = { exists: false, hasAccess: false, error: 'Library does not exist' };
+        this._libraryCheckCache = result;
+        return result;
       }
       
       // Check if user has access to the library
@@ -77,10 +84,14 @@ export class ProjectExternalPortalService {
         const list = this.sp.web.lists.getByTitle(libraryName);
         await list.getCurrentUserEffectivePermissions();
         console.log(`User has access to '${libraryName}' library`);
-        return { exists: true, hasAccess: true };
+        const result = { exists: true, hasAccess: true };
+        this._libraryCheckCache = result;
+        return result;
       } catch (accessError) {
         console.log(`User does not have access to '${libraryName}' library:`, accessError.message);
-        return { exists: true, hasAccess: false, error: 'Access denied' };
+        const result = { exists: true, hasAccess: false, error: 'Access denied' };
+        this._libraryCheckCache = result;
+        return result;
       }
     } catch (error) {
       console.error('Error checking library access:', error);
@@ -1194,21 +1205,11 @@ export class ProjectExternalPortalService {
 
     return this._getCachedOrFetch(cacheKey, async () => {
       try {
-        // First check if library exists and user has access
-        const libraryCheck = await this.checkExternalLibraryAccess();
-        
-        if (!libraryCheck.exists) {
-          console.warn(`Library '${libraryName}' does not exist. External portal may not be set up.`);
-          return { items: [], totalCount: 0 };
-        }
-        
-        if (!libraryCheck.hasAccess) {
-          console.warn(`User does not have access to '${libraryName}' library.`);
-          return { items: [], totalCount: 0 };
-        }
-
-        // Check if current user is a restricted external guest
-        const isRestrictedGuest = await this.isCurrentUserRestrictedGuest();
+        // Parallelize initial checks
+        const [libraryCheck, isRestrictedGuest] = await Promise.all([
+          this.checkExternalLibraryAccess(),
+          this.isCurrentUserRestrictedGuest()
+        ]);
 
         // Ensure the project-specific folder exists (admin users only; guests can't create folders)
         if (!isRestrictedGuest && folderPath && folderPath.trim() !== '') {
@@ -1222,7 +1223,7 @@ export class ProjectExternalPortalService {
         const result = await getProjectDocuments(libraryName, folderPath, page, pageSize);
         const items = result.items;
         const totalCount = result.totalCount;
-        console.log(`Found ${items.length} documents in ${libraryName}${folderPath ? '/' + folderPath : ''}`);
+        console.log(`Found ${items.length} documents in ${libraryName}${folderPath ? '/' + folderPath : ''}, totalCount: ${totalCount}`);
 
         const documents: ISharedDocument[] = items.map((item: any) => ({
           id: item.Id,
@@ -1244,34 +1245,43 @@ export class ProjectExternalPortalService {
 
         // For internal users and unrestricted guests, proceed with normal permission checks
         const accessibleDocuments: ISharedDocument[] = [];
-        const currentUserPermission = await this.getUserPermissionForFolderPath('');
         
-        // If user has library-level permissions, show all documents
+        // Cache library-level permissions once
+        const [isOwner, libraryPermission] = await Promise.all([
+          this._checkIfUserIsSiteOwner(),
+          this._checkSharePointPermissions()
+        ]);
+
+        const currentUserPermission = isOwner ? 'Admin' : libraryPermission;
         const ALL_PERMISSIONS = ['Read', 'Review', 'Edit', 'Admin'] as const;
+
         if (currentUserPermission && ALL_PERMISSIONS.includes(currentUserPermission as any)) {
-          console.log(`User has ${currentUserPermission} library access - showing all ${documents.length} documents`);
+          console.log(`User has ${currentUserPermission} access (Owner: ${isOwner}, Library: ${libraryPermission}) - showing all ${documents.length} documents`);
           for (const doc of documents) {
             doc.permission = currentUserPermission as typeof ALL_PERMISSIONS[number];
             accessibleDocuments.push(doc);
           }
         } else {
-          // Check individual document permissions for external users
-          for (const doc of documents) {
+          // Check individual document permissions in parallel
+          console.log('User has no library-level access - checking individual document permissions in parallel');
+          const permissionPromises = documents.map(async (doc) => {
             try {
-              doc.permission = await this.getUserPermissionForDocument(doc.fileRef);
-              
-              // Only include documents the user has access to
-              if (doc.permission === 'Read' || doc.permission === 'Review' || doc.permission === 'Edit' || doc.permission === 'Admin') {
-                accessibleDocuments.push(doc);
-                console.log(`User has ${doc.permission} access to: ${doc.name}`);
-              } else {
-                console.log(`User has no access to: ${doc.name}`);
+              // We already checked owner/library permissions, so we can use a more direct method or pass them
+              // For now, let's just make sure getUserPermissionForDocument is as fast as possible
+              const perm = await this.getUserPermissionForDocument(doc.fileRef);
+              if (perm && ALL_PERMISSIONS.includes(perm as any)) {
+                doc.permission = perm as typeof ALL_PERMISSIONS[number];
+                return doc;
               }
-            } catch (permError) {
-              console.warn(`Error checking permissions for ${doc.name}:`, permError);
-              // On permission check error, exclude the document to be safe
+              return null;
+            } catch (err) {
+              console.warn(`Error checking permission for ${doc.name}:`, err);
+              return null;
             }
-          }
+          });
+
+          const results = await Promise.all(permissionPromises);
+          accessibleDocuments.push(...results.filter((d): d is ISharedDocument => d !== null));
         }
 
         console.log(`Returning ${accessibleDocuments.length} accessible documents out of ${documents.length} total`);
@@ -1827,6 +1837,8 @@ export class ProjectExternalPortalService {
    * Check if current user is site owner or has full control permissions
    */
   private async _checkIfUserIsSiteOwner(): Promise<boolean> {
+    if (this._isSiteOwnerCache !== null) return this._isSiteOwnerCache;
+
     try {
       // Try to check current user's groups
       const web = this.sp.web;
@@ -1851,6 +1863,7 @@ export class ProjectExternalPortalService {
       // Check if has manage web permission (bit 12)
       const hasManageWeb = (userPerms.Low & 268435456) !== 0 || (userPerms.High & 1) !== 0;
       
+      this._isSiteOwnerCache = hasManageWeb;
       return hasManageWeb;
     } catch (error) {
       console.warn('Could not check user permissions:', error);
@@ -2067,6 +2080,8 @@ export class ProjectExternalPortalService {
    * Returns true if the user is a restricted external guest
    */
   public async isCurrentUserRestrictedGuest(): Promise<boolean> {
+    if (this._isRestrictedGuestCache !== null) return this._isRestrictedGuestCache;
+
     try {
       // Prioritize user.email — for B2B external guests, loginName is their UPN
       // (e.g. spweb94_gmail.com#EXT#@tenant.onmicrosoft.com) which does NOT match
@@ -2122,6 +2137,7 @@ export class ProjectExternalPortalService {
         console.log(`User ${normalizedEmail} is not restricted - not found in ExternalGuestAccess list or not active`);
       }
 
+      this._isRestrictedGuestCache = isRestricted;
       return isRestricted;
     } catch (error) {
       console.error('Error checking user restriction status:', error);
