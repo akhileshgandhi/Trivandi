@@ -1150,7 +1150,6 @@ export class ProjectExternalPortalService {
           throw addError;
         }
       }
-      console.log('✓ Share activity logged successfully:', result.data?.Id);
       
       // Clear shared documents cache to ensure updated access is reflected immediately
       // This is especially important for restricted external guests who see documents based on SharedDocumentLog
@@ -1162,7 +1161,6 @@ export class ProjectExternalPortalService {
         }
       }
       cacheKeysToDelete.forEach(key => this.cache.delete(key));
-      console.log(`✓ Cleared ${cacheKeysToDelete.length} shared documents cache entries after share activity`);
       
       return result.data?.Id;
     } catch (error) {
@@ -1180,11 +1178,17 @@ export class ProjectExternalPortalService {
    * Only returns documents the current user has access to
    * For users in ExternalGuestAccess, only shows documents explicitly shared with them
    */
+
+
+
+
+
+
   public async getSharedDocumentsFromExternalLibrary(
     folderPath: string = '',
     page: number = 1,
     pageSize: number = 10
-  ): Promise<ISharedDocument[]> {
+  ): Promise<{ items: ISharedDocument[]; totalCount: number }> {
     const libraryName = this.externalLibraryName;
     const cacheKey = `shared_docs_${libraryName}_${folderPath}_p${page}_s${pageSize}`;
 
@@ -1195,12 +1199,12 @@ export class ProjectExternalPortalService {
         
         if (!libraryCheck.exists) {
           console.warn(`Library '${libraryName}' does not exist. External portal may not be set up.`);
-          return [];
+          return { items: [], totalCount: 0 };
         }
         
         if (!libraryCheck.hasAccess) {
           console.warn(`User does not have access to '${libraryName}' library.`);
-          return [];
+          return { items: [], totalCount: 0 };
         }
 
         // Check if current user is a restricted external guest
@@ -1217,6 +1221,7 @@ export class ProjectExternalPortalService {
 
         const result = await getProjectDocuments(libraryName, folderPath, page, pageSize);
         const items = result.items;
+        const totalCount = result.totalCount;
         console.log(`Found ${items.length} documents in ${libraryName}${folderPath ? '/' + folderPath : ''}`);
 
         const documents: ISharedDocument[] = items.map((item: any) => ({
@@ -1234,7 +1239,7 @@ export class ProjectExternalPortalService {
           console.log('User is restricted external guest - filtering documents based on SharedDocumentLog');
           const filteredDocuments = await this.filterDocumentsForRestrictedUser(documents);
           console.log(`Restricted user can access ${filteredDocuments.length} out of ${documents.length} documents`);
-          return filteredDocuments;
+          return { items: filteredDocuments, totalCount: result.totalCount };
         }
 
         // For internal users and unrestricted guests, proceed with normal permission checks
@@ -1270,14 +1275,14 @@ export class ProjectExternalPortalService {
         }
 
         console.log(`Returning ${accessibleDocuments.length} accessible documents out of ${documents.length} total`);
-        return accessibleDocuments;
+        return { items: accessibleDocuments, totalCount: result.totalCount };
       } catch (error) {
         console.error('Error loading documents from ExternalShareDocument library:', error);
         
         // Check if it's a "list not found" error
         if (error.message && error.message.includes('does not exist')) {
           console.warn('ExternalShareDocument library not found - this may be an external user or library not set up');
-          return [];
+          return { items: [], totalCount: 0 };
         }
         
         throw error;
@@ -1289,7 +1294,7 @@ export class ProjectExternalPortalService {
     folderPath: string,
     page: number = 1,
     pageSize: number = 10
-  ): Promise<ISharedDocument[]> {
+  ): Promise<{ items: ISharedDocument[]; totalCount: number }> {
     try {
       const { getProjectDocuments } = await import('../../../shared/services/projectService');
       const libraryName = this.externalLibraryName;
@@ -1297,10 +1302,10 @@ export class ProjectExternalPortalService {
       const items = result.items;
 
       if (!items || items.length === 0) {
-        return [];
+        return { items: [], totalCount: 0 };
       }
 
-      return items.map((item: any) => ({
+      const documents = items.map((item: any) => ({
         id: item.Id,
         name: item.FileLeafRef,
         modified: new Date(item.Modified),
@@ -1309,9 +1314,11 @@ export class ProjectExternalPortalService {
         fileRef: item.FileRef,
         isFolder: item.FSObjType === 1
       }));
+
+      return { items: documents, totalCount: result.totalCount };
     } catch (error) {
       console.error('Error fetching documents from external area:', error);
-      return [];
+      return { items: [], totalCount: 0 };
     }
   }
 

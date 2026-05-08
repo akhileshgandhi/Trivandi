@@ -588,9 +588,6 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
           )}
 
           <div className={styles.toolbar}>
-            <div className={styles.documentCount}>
-              {documentCount}
-            </div>
 
             {!hideNewButton && canAdd && (
               <button className={styles.newButton} onClick={handleNewDocument}>

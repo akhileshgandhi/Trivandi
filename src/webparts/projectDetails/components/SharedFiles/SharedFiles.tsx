@@ -12,6 +12,7 @@ import { Dialog, DialogType, DialogFooter } from '@fluentui/react/lib/Dialog';
 import { ArrowDownToLine } from 'lucide-react';
 import FilePreview from '../FilePreview/FilePreview';
 import { usePermissionStore } from '../../../../Permission/PermissionStore';
+import Pagination from '../../../../shared/component/Pagination/Pagination';
 
 export interface ISharedFilesProps {
   context: WebPartContext;
@@ -48,6 +49,12 @@ export interface ISharedFilesState {
     filePath?: string;
     canDownload?: boolean;
   };
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
 }
 
 export default class SharedFiles extends React.Component<ISharedFilesProps, ISharedFilesState> {
@@ -72,6 +79,12 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
         fileName: '',
         filePath: '',
         canDownload: true
+      },
+      pagination: {
+        currentPage: 1,
+        pageSize: 10,
+        totalItems: 0,
+        totalPages: 0
       }
     };
 
@@ -98,7 +111,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
     }
   }
 
-  private _loadDocuments = async (): Promise<void> => {
+  private _loadDocuments = async (page: number = this.state.pagination.currentPage, pageSize: number = this.state.pagination.pageSize): Promise<void> => {
     // Prevent multiple simultaneous loads
     if (this.state.loading) {
       console.log('Load already in progress, skipping...');
@@ -119,12 +132,12 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
       accessFilteredCount: 0
     });
     try {
-      const [documents, currentPermission, guestRole] = await Promise.all([
-        this.portalService.getSharedDocumentsFromExternalLibrary(this.props.currentPath),
+      const [{ items: documents, totalCount }, currentPermission, guestRole] = await Promise.all([
+        this.portalService.getSharedDocumentsFromExternalLibrary(this.props.currentPath, page, pageSize),
         this.portalService.getUserPermissionForFolderPath(this.props.currentPath),
         this.portalService.getCurrentGuestRole()
       ]);
-      console.log(`✓ Loaded ${documents.length} accessible documents, guestRole: ${guestRole}`);
+      console.log(`✓ Loaded ${documents.length} accessible documents, total: ${totalCount}, guestRole: ${guestRole}`);
       
       this.setState({ 
         documents, 
@@ -132,7 +145,13 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
         guestRole,
         loading: false,
         totalDocumentsFound: documents.length,
-        accessFilteredCount: 0
+        accessFilteredCount: 0,
+        pagination: {
+          currentPage: page,
+          pageSize: pageSize,
+          totalItems: totalCount,
+          totalPages: Math.ceil(totalCount / pageSize)
+        }
       });
     } catch (error) {
       const errorMessage = error.message || 'Failed to load documents';
@@ -169,9 +188,17 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
 
     this._loadDebounceTimer = window.setTimeout(() => {
       console.log('→ Executing _loadDocuments after debounce');
-      this._loadDocuments();
+      this._loadDocuments(1); // Reset to page 1 on refresh
     }, 300); // 300ms debounce
   }
+
+  private handlePageChange = (page: number): void => {
+    this._loadDocuments(page, this.state.pagination.pageSize);
+  };
+
+  private handlePageSizeChange = (pageSize: number): void => {
+    this._loadDocuments(1, pageSize);
+  };
 
   private _onSelectAllChange = (ev: React.FormEvent<HTMLInputElement>): void => {
     const checked = (ev.currentTarget as HTMLInputElement).checked;
@@ -501,7 +528,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
           <div className={styles.errorContainer}>
             <Icon iconName="Error" className={styles.errorIcon} />
             <p>{this.state.error}</p>
-            <DefaultButton text="Retry" onClick={this._loadDocuments} />
+            <DefaultButton text="Retry" onClick={() => this._loadDocuments()} />
           </div>
         ) : (
           <div className={styles.tableContainer}>
@@ -719,6 +746,20 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
           <MessageBar messageBarType={MessageBarType.info} className={styles.selectionInfo}>
             {this.state.selectedDocuments.length} item(s) selected
           </MessageBar>
+        )}
+
+        {this.state.pagination.totalItems > 0 && (
+          <div className={styles.paginationContainer}>
+            <Pagination
+              currentPage={this.state.pagination.currentPage}
+              totalPages={this.state.pagination.totalPages}
+              pageSize={this.state.pagination.pageSize}
+              totalItems={this.state.pagination.totalItems}
+              onPageChange={this.handlePageChange}
+              onPageSizeChange={this.handlePageSizeChange}
+              label="documents"
+            />
+          </div>
         )}
 
         <Dialog
