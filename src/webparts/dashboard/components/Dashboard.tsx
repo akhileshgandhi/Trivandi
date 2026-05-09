@@ -148,12 +148,12 @@ const Dashboard: React.FC<IDashboardProps> = (props) => {
                     <source src={vdo} type="video/mp4" />
                 </video>
                 <h1 className={styles.heroTitle} style={{ position: 'relative', zIndex: 1 }}>Hey {props.userDisplayName},</h1>
-                <p className={styles.heroSubtitle} style={{ position: 'relative', zIndex: 1 }}>Step into your project control hub!</p>
+                <p className={styles.heroSubtitle} style={{ position: 'relative', zIndex: 1 }}>The home of Trivandi Projects</p>
             </div> */}
             <div className={styles.heroBanner}>
                 <Hero
                     title={`Hey ${props.userDisplayName}`}
-                    subtitle="Step into your project control hub!"
+                    subtitle="The home of Trivandi Projects"
                     bg={heroBg}
                 />
             </div>

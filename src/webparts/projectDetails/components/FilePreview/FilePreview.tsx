@@ -6,6 +6,62 @@ import { Text } from '@fluentui/react/lib/Text';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { Icon } from '@fluentui/react/lib/Icon';
 import styles from './FilePreview.module.scss';
+import * as pdfjsLib from 'pdfjs-dist';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+pdfjsLib.GlobalWorkerOptions.workerSrc = require('pdfjs-dist/build/pdf.worker.entry');
+
+/**
+ * Canvas renderer for .ai / .eps files.
+ * Adobe Illustrator files embed PDF data — PDF.js can render them directly.
+ */
+const AiCanvasPreview: React.FC<{ fileUrl: string }> = ({ fileUrl }) => {
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const [hasError, setHasError] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!fileUrl) return;
+
+    const render = async () => {
+      try {
+        const loadingTask = pdfjsLib.getDocument(fileUrl);
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+
+        const viewport = page.getViewport({ scale: 1 });
+        const scale = 600 / viewport.width;
+        const scaledViewport = page.getViewport({ scale });
+
+        const canvas = canvasRef.current!;
+        const context = canvas.getContext('2d')!;
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
+
+        await page.render({ canvasContext: context, viewport: scaledViewport }).promise;
+      } catch (e) {
+        console.error('[AiCanvasPreview] Error:', e);
+        setHasError(true);
+      }
+    };
+
+    render();
+  }, [fileUrl]);
+
+  if (hasError) {
+    return (
+      <div style={{ textAlign: 'center', padding: '48px 24px', color: '#9ca3af' }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🎨</div>
+        <div style={{ fontWeight: 600, fontSize: 16, color: '#374151', marginBottom: 8 }}>Preview not available</div>
+        <div style={{ fontSize: 13 }}>Save the AI file with &quot;Create PDF Compatible File&quot; enabled in Illustrator, then re-upload.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ textAlign: 'center', padding: 8 }}>
+      <canvas ref={canvasRef} style={{ maxWidth: '100%', height: 'auto', borderRadius: 4, boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }} />
+    </div>
+  );
+};
 
 export interface IFilePreviewProps {
   isOpen: boolean;
@@ -78,6 +134,11 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
       return 'video';
     }
     
+    // AI / EPS / DN files — PDF.js canvas rendering
+    if (['ai', 'eps', 'dn'].includes(extension)) {
+      return 'ai';
+    }
+
     
     return 'unknown';
   }
@@ -135,6 +196,18 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
 
     // Show content immediately for most file types
     switch (fileType) {
+      case 'ai': {
+        // Use absolute URL for PDF.js fetch
+        const absoluteUrl = fileUrl.startsWith('http')
+          ? fileUrl
+          : `${window.location.origin}${fileUrl}`;
+        return (
+          <div className={styles.imageContainer}>
+            <AiCanvasPreview fileUrl={absoluteUrl} />
+          </div>
+        );
+      }
+
       case 'image':
         return (
           <div className={styles.imageContainer}>

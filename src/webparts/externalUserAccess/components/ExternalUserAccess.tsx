@@ -7,6 +7,9 @@ import "@pnp/sp/items";
 import "@pnp/sp/site-users/web";
 import { IExternalUserAccessProps } from "./IExternalUserAccessProps";
 import styles from "./ExternalUserAccess.module.scss";
+import * as pdfjsLib from 'pdfjs-dist';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+pdfjsLib.GlobalWorkerOptions.workerSrc = require('pdfjs-dist/build/pdf.worker.entry');
 
 /* ─────────────────────────────────────────────
    Types
@@ -234,6 +237,59 @@ const PermissionBadge: React.FC<{ permission: string }> = ({ permission }) => {
 /* ─────────────────────────────────────────────
    Preview Modal
 ───────────────────────────────────────────── */
+/**
+ * Canvas renderer for .ai / .eps / .dn files.
+ * Adobe Illustrator files embed PDF data — PDF.js can render them directly.
+ */
+const AiCanvasPreview: React.FC<{ fileUrl: string }> = ({ fileUrl }) => {
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const [hasError, setHasError] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!fileUrl) return;
+
+    const render = async () => {
+      try {
+        const loadingTask = pdfjsLib.getDocument(fileUrl);
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+
+        const viewport = page.getViewport({ scale: 1 });
+        const scale = 600 / viewport.width;
+        const scaledViewport = page.getViewport({ scale });
+
+        const canvas = canvasRef.current!;
+        const context = canvas.getContext('2d')!;
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
+
+        await page.render({ canvasContext: context, viewport: scaledViewport }).promise;
+      } catch (e) {
+        console.error('[AiCanvasPreview] Error:', e);
+        setHasError(true);
+      }
+    };
+
+    render();
+  }, [fileUrl]);
+
+  if (hasError) {
+    return (
+      <div style={{ textAlign: 'center', padding: '48px 24px', color: '#9ca3af' }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🎨</div>
+        <div style={{ fontWeight: 600, fontSize: 16, color: '#374151', marginBottom: 8 }}>Preview not available</div>
+        <div style={{ fontSize: 13 }}>Save the file with &quot;Create PDF Compatible File&quot; enabled in Illustrator, then re-upload.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ textAlign: 'center', padding: 8 }}>
+      <canvas ref={canvasRef} style={{ maxWidth: '100%', height: 'auto', borderRadius: 4, boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }} />
+    </div>
+  );
+};
+
 interface IPreviewModalProps {
   doc: ISharedFile;
   onClose: () => void;
@@ -297,6 +353,18 @@ const PreviewModal: React.FC<IPreviewModalProps> = ({ doc, onClose, onDownload, 
             <strong>{formatDate(doc.ExpiryDate)}</strong>.
             Contact <strong>{doc.SharedBy}</strong> to request renewed access.
           </p>
+        </div>
+      );
+    }
+
+    // ── AI / EPS / DN — Canvas Rendering ───────────────────────────────────
+    if (["ai", "eps", "dn"].includes(ext)) {
+      const absoluteUrl = doc.FileRef.startsWith("http")
+        ? doc.FileRef
+        : `${window.location.origin}${doc.FileRef}`;
+      return (
+        <div className={styles.modalImageWrap}>
+          <AiCanvasPreview fileUrl={absoluteUrl} />
         </div>
       );
     }

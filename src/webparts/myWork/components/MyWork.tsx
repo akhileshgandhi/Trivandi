@@ -21,7 +21,7 @@ const MyWork: React.FC<IMyWorkProps> = (props) => {
   React.useEffect(() => {
     const loadData = async () => {
       try {
-        
+
         setIsLoading(true);
 
         const [projects, bids] = await Promise.all([
@@ -29,13 +29,13 @@ const MyWork: React.FC<IMyWorkProps> = (props) => {
           getProjectsByOwnerAndStatus(OWNER_EMAIL, "Potential"),
         ]);
 
-        
-        
+
+
 
         setLiveProjects(projects);
         setLiveBids(bids);
       } catch (error) {
-        
+
       } finally {
         setIsLoading(false);
       }

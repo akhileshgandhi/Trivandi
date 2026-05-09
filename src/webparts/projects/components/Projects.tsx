@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import type { IProjectsProps } from "./IProjectsProps";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { TooltipHost } from "@fluentui/react/lib/Tooltip";
 
 import Hero from "../../../shared/component/Hero/Hero";
 import heroBg from "../../../shared/assets/hero_new.jpg";
@@ -123,16 +124,20 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             return {
               ...col,
               render: (_: any, row: any) => (
-                <a
-                  href={`/sites/Projects/SitePages/ProjectDetails.aspx?projectId=${row.ID}`}
-                  className={styles.projectLink}
-                  onClick={() => {
-                    sessionStorage.setItem('projectDetails_navigation_source', 'projects_page');
-                    sessionStorage.setItem(`projectDetails_tab_${row.ID}`, 'Dashboard');
-                  }}
-                >
-                  {row.Code ? `${row.Code} - ` : ""}{row.Title}
-                </a>
+                <TooltipHost content={row.Code ? `${row.Code} - ${row.Title}` : row.Title}>
+                  <div className={styles['titleContainer']}>
+                    <a
+                      href={`/sites/Projects/SitePages/ProjectDetails.aspx?projectId=${row.ID}`}
+                      className={styles.projectLink}
+                      onClick={() => {
+                        sessionStorage.setItem('projectDetails_navigation_source', 'projects_page');
+                        sessionStorage.setItem(`projectDetails_tab_${row.ID}`, 'Dashboard');
+                      }}
+                    >
+                      {row.Code ? `${row.Code} - ` : ""}{row.Title}
+                    </a>
+                  </div>
+                </TooltipHost>
               ),
             };
           }
@@ -183,7 +188,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       Pipeline: "Potential",
       Live: "Project", // This will match "Project", "Project - Live", etc.
       Closed: "Closed",
-      "Non-CMAP": "", 
+      "Non-CMAP": "",
     };
     return statusMap[tab] ?? "";
   };
@@ -216,7 +221,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       // In projectService.ts, the '0' case will now be handled as 'ne 1' for better compatibility
 
 
-      
+
 
       const { items, totalCount } = await getProjectsPage(
         statusToUse,
@@ -228,11 +233,11 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         sTermToUse
       );
 
-      
+
 
       // 🛡️ ANTI-FLICKER GUARD: If fresh fetch returns 0 but cache has data, keep cache
       if (items.length === 0 && rows.length > 0 && page === 1 && !sTermToUse) {
-        
+
         setIsLoading(false);
         return;
       }
@@ -245,12 +250,12 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         if (page === 1) {
           sessionStorage.setItem("projects_cached_rows", JSON.stringify(items));
         }
-      } catch (e) {  }
+      } catch (e) { }
 
       setTotalItems(totalCount);
       setCurrentPage(page);
     } catch (err) {
-      
+
       setRows([]);
       setTotalItems(0);
     } finally {
@@ -311,7 +316,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
 
       setUniqueValues(map);
     } catch (err) {
-      
+
     }
   };
 
@@ -328,14 +333,14 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             const { totalCount } = await getProjectsPage(status, 1, 1, filters);
             counts[tab] = totalCount;
           } catch (err) {
-            
+
             counts[tab] = 0;
           }
         })
       );
       setTabCounts(counts);
     } catch (err) {
-      
+
     }
   };
 
@@ -390,7 +395,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       setIsCreateNew(true); // Reset to default state
       setShowCreateModal(true);
     } catch (e) {
-      
+
       alert("Couldn't load fields. Please try again.");
     }
   };
@@ -534,7 +539,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
 
       // Close modal and refresh the project list
       setShowCreateModal(false);
-      loadProjects(1, serverFilters).catch(() => {});
+      loadProjects(1, serverFilters).catch(() => { });
 
       // Show success toast
       toast.success("Project created successfully!", {
@@ -543,7 +548,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       });
     } catch (e: unknown) {
       const error = e as Error;
-      
+
       // Show error toast
       toast.error(error?.message || "Failed to create project", {
         position: "top-right",
@@ -568,17 +573,17 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       setOrderedColumnKeys(DEFAULT_COLUMN_KEYS);
     }
     const status = mapTabToStatus(savedTab);
-    loadProjects(1, {}, status, savedTab, undefined, undefined, searchTerm).catch(() => {});
+    loadProjects(1, {}, status, savedTab, undefined, undefined, searchTerm).catch(() => { });
   }, []);
 
   useEffect(() => {
     if (allColumns.length > 0) {
-      loadUniqueValues().catch(() => {});
+      loadUniqueValues().catch(() => { });
     }
   }, [allColumns, activeTab]);
 
   useEffect(() => {
-    loadTabCounts().catch(() => {});
+    loadTabCounts().catch(() => { });
   }, [allColumns]);
 
   /* ===================== TAB CHANGE ===================== */
@@ -593,17 +598,17 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       setOrderedColumnKeys(DEFAULT_COLUMN_KEYS);
     }
     const status = mapTabToStatus(tab);
-    loadProjects(1, {}, status, tab).catch(() => {});
-    loadUniqueValues(tab).catch(() => {});
+    loadProjects(1, {}, status, tab).catch(() => { });
+    loadUniqueValues(tab).catch(() => { });
   };
 
   /* ===================== PAGE CHANGE HANDLER ===================== */
   const handlePageChange = useCallback((p: number) => {
-    
+
     setCurrentPage(p);
     const status = mapTabToStatus(activeTab);
-    
-    loadProjects(p, serverFilters, status, activeTab, undefined, undefined, searchTerm).catch(() => {});
+
+    loadProjects(p, serverFilters, status, activeTab, undefined, undefined, searchTerm).catch(() => { });
   }, [activeTab, serverFilters, searchTerm]);
 
   const handleResetFilters = (): void => {
@@ -611,7 +616,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     setCurrentPage(1);
     setSearchTerm("");
     const status = mapTabToStatus(activeTab);
-    loadProjects(1, {}, status, activeTab, undefined, undefined, "").catch(() => {});
+    loadProjects(1, {}, status, activeTab, undefined, undefined, "").catch(() => { });
   };
 
   /* ===================== ORDERED COLUMNS ===================== */
@@ -764,7 +769,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
                 cleanedFilters.Title = cleanedFilters.Title.split(" - ").slice(1).join(" - ");
               }
 
-              loadProjects(1, cleanedFilters, status, activeTab, undefined, undefined, searchTerm).catch(() => {});
+              loadProjects(1, cleanedFilters, status, activeTab, undefined, undefined, searchTerm).catch(() => { });
             }}
             onResetFilters={handleResetFilters}
             activeFilters={serverFilters}

@@ -4,6 +4,54 @@ import { IconButton } from '@fluentui/react/lib/Button';
 import { Stack } from '@fluentui/react/lib/Stack';
 import { Text } from '@fluentui/react/lib/Text';
 import { Icon } from '@fluentui/react/lib/Icon';
+import * as pdfjsLib from 'pdfjs-dist';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+pdfjsLib.GlobalWorkerOptions.workerSrc = require('pdfjs-dist/build/pdf.worker.entry');
+
+/**
+ * Canvas renderer for .ai / .eps / .dn files.
+ */
+const AiCanvasPreview: React.FC<{ fileUrl: string }> = ({ fileUrl }) => {
+    const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+    const [hasError, setHasError] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!fileUrl) return;
+        const render = async () => {
+            try {
+                const loadingTask = pdfjsLib.getDocument(fileUrl);
+                const pdf = await loadingTask.promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 1 });
+                const scale = 800 / viewport.width;
+                const scaledViewport = page.getViewport({ scale });
+                const canvas = canvasRef.current!;
+                const context = canvas.getContext('2d')!;
+                canvas.width = scaledViewport.width;
+                canvas.height = scaledViewport.height;
+                await page.render({ canvasContext: context, viewport: scaledViewport }).promise;
+            } catch (e) {
+                setHasError(true);
+            }
+        };
+        render();
+    }, [fileUrl]);
+
+    if (hasError) {
+        return (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#94a3af' }}>
+                <Icon iconName="Error" style={{ fontSize: '32px' }} />
+                <Text variant="medium" block style={{ marginTop: '12px' }}>AI Preview requires PDF compatibility</Text>
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
+            <canvas ref={canvasRef} style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+        </div>
+    );
+};
 
 export interface IFilePreviewProps {
     file: {
@@ -17,9 +65,10 @@ export interface IFilePreviewProps {
 const FilePreview: React.FC<IFilePreviewProps> = ({ file, onClose }) => {
     const getFileType = (fileName: string) => {
         const ext = fileName.split('.').pop()?.toLowerCase();
-        if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext)) return 'image';
+        if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) return 'image';
         if (ext === 'pdf') return 'pdf';
         if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) return 'office';
+        if (['ai', 'eps', 'dn'].includes(ext)) return 'ai';
         return 'unknown';
     };
 
@@ -41,6 +90,8 @@ const FilePreview: React.FC<IFilePreviewProps> = ({ file, onClose }) => {
                 return (
                     <iframe src={previewUrl} style={{ width: '100%', height: '70vh', border: 'none' }} title={file.name} />
                 );
+            case 'ai':
+                return <AiCanvasPreview fileUrl={file.url} />;
             default:
                 return (
                     <div style={{ padding: '60px', textAlign: 'center' }}>

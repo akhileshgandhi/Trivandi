@@ -101,7 +101,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
     if (!silent) setIsLoading(true);
     try {
       const termToUse = sTerm ?? searchTerm;
-      
+
 
       let allItems: any[] = [];
 
@@ -113,7 +113,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
             const { items } = await getProjectsPage(statuss, 1, 5000, filters);
             allItems.push(...items);
           } catch (err) {
-            
+
           }
         }
       } else {
@@ -121,7 +121,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
         // const allStatuses = ['Lead', 'Potential', 'Project', 'Closed'];
         const lostStatusValues = ['Dead', 'Deleted', 'DeletedLead', 'DeadLead'];
 
-        
+
 
         for (const status of lostStatusValues) {
           try {
@@ -129,7 +129,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
             const { items } = await getProjectsPage(status, 1, 5000, filters);
             allItems.push(...items);
           } catch (err) {
-            
+
           }
         }
 
@@ -159,7 +159,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
         });
       }
 
-      
+
 
       // Remove duplicates
       const uniqueItems = allItems.filter((item, index, self) =>
@@ -175,7 +175,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
       setTotalItems(uniqueItems.length);
       setCurrentPage(page);
     } catch (err) {
-      
+
       setRows([]);
       setTotalItems(0);
     } finally {
@@ -220,7 +220,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
           const { items } = await getProjectsPage(status, 1, 5000, {});
           allItems = allItems.concat(items);
         } catch (err) {
-          
+
         }
       }
 
@@ -260,7 +260,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
 
       setUniqueValues(map);
     } catch (err) {
-      
+
     }
   };
 
@@ -286,7 +286,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
                 const { items } = await getProjectsPage(status, 1, 5000, {});
                 allItems.push(...items);
               } catch (err) {
-                
+
               }
             }
 
@@ -297,14 +297,14 @@ const Bids: React.FC<IBidsProps> = (props) => {
 
             counts[tab] = uniqueItems.length;
           } catch (err) {
-            
+
             counts[tab] = 0;
           }
         })
       );
       setTabCounts(counts);
     } catch (err) {
-      
+
     }
   };
 
@@ -398,13 +398,13 @@ const Bids: React.FC<IBidsProps> = (props) => {
             onFilterChange={(filters) => {
               // Filters use SharePoint column names directly
               setServerFilters(filters);
-              
+
               // Clean Title filter if it contains the Code separator
               const cleanedFilters = { ...filters };
               if (cleanedFilters.Title && cleanedFilters.Title.includes(" - ")) {
                 cleanedFilters.Title = cleanedFilters.Title.split(" - ").slice(1).join(" - ");
               }
-              
+
               void loadBids(1, cleanedFilters, searchTerm);
             }}
             onResetFilters={handleResetFilters}
