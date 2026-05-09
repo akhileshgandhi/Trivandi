@@ -25,7 +25,7 @@ export const findProjectLibraryByProject = async (
 
     // Check cache first
     if (libraryCache.has(cacheKey)) {
-      console.log('Using cached library name:', libraryCache.get(cacheKey));
+      
       return libraryCache.get(cacheKey)!;
     }
 
@@ -35,7 +35,7 @@ export const findProjectLibraryByProject = async (
       .select("Title")
       .top(5000)();
 
-    console.log('Available libraries:', lists.map(l => l.Title));
+    
 
     // Search patterns to try (in order of preference)
     const searchPatterns = [
@@ -46,13 +46,13 @@ export const findProjectLibraryByProject = async (
       projectCode
     ].filter(Boolean) as string[];
 
-    console.log('Search patterns:', searchPatterns);
+    
 
     // Try exact match first
     for (const pattern of searchPatterns) {
       const exactMatch = lists.find(l => l.Title === pattern);
       if (exactMatch) {
-        console.log('Found exact match:', exactMatch.Title);
+        
         libraryCache.set(cacheKey, exactMatch.Title);
         return exactMatch.Title;
       }
@@ -62,16 +62,16 @@ export const findProjectLibraryByProject = async (
     for (const pattern of searchPatterns) {
       const partialMatch = lists.find(l => l.Title.includes(pattern));
       if (partialMatch) {
-        console.log('Found partial match:', partialMatch.Title);
+        
         libraryCache.set(cacheKey, partialMatch.Title);
         return partialMatch.Title;
       }
     }
 
-    console.warn('No matching library found for project');
+    
     return null;
   } catch (error) {
-    console.error('Error finding project library:', error);
+    
     return null;
   }
 };
@@ -94,7 +94,7 @@ export const getProjectLibraryName = async (
     ? `${projectCode}-${projectTitle}`
     : projectTitle || projectCode || '';
 
-  console.warn('Library not found, using fallback:', fallbackName);
+  
   return fallbackName;
 };
 
@@ -119,7 +119,7 @@ export const getProjectById = async (projectId: any) => {
     }
     return arr;
   } catch (error) {
-    console.error('Error getting project by ID:', error);
+    
     return '';
   }
 };

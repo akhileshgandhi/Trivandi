@@ -49,7 +49,7 @@ export class ProjectExternalPortalService {
     this.currentProjectId = String(projectId);
     // Clear cache so next load picks up the project-scoped folder
     this.cache.clear();
-    console.log(`Portal service scoped to project: ${this.currentProjectId}`);
+    
   }
 
   /**
@@ -73,7 +73,7 @@ export class ProjectExternalPortalService {
       const libraryExists = lists.some(list => list.Title === libraryName);
 
       if (!libraryExists) {
-        console.log(`Library '${libraryName}' does not exist`);
+        
         const result = { exists: false, hasAccess: false, error: 'Library does not exist' };
         this._libraryCheckCache = result;
         return result;
@@ -83,18 +83,18 @@ export class ProjectExternalPortalService {
       try {
         const list = this.sp.web.lists.getByTitle(libraryName);
         await list.getCurrentUserEffectivePermissions();
-        console.log(`User has access to '${libraryName}' library`);
+        
         const result = { exists: true, hasAccess: true };
         this._libraryCheckCache = result;
         return result;
       } catch (accessError) {
-        console.log(`User does not have access to '${libraryName}' library:`, accessError.message);
+        
         const result = { exists: true, hasAccess: false, error: 'Access denied' };
         this._libraryCheckCache = result;
         return result;
       }
     } catch (error) {
-      console.error('Error checking library access:', error);
+      
       return { exists: false, hasAccess: false, error: error.message };
     }
   }
@@ -112,7 +112,7 @@ export class ProjectExternalPortalService {
    */
   public setProjectLibraryName(libraryName: string): void {
     this.externalLibraryName = libraryName;
-    console.log(`External portal library set to: ${libraryName}`);
+    
   }
 
   private _toWebRelativePath(path: string): string {
@@ -127,14 +127,14 @@ export class ProjectExternalPortalService {
     if (!skipCache && this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
       if (Date.now() - cached.timestamp < this.CACHE_DURATION) {
-        console.log(`Using cached data for: ${cacheKey}`);
+        
         return cached.data as T;
       }
     }
 
     // Check if request is already pending
     if (this.pendingRequests.has(cacheKey)) {
-      console.log(`Reusing pending request for: ${cacheKey}`);
+      
       return this.pendingRequests.get(cacheKey) as Promise<T>;
     }
 
@@ -169,7 +169,7 @@ export class ProjectExternalPortalService {
 
       if (isThrottle && retryCount < this.MAX_RETRIES) {
         const delay = this.RETRY_DELAY * Math.pow(2, retryCount); // Exponential backoff
-        console.warn(`Throttle detected, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.MAX_RETRIES})`);
+        
         await this._delay(delay);
         return this._executeWithRetry(fn, retryCount + 1);
       }
@@ -233,12 +233,12 @@ export class ProjectExternalPortalService {
     try {
       if (this._isCurrentSiteUrl(serverRelativeUrl)) {
         // File is from current site - use current context
-        console.log(`⬇️ Downloading from current site: ${fileName}`);
+        
         const sourceFile = this.sp.web.getFileByServerRelativePath(serverRelativeUrl);
         return await sourceFile.getBuffer();
       } else {
         // File is from external site - need to create context for that site
-        console.log(`🌐 Downloading from external site: ${fileName}`);
+        
 
         // Parse the URL to get the site
         const { siteUrl } = this._parseSiteAndFolder(serverRelativeUrl);
@@ -251,7 +251,7 @@ export class ProjectExternalPortalService {
         const urlObj = new URL(this.siteUrl);
         const absoluteSiteUrl = `${urlObj.protocol}//${urlObj.hostname}${siteUrl}`;
 
-        console.log(`🔗 Absolute site URL: ${absoluteSiteUrl}, File URL: ${serverRelativeUrl}`);
+        
 
         // Get the web context for the external site
         const externalWeb = Web([this.sp.web, absoluteSiteUrl]);
@@ -261,7 +261,7 @@ export class ProjectExternalPortalService {
         return await sourceFile.getBuffer();
       }
     } catch (error) {
-      console.error(`Error downloading file ${fileName} from ${serverRelativeUrl}:`, error);
+      
       throw error;
     }
   }
@@ -271,11 +271,11 @@ export class ProjectExternalPortalService {
    */
   public clearCache(cacheKey?: string): void {
     if (cacheKey) {
-      console.log(`🧹 [PortalService] Clearing specific cache: ${cacheKey}`);
+      
       this.cache.delete(cacheKey);
       this.pendingRequests.delete(cacheKey);
     } else {
-      console.log("🧹 [PortalService] Clearing all cache...");
+      
       this.cache.clear();
       this.pendingRequests.clear();
     }
@@ -331,7 +331,7 @@ export class ProjectExternalPortalService {
 
       return documents;
     } catch (error) {
-      console.error('Error loading shared documents:', error);
+      
       throw new Error(`Failed to load documents: ${error.message}`);
     }
   }
@@ -369,7 +369,7 @@ export class ProjectExternalPortalService {
           invitedDate: new Date(item.InvitedDate)
         }));
       } catch (error) {
-        console.error('Error loading active guests:', error);
+        
         throw new Error(`Failed to load guests: ${error.message}`);
       }
     }, skipCache);
@@ -391,7 +391,7 @@ export class ProjectExternalPortalService {
   //        location: item.FileDirRef.split('/').pop() || '/'
   //      }));
   //    } catch (error) {
-  //      console.error('Error loading project documents:', error);
+  //      
   //      // Mock data fallback
   //      return [
   //        { id: 1, name: 'TRO Sustainability Training', location: '/Project_Docs' },
@@ -411,23 +411,23 @@ export class ProjectExternalPortalService {
     if (!this.sp) throw new Error("PnPjs not initialized");
 
     try {
-      console.log("Library:", libraryName, "Folder:", folderPath || "root");
+      
 
       if (!folderPath) {
         const result = await getProjectDocuments(libraryName, folderPath, page, pageSize);
         const mappedRootItems = result.items;
 
-        console.log("Root items found:", mappedRootItems.length);
+        
         return mappedRootItems;
       } else {
         const result = await getProjectDocuments(libraryName, folderPath, page, pageSize);
         const mappedFolderItems = result.items;
 
-        console.log("Folder items found:", mappedFolderItems.length);
+        
         return mappedFolderItems;
       }
     } catch (error) {
-      console.error("Error fetching documents:", error);
+      
       return [];
     }
   }
@@ -441,7 +441,7 @@ export class ProjectExternalPortalService {
     pageSize: number = 10
   ): Promise<any[]> {
     if (!this.projectLibraryName) {
-      console.warn('Project library name not set.');
+      
       return [];
     }
 
@@ -459,7 +459,7 @@ export class ProjectExternalPortalService {
           serverRelativeUrl: item.FileRef
         }));
       } catch (error) {
-        console.error('Error loading project documents:', error);
+        
         return [];
       }
     });
@@ -483,7 +483,7 @@ export class ProjectExternalPortalService {
         const projectData = await this.getProjectById(projectId);
 
         if (!projectData || typeof projectData !== 'object') {
-          console.warn('No project data found.');
+          
           return [];
         }
 
@@ -492,7 +492,7 @@ export class ProjectExternalPortalService {
         const projectDetails = await libraryService.getProjectById(parseInt(projectId));
 
         if (!projectDetails || typeof projectDetails !== 'object') {
-          console.warn('No project URL details found. Using fallback.');
+          
           return [];
         }
 
@@ -500,11 +500,7 @@ export class ProjectExternalPortalService {
         const bidDocUrl = projectDetails.BidDocumentsUrl || '';
         const contractDocUrl = projectDetails.ContractsDocumentsUrl || '';
 
-        console.log('📁 Found document URLs:', {
-          ProjectDocumentsUrl: projectDocUrl,
-          BidDocumentsUrl: bidDocUrl,
-          ContractsDocumentsUrl: contractDocUrl
-        });
+        
 
         let allDocuments: any[] = [];
 
@@ -527,7 +523,7 @@ export class ProjectExternalPortalService {
             }));
             allDocuments.push(...mappedProjectDocs);
           } catch (error) {
-            console.error('Error loading Project Documents from URL:', error);
+            
           }
         } else {
           // Fallback: Try to discover library name if URL is missing
@@ -547,7 +543,7 @@ export class ProjectExternalPortalService {
               allDocuments.push(...mappedProjectDocs);
             }
           } catch (fallbackError) {
-            console.error('Error loading fallback Project Documents:', fallbackError);
+            
           }
         }
 
@@ -566,7 +562,7 @@ export class ProjectExternalPortalService {
             }));
             allDocuments.push(...mappedBidDocs);
           } catch (error) {
-            console.error('Error loading Bid Documents:', error);
+            
           }
         }
 
@@ -585,21 +581,21 @@ export class ProjectExternalPortalService {
             }));
             allDocuments.push(...mappedContractDocs);
           } catch (error) {
-            console.error('Error loading Contract Documents:', error);
+            
           }
         }
 
         // If no documents found, return empty array
         if (allDocuments.length === 0) {
-          console.warn('No documents found from any source.');
+          
           return [];
         }
 
-        console.log(`📊 Loaded ${allDocuments.length} documents from all sources`);
+        
         return allDocuments;
 
       } catch (error) {
-        console.error('Error in getAllProjectDocumentsForImport:', error);
+        
         return [];
       }
     });
@@ -623,7 +619,7 @@ export class ProjectExternalPortalService {
         status: item.Status
       };
     } catch (error) {
-      console.error('Error loading project:', error);
+      
       return null;
     }
   }
@@ -664,7 +660,7 @@ export class ProjectExternalPortalService {
         accessDuration
       );
     } catch (error) {
-      console.error('Error uploading document:', error);
+      
       throw new Error(`Failed to upload document: ${error.message}`);
     }
   }
@@ -691,7 +687,7 @@ export class ProjectExternalPortalService {
         0
       );
     } catch (error) {
-      console.error('Error uploading document:', error);
+      
       throw new Error(`Failed to upload document: ${error.message}`);
     }
   }
@@ -713,7 +709,7 @@ export class ProjectExternalPortalService {
         accessDuration
       );
     } catch (error) {
-      console.error('Error sharing access:', error);
+      
       throw new Error(`Failed to share access: ${error.message}`);
     }
   }
@@ -742,7 +738,7 @@ export class ProjectExternalPortalService {
             AccessExpiryDate: expiryDate.toISOString()
           });
         } catch (itemError) {
-          console.warn('Could not update AccessExpiryDate on item (may not have field):', itemError.message);
+          
         }
       }
 
@@ -757,9 +753,9 @@ export class ProjectExternalPortalService {
         expiryDate || undefined
       );
 
-      console.log(`Document access granted to ${guestEmails.join(', ')} with ${permission} permission until ${expiryDate}`);
+      
     } catch (error) {
-      console.error('Error sharing document access:', error);
+      
       throw new Error(`Failed to share document: ${error.message}`);
     }
   }
@@ -790,12 +786,12 @@ export class ProjectExternalPortalService {
       );
 
       if (guestsToShare.length === 0) {
-        console.log(`shareFolderAccess: all guests already have active access to "${folderPath}". Nothing to log.`);
+        
         return;
       }
 
       if (alreadyCovered.length > 0) {
-        console.log(`shareFolderAccess: skipping guests with existing active access — ${alreadyCovered.join(', ')}`);
+        
       }
 
       // Log the share activity only for guests who don't already have active access
@@ -809,9 +805,9 @@ export class ProjectExternalPortalService {
         expiryDate || undefined
       );
 
-      console.log(`Folder access granted to ${guestsToShare.join(', ')} with ${permission} permission until ${expiryDate}`);
+      
     } catch (error) {
-      console.error('Error sharing folder access:', error);
+      
       throw new Error(`Failed to share folder: ${error.message}`);
     }
   }
@@ -890,7 +886,7 @@ export class ProjectExternalPortalService {
 
       return guestsWithAccess;
     } catch (err) {
-      console.warn('_getGuestsWithActiveAccessToFolder: query failed (non-fatal), proceeding with share', err);
+      
       return []; // fail-open: if check fails, allow the share to proceed
     }
   }
@@ -903,7 +899,7 @@ export class ProjectExternalPortalService {
     targetPath: string
   ): Promise<void> {
     try {
-      console.log(`🚀 [PortalService] Starting import of ${documents.length} items to ${targetPath}`);
+      
       
       const libraryName = this.externalLibraryName;
       let cleanTargetPath = targetPath.startsWith('/') ? targetPath.slice(1) : targetPath;
@@ -920,7 +916,7 @@ export class ProjectExternalPortalService {
       
       this.clearCache();
     } catch (error) {
-      console.error('Error in importDocuments:', error);
+      
       throw new Error(`Failed to import documents: ${error.message}`);
     }
   }
@@ -938,12 +934,12 @@ export class ProjectExternalPortalService {
     
     try {
       if (isFolder) {
-        console.log(`📂 [Import] Detected Folder: ${itemName}`);
+        
         const newFolderPath = `${targetParentPath}/${itemName}`.replace(/\/+/g, '/');
         await this.ensureFolderPathExists(newFolderPath);
         
         // Fetch children from source
-        console.log(`🔍 [Import] Fetching contents for source folder: ${itemPath}`);
+        
         
         // Parse source site and library from path
         const { siteUrl, folderPath } = this._parseSiteAndFolder(itemPath);
@@ -959,7 +955,7 @@ export class ProjectExternalPortalService {
           ...files.map(f => ({ ...f, name: f.Name, path: f.ServerRelativeUrl, FSObjType: 0 }))
         ];
 
-        console.log(`📦 [Import] Found ${children.length} items in folder ${itemName}`);
+        
 
         if (children.length > 0) {
           for (const child of children) {
@@ -967,7 +963,7 @@ export class ProjectExternalPortalService {
           }
         }
       } else {
-        console.log(`📄 [Import] Detected File: ${itemName}`);
+        
         const fileBuffer = await this._downloadFileBuffer(itemPath, itemName);
         await this.ensureFolderPathExists(targetParentPath);
         
@@ -979,7 +975,7 @@ export class ProjectExternalPortalService {
         await this._logShareActivity('Imported', itemName, serverRelativeTargetUrl, [], 0);
       }
     } catch (err) {
-      console.error(`❌ [Import] Failed for ${itemName}:`, err);
+      
     }
   }
 
@@ -1007,15 +1003,15 @@ export class ProjectExternalPortalService {
       const userResult = await this.sp.web.ensureUser(userEmail);
       const loginName: string = userResult.data?.LoginName;
       if (!loginName) {
-        console.warn(`addUserToSharePointGroup: no LoginName returned for '${userEmail}' — skipping`);
+        
         return;
       }
-      console.log(`addUserToSharePointGroup: resolved LoginName '${loginName}'`);
+      
 
       await this.sp.web.siteGroups.getByName(groupName).users.add(loginName);
-      console.log(`✓ User '${userEmail}' added to SharePoint group '${groupName}'`);
+      
     } catch (error) {
-      console.error(`Error adding user '${userEmail}' to group '${groupName}':`, error);
+      
       // Non-fatal — the B2B invitation email was already sent
     }
   }
@@ -1071,9 +1067,9 @@ export class ProjectExternalPortalService {
       // Clear all guests cache entries to ensure fresh data is fetched
       this.clearCache(`guests_${guestData.projectId || 'all'}`);
       this.clearCache(`guests_all`); // Also clear the 'all' cache
-      console.log('Guest invited successfully, cache cleared for project and all guests');
+      
     } catch (error) {
-      console.error('Error inviting guest:', error);
+      
       throw new Error(`Failed to invite guest: ${error.message}`);
     }
   }
@@ -1088,7 +1084,7 @@ export class ProjectExternalPortalService {
     expiryDate?: Date
   ): Promise<void> {
     try {
-      console.log(`Logging share activity for document: ${documentUrl}`);
+      
 
       // Enhanced document ID retrieval from ExternalShareDocument library
       let docId: number | null = null;
@@ -1096,11 +1092,11 @@ export class ProjectExternalPortalService {
       try {
         // First, try to get as a file
         if (!documentUrl || documentUrl.includes('undefined')) {
-          console.warn(`⚠️ [PortalService] Skipping DocId lookup for invalid URL: ${documentUrl}`);
+          
           return;
         }
 
-        console.log(`Attempting to get DocId for file: ${documentUrl}`);
+        
         // Ensure path is server relative for these calls if it's currently a full URL
         const serverRelativeUrl = documentUrl.startsWith('http') ? new URL(documentUrl).pathname : documentUrl;
         const file = this.sp.web.getFileByServerRelativePath(serverRelativeUrl);
@@ -1109,11 +1105,11 @@ export class ProjectExternalPortalService {
         if (fileItem) {
           docId = (fileItem as any).Id || (fileItem as any).ID || (fileItem as any).id;
           if (docId) {
-            console.log(`✓ Found File DocId: ${docId} for document: ${documentUrl}`);
+            
           }
         }
       } catch (fileError) {
-        console.log(`File lookup failed, trying as folder: ${documentUrl}`);
+        
 
         // If file lookup fails, try to get as a folder
         try {
@@ -1123,11 +1119,11 @@ export class ProjectExternalPortalService {
           if (folderItem) {
             docId = (folderItem as any).Id || (folderItem as any).ID || (folderItem as any).id;
             if (docId) {
-              console.log(`✓ Found Folder DocId: ${docId} for document: ${documentUrl}`);
+              
             }
           }
         } catch (folderError) {
-          console.log(`Folder lookup also failed, trying list item lookup: ${documentUrl}`);
+          
 
           // If both fail, try to find by searching in the ExternalShareDocument library
           try {
@@ -1141,7 +1137,7 @@ export class ProjectExternalPortalService {
             if (items && items.length > 0) {
               docId = items[0].Id;
               if (docId) {
-                console.log(`✓ Found DocId via library search: ${docId} for document: ${documentUrl}`);
+                
               }
             } else {
               // Try searching by filename if full path search fails
@@ -1158,13 +1154,13 @@ export class ProjectExternalPortalService {
                   const matchingItem = fileItems.find(item => item.FileRef === documentUrl) || fileItems[0];
                   docId = matchingItem.Id;
                   if (docId) {
-                    console.log(`✓ Found DocId via filename search: ${docId} for document: ${documentUrl}`);
+                    
                   }
                 }
               }
             }
           } catch (searchError) {
-            console.warn(`All DocId retrieval methods failed for: ${documentUrl}`, searchError);
+            
           }
         }
       }
@@ -1202,7 +1198,7 @@ export class ProjectExternalPortalService {
           );
           logData.GuestUserName = resolvedNames.join('; ');
         } catch (nameErr: any) {
-          console.warn('Could not resolve guest names — falling back to emails:', nameErr.message);
+          
           logData.GuestUserName = sharedWith.join('; ');
         }
       }
@@ -1219,7 +1215,7 @@ export class ProjectExternalPortalService {
             logData.ProjectName = project.Title;
           }
         } catch (projErr: any) {
-          console.warn('Could not resolve project name:', projErr.message);
+          
         }
       }
 
@@ -1237,15 +1233,15 @@ export class ProjectExternalPortalService {
       try {
         logData.Permission = permission;
       } catch (e) {
-        console.warn('Permission field may not exist on SharedDocumentLog list', e);
+        
       }
 
       // Add DocId if we found it
       if (docId) {
         logData.DocId = docId;
-        console.log(`✓ Adding DocId ${docId} to SharedDocumentLog entry`);
+        
       } else {
-        console.warn(`⚠ Could not retrieve DocId for document: ${documentUrl}. Log entry will not include DocId.`);
+        
       }
 
       // Add the log entry
@@ -1255,7 +1251,7 @@ export class ProjectExternalPortalService {
       } catch (addError: any) {
         // If Permission field doesn't exist, retry without it
         if (addError.message && addError.message.includes('Permission') && addError.message.includes('does not exist')) {
-          console.warn('Permission field does not exist in SharedDocumentLog, retrying without Permission field...');
+          
           delete logData.Permission;
           result = await this.sp.web.lists.getByTitle('SharedDocumentLog').items.add(logData);
         } else {
@@ -1276,7 +1272,7 @@ export class ProjectExternalPortalService {
 
       return result.data?.Id;
     } catch (error) {
-      console.error('Error logging share activity:', error);
+      
       throw new Error(`Failed to log sharing activity: ${error.message}`);
     }
   }
@@ -1320,14 +1316,14 @@ export class ProjectExternalPortalService {
           try {
             await this.ensureFolderExists(folderPath);
           } catch (folderErr) {
-            console.warn(`Could not ensure folder exists for path '${folderPath}':`, folderErr.message);
+            
           }
         }
 
         const result = await getProjectDocuments(libraryName, folderPath, page, pageSize);
         const items = result.items;
         const totalCount = result.totalCount;
-        console.log(`Found ${items.length} documents in ${libraryName}${folderPath ? '/' + folderPath : ''}, totalCount: ${totalCount}`);
+        
 
         const documents: ISharedDocument[] = items.map((item: any) => ({
           id: item.Id,
@@ -1341,9 +1337,9 @@ export class ProjectExternalPortalService {
 
         // If user is a restricted external guest, filter documents based on SharedDocumentLog
         if (isRestrictedGuest) {
-          console.log('User is restricted external guest - filtering documents based on SharedDocumentLog');
+          
           const filteredDocuments = await this.filterDocumentsForRestrictedUser(documents);
-          console.log(`Restricted user can access ${filteredDocuments.length} out of ${documents.length} documents`);
+          
           return { items: filteredDocuments, totalCount: result.totalCount };
         }
 
@@ -1360,14 +1356,14 @@ export class ProjectExternalPortalService {
         const ALL_PERMISSIONS = ['Read', 'Review', 'Edit', 'Admin'] as const;
 
         if (currentUserPermission && ALL_PERMISSIONS.includes(currentUserPermission as any)) {
-          console.log(`User has ${currentUserPermission} access (Owner: ${isOwner}, Library: ${libraryPermission}) - showing all ${documents.length} documents`);
+          
           for (const doc of documents) {
             doc.permission = currentUserPermission as typeof ALL_PERMISSIONS[number];
             accessibleDocuments.push(doc);
           }
         } else {
           // Check individual document permissions in parallel
-          console.log('User has no library-level access - checking individual document permissions in parallel');
+          
           const permissionPromises = documents.map(async (doc) => {
             try {
               // We already checked owner/library permissions, so we can use a more direct method or pass them
@@ -1379,7 +1375,7 @@ export class ProjectExternalPortalService {
               }
               return null;
             } catch (err) {
-              console.warn(`Error checking permission for ${doc.name}:`, err);
+              
               return null;
             }
           });
@@ -1388,14 +1384,14 @@ export class ProjectExternalPortalService {
           accessibleDocuments.push(...results.filter((d): d is ISharedDocument => d !== null));
         }
 
-        console.log(`Returning ${accessibleDocuments.length} accessible documents out of ${documents.length} total`);
+        
         return { items: accessibleDocuments, totalCount: result.totalCount };
       } catch (error) {
-        console.error('Error loading documents from ExternalShareDocument library:', error);
+        
 
         // Check if it's a "list not found" error
         if (error.message && error.message.includes('does not exist')) {
-          console.warn('ExternalShareDocument library not found - this may be an external user or library not set up');
+          
           return { items: [], totalCount: 0 };
         }
 
@@ -1431,7 +1427,7 @@ export class ProjectExternalPortalService {
 
       return { items: documents, totalCount: result.totalCount };
     } catch (error) {
-      console.error('Error fetching documents from external area:', error);
+      
       return { items: [], totalCount: 0 };
     }
   }
@@ -1463,11 +1459,11 @@ export class ProjectExternalPortalService {
       try {
         // Try to get the folder first
         await this.sp.web.getFolderByServerRelativePath(fullFolderPath)();
-        console.log('Folder already exists:', fullFolderPath);
+        
       } catch (error) {
         if (error.status === 404) {
           // Folder doesn't exist, create it recursively
-          console.log('Creating folder:', fullFolderPath);
+          
 
           const folders = cleanPath.split('/');
           let currentPath = rootFolderPath;
@@ -1478,10 +1474,10 @@ export class ProjectExternalPortalService {
             currentPath = `${currentPath}/${folderName}`;
             try {
               await this.sp.web.getFolderByServerRelativePath(currentPath)();
-              console.log('Folder exists:', currentPath);
+              
             } catch (innerError) {
               if (innerError.status === 404) {
-                console.log('Creating folder:', currentPath);
+                
                 const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
                 await this.sp.web.getFolderByServerRelativePath(parentPath).folders.addUsingPath(folderName);
               } else {
@@ -1494,7 +1490,7 @@ export class ProjectExternalPortalService {
         }
       }
     } catch (error) {
-      console.error('Error ensuring folder exists:', error);
+      
       throw new Error(`Failed to create folder structure: ${error.message}`);
     }
   }
@@ -1518,17 +1514,17 @@ export class ProjectExternalPortalService {
         // Construct full server-relative path
         const fullFolderPath = `${rootFolderPath}${targetPath.startsWith('/') ? targetPath : '/' + targetPath}`;
 
-        console.log('Uploading to folder path:', fullFolderPath);
+        
 
         const folder = await this.sp.web.getFolderByServerRelativePath(fullFolderPath);
         const uploadResult = await folder.files.addUsingPath(file.name, file, { Overwrite: true });
 
-        console.log('File uploaded to folder:', uploadResult.data.ServerRelativeUrl);
+        
 
         // Clear cache for this specific folder AND all related folders
         const cacheKeyForFolder = `shared_docs_${libraryName}_${targetPath}`;
         this.cache.delete(cacheKeyForFolder);
-        console.log(`Cleared cache key: ${cacheKeyForFolder}`);
+        
 
         // Also clear parent folder caches if in a subfolder
         let currentPath = targetPath;
@@ -1536,7 +1532,7 @@ export class ProjectExternalPortalService {
           const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
           const parentCacheKey = `shared_docs_${libraryName}_${parentPath || '/'}`;
           this.cache.delete(parentCacheKey);
-          console.log(`Cleared parent cache key: ${parentCacheKey}`);
+          
           currentPath = parentPath;
         }
 
@@ -1549,21 +1545,21 @@ export class ProjectExternalPortalService {
           .files
           .addUsingPath(file.name, file, { Overwrite: true });
 
-        console.log('File uploaded to root:', uploadResult.data.ServerRelativeUrl);
+        
 
         // Clear cache for root and all folders
         const rootCacheKey = `shared_docs_${libraryName}_`;
         for (const key of Array.from(this.cache.keys())) {
           if (key.startsWith(rootCacheKey)) {
             this.cache.delete(key);
-            console.log(`Cleared cache key: ${key}`);
+            
           }
         }
 
         return uploadResult.data.ServerRelativeUrl;
       }
     } catch (error) {
-      console.error('Error uploading to ExternalShareDocument:', error);
+      
       throw new Error(`Failed to upload document: ${error.message}`);
     }
   }
@@ -1664,7 +1660,7 @@ export class ProjectExternalPortalService {
         }
       }
     } catch (err) {
-      console.warn('checkExistingActiveAccess: query failed (non-fatal)', err);
+      
     }
 
     return conflicts;
@@ -1691,7 +1687,7 @@ export class ProjectExternalPortalService {
         name: item.Title
       }));
     } catch (error) {
-      console.error('Error loading active guests for sharing:', error);
+      
       return [];
     }
   }
@@ -1721,20 +1717,20 @@ export class ProjectExternalPortalService {
             try {
               const destFolder = await this.sp.web.getFolderByServerRelativePath(destFolderPath);
               await destFolder.folders.addUsingPath(doc.name);
-              console.log(`Folder created: ${targetFolderPath}`);
+              
             } catch (e) {
-              console.log(`Folder creation attempt for ${targetFolderPath}:`, e);
+              
             }
           } else {
             // Copy file to target path - handle both current site and external site URLs
-            console.log(`📋 Processing file: ${doc.name} from ${doc.serverRelativeUrl}`);
+            
 
             const fileBuffer = await this._downloadFileBuffer(doc.serverRelativeUrl, doc.name);
 
             const targetFolder = await this.sp.web.getFolderByServerRelativePath(destFolderPath);
             await targetFolder.files.addUsingPath(doc.name, fileBuffer, { Overwrite: true });
 
-            console.log(`✅ File copied: ${doc.name} to ${destFolderPath}`);
+            
           }
 
           // Log the import activity
@@ -1746,7 +1742,7 @@ export class ProjectExternalPortalService {
             0
           );
         } catch (error) {
-          console.error(`❌ Error copying ${doc.name}:`, error);
+          
           throw error; // Re-throw so caller knows about individual file failures
         }
       }
@@ -1754,7 +1750,7 @@ export class ProjectExternalPortalService {
       // Clear cache for the target path and all related paths
       const cacheKeyForPath = `shared_docs_${libraryName}_${targetPath}`;
       this.cache.delete(cacheKeyForPath);
-      console.log(`Cleared cache key: ${cacheKeyForPath}`);
+      
 
       // Also clear parent folder caches
       let currentPath = targetPath;
@@ -1762,7 +1758,7 @@ export class ProjectExternalPortalService {
         const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
         const parentCacheKey = `shared_docs_${libraryName}_${parentPath || '/'}`;
         this.cache.delete(parentCacheKey);
-        console.log(`Cleared parent cache key: ${parentCacheKey}`);
+        
         currentPath = parentPath;
       }
 
@@ -1771,11 +1767,11 @@ export class ProjectExternalPortalService {
       for (const key of Array.from(this.cache.keys())) {
         if (key.startsWith(rootCacheKey)) {
           this.cache.delete(key);
-          console.log(`Cleared cache key: ${key}`);
+          
         }
       }
     } catch (error) {
-      console.error('Error copying documents to external library:', error);
+      
       throw new Error(`Failed to copy documents: ${error.message}`);
     }
   }
@@ -1793,7 +1789,7 @@ export class ProjectExternalPortalService {
       // Check if user is site owner or admin - they should have full access
       const isOwner = await this._checkIfUserIsSiteOwner();
       if (isOwner) {
-        console.log(`User ${currentUserEmail} is site owner/admin - granting Admin permission`);
+        
         return 'Admin'; // Site owners/admins always have Admin permission
       }
 
@@ -1801,11 +1797,11 @@ export class ProjectExternalPortalService {
       try {
         const sharePointPermission = await this._checkSharePointPermissions();
         if (sharePointPermission) {
-          console.log(`User ${currentUserEmail} has ${sharePointPermission} permission via SharePoint on ExternalShareDocument library`);
+          
           return sharePointPermission;
         }
       } catch (permError) {
-        console.log(`SharePoint permission check failed, falling back to SharedDocumentLog: ${permError.message}`);
+        
       }
 
       // Fallback: Query SharedDocumentLog to find this user's permission for external sharing
@@ -1818,7 +1814,7 @@ export class ProjectExternalPortalService {
         .orderBy('ActionDate', false)();
 
       if (!logs || logs.length === 0) {
-        console.log(`No sharing logs found for document: ${documentUrl}`);
+        
         return null;
       }
 
@@ -1853,7 +1849,7 @@ export class ProjectExternalPortalService {
             const expiryDate = new Date(log.ExpiryDate);
             isAccessValid = now <= expiryDate;
             if (!isAccessValid) {
-              console.log(`⏰ Access expired (ExpiryDate: ${expiryDate.toISOString()}) for user ${currentUserEmail} on: ${documentUrl}`);
+              
               continue; // Try next log entry; skip expired grants
             }
           } else if (log.AccessDuration && log.AccessDuration > 0 && log.ActionDate) {
@@ -1861,24 +1857,24 @@ export class ProjectExternalPortalService {
             const expiryDate = new Date(actionDate.getTime() + (log.AccessDuration * 24 * 60 * 60 * 1000));
             isAccessValid = now <= expiryDate;
             if (!isAccessValid) {
-              console.log(`⏰ Access expired (ActionDate+Duration, expired: ${expiryDate.toISOString()}) for user ${currentUserEmail} on: ${documentUrl}`);
+              
               continue; // Skip expired grants
             }
           }
 
           userPermission = log.Permission as 'Read' | 'Review' | 'Edit' | 'Admin';
-          console.log(`Found ${userPermission} permission for user ${currentUserEmail} on document: ${documentUrl}`);
+          
           break; // Take the most recent non-expired permission
         }
       }
 
       if (!userPermission) {
-        console.log(`No valid (non-expired) permission found for user ${currentUserEmail} on document: ${documentUrl}`);
+        
       }
 
       return userPermission;
     } catch (error) {
-      console.warn('Error fetching user permission:', error);
+      
       return null;
     }
   }
@@ -1893,7 +1889,7 @@ export class ProjectExternalPortalService {
       // First check if library exists and is accessible
       const libraryCheck = await this.checkExternalLibraryAccess();
       if (!libraryCheck.exists || !libraryCheck.hasAccess) {
-        console.log(`Library access check failed: exists=${libraryCheck.exists}, hasAccess=${libraryCheck.hasAccess}`);
+        
         return null;
       }
 
@@ -1914,30 +1910,23 @@ export class ProjectExternalPortalService {
       // Read: Low bit 0x1
       const hasRead = (listPerms.Low & 0x1) !== 0;
 
-      console.log(`Permission check for ${libraryName}:`, {
-        fullControl: hasFullControl,
-        contribute: hasContribute,
-        edit: hasEdit,
-        read: hasRead,
-        high: listPerms.High,
-        low: listPerms.Low
-      });
+      
 
       if (hasFullControl) {
-        console.log(`User has Admin (Full Control) permission on ${libraryName} library`);
+        
         return 'Admin';
       } else if (hasContribute || hasEdit) {
-        console.log(`User has Edit permission on ${libraryName} library`);
+        
         return 'Edit';
       } else if (hasRead) {
-        console.log(`User has Read permission on ${libraryName} library`);
+        
         return 'Read';
       }
 
-      console.log(`User has no recognized permissions on ${libraryName} library`);
+      
       return null;
     } catch (error) {
-      console.warn(`Library permission check failed:`, error.message);
+      
 
       // For external users or when library doesn't exist, return null
       return null;
@@ -1977,7 +1966,7 @@ export class ProjectExternalPortalService {
       this._isSiteOwnerCache = hasManageWeb;
       return hasManageWeb;
     } catch (error) {
-      console.warn('Could not check user permissions:', error);
+      
       // If we cannot verify, assume they're not owner (safer default)
       return false;
     }
@@ -1993,7 +1982,7 @@ export class ProjectExternalPortalService {
       // First check if user has library-level permissions
       const libraryPermission = await this._checkSharePointPermissions();
       if (libraryPermission) {
-        console.log(`User has ${libraryPermission} permission on library root`);
+        
         return libraryPermission;
       }
 
@@ -2007,7 +1996,7 @@ export class ProjectExternalPortalService {
 
       return null;
     } catch (error) {
-      console.warn('Error fetching folder permission:', error);
+      
       return null;
     }
   }
@@ -2042,7 +2031,7 @@ export class ProjectExternalPortalService {
         actionDate: log.ActionDate ? new Date(log.ActionDate) : undefined
       }));
     } catch (error) {
-      console.error('Error fetching document access log:', error);
+      
       throw new Error(`Failed to load access log: ${error.message}`);
     }
   }
@@ -2055,7 +2044,7 @@ export class ProjectExternalPortalService {
     // Check if current user is restricted - external users should not have access to full reports
     const isRestricted = await this.isCurrentUserRestrictedGuest();
     if (isRestricted) {
-      console.warn('Restricted user attempting to access guest access report - access denied');
+      
       throw new Error('You do not have permission to access guest access reports.');
     }
 
@@ -2181,7 +2170,7 @@ export class ProjectExternalPortalService {
       if (role === 'Viewer') return 'Viewer';
       return null;
     } catch (error) {
-      console.warn('Error fetching current guest role:', error);
+      
       return null;
     }
   }
@@ -2202,7 +2191,7 @@ export class ProjectExternalPortalService {
         this.context.pageContext.user.displayName;
 
       if (!currentUserEmail) {
-        console.warn('No user email found for restriction check');
+        
         return false;
       }
 
@@ -2218,7 +2207,7 @@ export class ProjectExternalPortalService {
         .top(1)();
 
       if (!items || items.length === 0) {
-        console.log(`User ${normalizedEmail} is not found in ExternalGuestAccess list or not active`);
+        
         return false;
       }
 
@@ -2231,27 +2220,27 @@ export class ProjectExternalPortalService {
         const currentDate = new Date();
 
         if (currentDate > expiryDate) {
-          console.log(`User ${normalizedEmail} access expired on ${expiryDate.toISOString()} - treating as non-restricted`);
+          
           return false; // Expired users should not be considered restricted (they get no access at all)
         } else {
-          console.log(`User ${normalizedEmail} access valid until ${expiryDate.toISOString()}`);
+          
         }
       } else {
-        console.log(`User ${normalizedEmail} has permanent access (no expiry date set)`);
+        
       }
 
       const isRestricted = true;
 
       if (isRestricted) {
-        console.log(`User ${normalizedEmail} is restricted - found in ExternalGuestAccess list`);
+        
       } else {
-        console.log(`User ${normalizedEmail} is not restricted - not found in ExternalGuestAccess list or not active`);
+        
       }
 
       this._isRestrictedGuestCache = isRestricted;
       return isRestricted;
     } catch (error) {
-      console.error('Error checking user restriction status:', error);
+      
       // Fail safely - if we cannot check, allow access
       return false;
     }
@@ -2269,7 +2258,7 @@ export class ProjectExternalPortalService {
         this.context.pageContext.user.displayName;
 
       if (!currentUserEmail) {
-        console.warn('No user email found for document filtering');
+        
         return [];
       }
 
@@ -2279,7 +2268,7 @@ export class ProjectExternalPortalService {
         .replace('i:0#.f|membership|', '') // Remove SharePoint prefix if present
         .trim();
 
-      console.log(`Filtering documents for restricted user: ${normalizedEmail}`);
+      
 
       // Get all SharedDocumentLog entries for this user
       const sharedLogEntries = await this.sp.web.lists.getByTitle('SharedDocumentLog').items
@@ -2289,11 +2278,11 @@ export class ProjectExternalPortalService {
         .top(1000)();
 
       if (!sharedLogEntries || sharedLogEntries.length === 0) {
-        console.log('No documents found in SharedDocumentLog for this user');
+        
         return [];
       }
 
-      console.log(`Found ${sharedLogEntries.length} shared document entries for user`);
+      
 
       // Create a map of accessible documents based on SharedDocumentLog with access duration check
       const accessibleDocumentsMap = new Map<string, { permission: 'Read' | 'Review' | 'Edit' | 'Admin'; isValid: boolean }>();
@@ -2316,21 +2305,21 @@ export class ProjectExternalPortalService {
           const expiryDate = new Date(logEntry.ExpiryDate);
           isAccessValid = currentDate <= expiryDate;
           if (!isAccessValid) {
-            console.log(`❌ Access expired (ExpiryDate) for ${documentUrl}. Expired on: ${expiryDate.toISOString()}`);
+            
           } else {
-            console.log(`✅ Access valid until ${expiryDate.toISOString()} for ${documentUrl}`);
+            
           }
         } else if (actionDate && accessDuration > 0) {
           const expiryDate = new Date(actionDate.getTime() + (accessDuration * 24 * 60 * 60 * 1000));
           isAccessValid = currentDate <= expiryDate;
           if (!isAccessValid) {
-            console.log(`❌ Access expired (ActionDate+Duration) for ${documentUrl}. Expired on: ${expiryDate.toISOString()}`);
+            
           } else {
-            console.log(`✅ Access valid until ${expiryDate.toISOString()} for ${documentUrl}`);
+            
           }
         } else {
           // accessDuration === -1 (permanent) or 0 or no actionDate — permanent access
-          console.log(`✅ Permanent access for ${documentUrl} (no expiry)`);
+          
         }
 
         // Key 1: full server-relative URL (most reliable match)
@@ -2381,7 +2370,7 @@ export class ProjectExternalPortalService {
             hasAccess = true;
             docPermission = 'Read';
             isAccessValid = true;
-            console.log(`✓ Folder visible because it contains shared documents: ${doc.name}`);
+            
           }
         } else {
           // For files: match by full fileRef first (exact), then filename fallback
@@ -2398,7 +2387,7 @@ export class ProjectExternalPortalService {
               hasAccess = true;
               docPermission = accessInfo.permission;
               isAccessValid = accessInfo.isValid;
-              console.log(`✓ User has ${docPermission} access to file: ${doc.name} (matched via: ${key}, valid: ${isAccessValid})`);
+              
               break;
             }
           }
@@ -2409,15 +2398,15 @@ export class ProjectExternalPortalService {
           doc.permission = docPermission;
           filteredDocuments.push(doc);
         } else if (hasAccess && !isAccessValid) {
-          console.log(`🚫 Access expired for: ${doc.name} - hiding from user`);
+          
         } else {
-          console.log(`✗ User has no access to: ${doc.name}`);
+          
         }
       }
 
       return filteredDocuments;
     } catch (error) {
-      console.error('Error filtering documents for restricted user:', error);
+      
       // Fail safely - return empty array if filtering fails
       return [];
     }

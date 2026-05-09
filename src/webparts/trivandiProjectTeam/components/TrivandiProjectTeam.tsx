@@ -25,7 +25,7 @@ const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
   React.useEffect(() => {
     const loadData = async (): Promise<void> => {
       try {
-        console.log("[Dashboard] Loading dashboard data...");
+
         setIsLoading(true);
 
         const [projects, bids] = await Promise.all([
@@ -33,19 +33,19 @@ const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
           getProjectsByOwnerAndStatus(OWNER_EMAIL, "Potential"),
         ]);
 
-        console.log("[Dashboard] Live Projects:", projects);
-        console.log("[Dashboard] Live Bids:", bids);
+
+
 
         setLiveProjects(projects);
         setLiveBids(bids);
       } catch (error) {
-        console.error("[Dashboard] Data load failed", error);
+
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadData().catch((err: unknown) => console.error(err));
+    loadData().catch((err: unknown) => console.log(err));
   }, []);
 
   // ✅ Resolve greeting from current user
@@ -168,7 +168,7 @@ const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
             </Section>
           </div>
 
-         
+
         </>
       )}
     </div>

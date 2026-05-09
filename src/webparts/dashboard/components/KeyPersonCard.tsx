@@ -26,7 +26,7 @@ const KeyPersonCard: React.FC<KeyPersonCardProps> = ({ name, title, imageUrl, em
         setShowCopied(true);
         setTimeout(() => setShowCopied(false), 2000);
       } catch (err) {
-        console.error('Failed to copy phone number:', err);
+        
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
         textArea.value = phone;
@@ -39,7 +39,7 @@ const KeyPersonCard: React.FC<KeyPersonCardProps> = ({ name, title, imageUrl, em
           setShowCopied(true);
           setTimeout(() => setShowCopied(false), 2000);
         } catch (e) {
-          console.error('Fallback copy failed:', e);
+          
         }
         document.body.removeChild(textArea);
       }

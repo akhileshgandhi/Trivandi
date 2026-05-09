@@ -68,22 +68,22 @@ class ActiveGuestsComponent extends React.Component<IActiveGuestsProps, IActiveG
     // Refresh guests if projectId changes or if refreshTrigger changes
     if (prevProps.projectId !== this.props.projectId || 
         prevProps.refreshTrigger !== this.props.refreshTrigger) {
-      console.log('ActiveGuests: props changed, refreshing guests with skipCache=true');
+      
       this._loadGuests(true); // Skip cache when props change
     }
   }
 
   public refreshGuests = (): void => {
-    console.log('ActiveGuests: refreshGuests method called');
+    
     this._loadGuests(true); // Skip cache when manually refreshing
   }
 
   private _loadGuests = async (skipCache: boolean = false): Promise<void> => {
-    console.log('ActiveGuests: _loadGuests called, skipCache:', skipCache);
+    
     this.setState({ loading: true });
     try {
       const guests = await this.portalService.getActiveGuests(this.props.projectId, skipCache);
-      console.log('ActiveGuests: Loaded guests:', guests);
+      
       
       // Load guest files for each guest
       const guestFiles: { [guestEmail: string]: Array<{ fileName: string; filePath: string; fileUrl: string; }> } = {};
@@ -92,14 +92,14 @@ class ActiveGuestsComponent extends React.Component<IActiveGuestsProps, IActiveG
           const files = await this._loadGuestFiles(guest.email);
           guestFiles[guest.email] = files;
         } catch (error) {
-          console.error(`Error loading files for guest ${guest.email}:`, error);
+          
           guestFiles[guest.email] = [];
         }
       }
       
       this.setState({ guests, guestFiles, loading: false, error: undefined });
     } catch (error) {
-      console.error('Error loading guests:', error);
+      
       this.setState({ guests: [], guestFiles: {}, loading: false, error: undefined }); // Show empty state instead of error
     }
   }
@@ -167,7 +167,7 @@ class ActiveGuestsComponent extends React.Component<IActiveGuestsProps, IActiveG
       
       return Array.from(uniqueFiles.values());
     } catch (error) {
-      console.error('Error loading guest files:', error);
+      
       return [];
     }
   }
@@ -175,17 +175,17 @@ class ActiveGuestsComponent extends React.Component<IActiveGuestsProps, IActiveG
   private _constructFileUrl = (filePath: string): string => {
     if (!filePath) return '';
     
-    console.log('ActiveGuests: Original file path:', filePath);
+    
     
     // If it's already a full URL, return as is
     if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-      console.log('ActiveGuests: Path is already full URL:', filePath);
+      
       return filePath;
     }
     
     // Get site URL
     const siteUrl = this.props.context.pageContext.web.absoluteUrl;
-    console.log('ActiveGuests: Site URL:', siteUrl);
+    
     
     // Simple construction - just combine site URL with file path
     let finalUrl: string;
@@ -196,16 +196,12 @@ class ActiveGuestsComponent extends React.Component<IActiveGuestsProps, IActiveG
       finalUrl = `${siteUrl}/${filePath}`;
     }
     
-    console.log('ActiveGuests: Final constructed URL:', finalUrl);
+    
     return finalUrl;
   }
 
   private _openFilePreview = (fileUrl: string, fileName: string, filePath?: string): void => {
-    console.log('ActiveGuests: Opening file preview:', {
-      fileName,
-      fileUrl,
-      filePath
-    });
+    
     
     this.setState({
       filePreview: {
@@ -294,9 +290,9 @@ class ActiveGuestsComponent extends React.Component<IActiveGuestsProps, IActiveG
         onClick: () => {
           navigator.clipboard.writeText(filePath).then(() => {
             // Could show a toast notification here
-            console.log('File path copied to clipboard');
+            
           }).catch(() => {
-            console.error('Failed to copy file path');
+            
           });
           this._hideContextMenu();
         }
@@ -306,7 +302,7 @@ class ActiveGuestsComponent extends React.Component<IActiveGuestsProps, IActiveG
 
   private _onManageAccess = (): void => {
     this._downloadAccessReport().catch((error) => {
-      console.error('Error triggering access report:', error);
+      
     });
   }
 
@@ -395,7 +391,7 @@ class ActiveGuestsComponent extends React.Component<IActiveGuestsProps, IActiveG
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error generating access report:', error);
+      
       const errorMessage = error.message?.includes('permission') || error.message?.includes('access denied')
         ? 'You do not have permission to export access reports.'
         : `Failed to generate access report: ${error.message || 'Unknown error'}`;

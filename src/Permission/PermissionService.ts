@@ -13,7 +13,7 @@ export const AAD_VIEWER_GROUP_ID = "4fd8e847-82b2-4cbc-b376-d4a36abd5316";
 const isAADGroupInSPGroup = async (sp: any, groupName: string): Promise<boolean> => {
     try {
         const users = await sp.web.siteGroups.getByName(groupName).users();
-        console.log(`[DEBUG] Members of SP Group "${groupName}":`, users.map((u: any) => u.LoginName));
+        
  
         const exists = users.some((u: any) =>
             u.LoginName &&
@@ -21,14 +21,14 @@ const isAADGroupInSPGroup = async (sp: any, groupName: string): Promise<boolean>
         );
  
         if (exists) {
-            console.log(`✅ [NESTING] AAD Group (${AAD_VIEWER_GROUP_ID}) is NESTED inside SP Group: "${groupName}"`);
+            
         } else {
-            console.log(`❌ [NESTING] AAD Group (${AAD_VIEWER_GROUP_ID}) NOT FOUND in SP Group: "${groupName}"`);
+            
         }
  
         return exists;
     } catch (err) {
-        console.error(`[Permission] Error reading ${groupName}:`, err);
+        
         return false;
     }
 };
@@ -52,14 +52,14 @@ const checkAADMembership = async (context: WebPartContext): Promise<boolean> => 
         }
  
         if (isMember) {
-            console.log(`✅ [AAD] Current user IS a member of AAD Group: ${AAD_VIEWER_GROUP_ID}`);
+            
         } else {
-            console.log(`❌ [AAD] Current user IS NOT a member of AAD Group: ${AAD_VIEWER_GROUP_ID}`);
+            
         }
  
         return isMember;
     } catch (err) {
-        console.error("[Permission] AAD check failed:", err);
+        
         return false;
     }
 };
@@ -67,7 +67,7 @@ const checkAADMembership = async (context: WebPartContext): Promise<boolean> => 
 export const checkPermissions = async (context?: WebPartContext): Promise<void> => {
     const ctx = context || getContext();
     if (!ctx) {
-        console.error("[PermissionService] No context available");
+        
         return;
     }
  
@@ -76,6 +76,10 @@ export const checkPermissions = async (context?: WebPartContext): Promise<void> 
  
     try {
         const sp = getSP(ctx);
+        if (!sp) {
+            store.setPermissions({ isLoading: false });
+            return;
+        }
  
         // 🔹 1. Direct SharePoint membership
         const [currentUser, groups] = await Promise.all([
@@ -86,9 +90,8 @@ export const checkPermissions = async (context?: WebPartContext): Promise<void> 
         const groupNames = groups.map(g => g.Title.toLowerCase());
         const isSiteAdmin = currentUser.IsSiteAdmin;
  
-        console.log(`[USER GROUPS] ${groups.map(g => g.Title).join(", ")}`);
-        if (isSiteAdmin) console.log("👑 [USER] IS SITE ADMIN");
- 
+        
+
         // ✅ SP ROLE
         let spRole: "Owner" | "Contributor" | "Viewer" | "None" = "None";
  
@@ -100,7 +103,7 @@ export const checkPermissions = async (context?: WebPartContext): Promise<void> 
             spRole = "Viewer";
         }
  
-        console.log("[SP ROLE]", spRole);
+        
  
         // 🔹 2. AAD → SP group mapping (Check Nesting First)
         const [inOwner, inContributor, inViewer] = await Promise.all([
@@ -118,18 +121,18 @@ export const checkPermissions = async (context?: WebPartContext): Promise<void> 
             if (isAADMember) {
                 if (inOwner) {
                     aadRole = "Owner";
-                    console.log(`💡 [INFO] User has AAD-based "Owner" role via nesting in: "${OWNER_GROUP}"`);
+                    
                 } else if (inContributor) {
                     aadRole = "Contributor";
-                    console.log(`💡 [INFO] User has AAD-based "Contributor" role via nesting in: "${CONTRIBUTOR_GROUP}"`);
+                    
                 } else if (inViewer) {
                     aadRole = "Viewer";
-                    console.log(`💡 [INFO] User has AAD-based "Viewer" role via nesting in: "${VIEWER_GROUP}"`);
+                    
                 }
             }
         }
  
-        console.log("[AAD ROLE]", aadRole);
+        
  
         // 🔹 3. FINAL ROLE (priority)
         const priority = ["Owner", "Contributor", "Viewer", "None"];
@@ -139,7 +142,7 @@ export const checkPermissions = async (context?: WebPartContext): Promise<void> 
                 ? aadRole
                 : spRole;
  
-        console.log("[FINAL ROLE]", role);
+        
  
         // 🔹 4. Permissions
         const isOwner = role === "Owner";
@@ -159,11 +162,11 @@ export const checkPermissions = async (context?: WebPartContext): Promise<void> 
                
         };
  
-        console.log("🔓 [FINAL PERMISSIONS]", permissions);
+        
         store.setPermissions(permissions);
  
     } catch (err) {
-        console.error("[PermissionService] Error:", err);
+        
         store.setPermissions({ isLoading: false });
     }
 }; 

@@ -1,5 +1,26 @@
 .wrapper {
   margin-top: 16px;
+  position: relative;
+}
+
+.tableContainer {
+  position: relative;
+  min-height: 500px;
+}
+
+.loaderOverlay {
+  position: absolute;
+  top: 100px; /* Below the hero/tabs */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: 12px;
 }
 
 /* Filters row (PAGE-3) */

@@ -32,16 +32,18 @@ export interface IDashboardProject {
 export const initializePnP = (context: any) => {
   try {
     sp = spfi().using(SPFx(context));
-    console.log("PnPjs initialized successfully");
+
     return sp;
   } catch (error) {
-    console.error("Error initializing PnPjs:", error);
+
     throw error;
   }
 };
 /* ================= INIT ================= */
 export const initProjectService = (spInstance: SPFI) => {
-  sp = spInstance;
+  if (spInstance) {
+    sp = spInstance;
+  }
 };
 
 /* ================= CONSTANTS ================= */
@@ -103,7 +105,7 @@ export const getProjectColumns = async () => {
 export const enhanceProjectColumns = (columns: any[]) =>
   columns.map(col => {
     if (col.key === "Title") {
-      return { ...col, label: "Project Title" };
+      return { ...col, label: "Project Title", minWidth: 350 };
     }
     if (col.key === "PercentComplete") {
       return { ...col, label: "% Completed" };
@@ -113,6 +115,9 @@ export const enhanceProjectColumns = (columns: any[]) =>
     }
     if (col.key === "Owner") {
       return { ...col, label: "Owner" };
+    }
+    if (col.key === "Company") {
+      return { ...col, minWidth: 200 };
     }
     return col;
   });
@@ -207,9 +212,14 @@ export const getProjectsPage = async (
     if (!v) return; // Skip empty filter values
 
     // Handle boolean fields - SharePoint requires numeric comparison without quotes
-    if (k === "NonCmap" || k === "Noncmap" || k.toLowerCase() === "noncmap") {
-      const boolValue = (v === "1" || v === "true") ? 1 : 0;
-      filterParts.push(`${k} eq ${boolValue}`);
+    if (k.toLowerCase() === "noncmap") {
+      if (v === "0" || v === "false") {
+        // Use 'ne 1' to include both 0 and null values
+        filterParts.push(`${k} ne 1`);
+      } else {
+        const boolValue = (v === "1" || v === "true") ? 1 : 0;
+        filterParts.push(`${k} eq ${boolValue}`);
+      }
     } else if (v === "1" || v === "0" || v === "true" || v === "false") {
       // Other boolean-like fields
       const boolValue = (v === "1" || v === "true") ? 1 : 0;
@@ -229,7 +239,7 @@ export const getProjectsPage = async (
   }
 
   const filterString = filterParts.join(" and ");
-  console.log("Generated OData filter:", filterString);
+
 
   // Check expand fields from filters too
   Object.keys(filters).forEach((k) => {
@@ -269,7 +279,7 @@ export const getProjectsPage = async (
       ? allItems.slice(skip, skip + pageSize)
       : [];
 
-    console.log(`getProjectsPage: page=${page}, pageSize=${pageSize}, skip=${skip}, total=${totalCount}, returning=${paged.length} items`);
+
 
     const mapped = (paged || []).map((item: any) => {
       const row: any = { ID: item.ID };
@@ -313,7 +323,7 @@ export const getProjectsPage = async (
     return { items: mapped, totalCount };
 
   } catch (error) {
-    console.error("Error fetching projects:", error);
+
     throw new Error(`Failed to fetch projects: ${error.message || error}`);
   }
 };
@@ -400,7 +410,7 @@ export const getUniqueValuesForColumn = async (
     try {
       return await tryQuery(false);
     } catch (err) {
-      console.error("getUniqueValuesForColumn failed for", columnKey, err);
+
       return [];
     }
   }
@@ -444,10 +454,10 @@ const toServerRelativeUrl = (url: string): string => {
   try {
     const urlObj = new URL(url);
     const decodedPath = decodeURIComponent(urlObj.pathname);
-    console.log('🔗 Converted URL:', url, '->', decodedPath);
+
     return decodedPath;
   } catch (error) {
-    console.warn('Failed to parse URL:', url, error);
+
     // Try direct decoding if URL parsing fails
     return decodeURIComponent(url);
   }
@@ -491,96 +501,100 @@ export const getDocumentsByServerRelativeUrl = async (
   if (!sp) throw new Error("PnPjs not initialized");
 
   try {
-    console.log("🔍 Input URL:", serverRelativeUrl);
-    console.log("🔍 SubFolder:", subFolderPath);
 
     // Convert to server relative URL if it's a full URL
     const relativeUrl = toServerRelativeUrl(serverRelativeUrl);
     const fullPath = subFolderPath ? `${relativeUrl}/${subFolderPath}` : relativeUrl;
 
-    console.log("🔗 Converted to server relative:", relativeUrl);
-    console.log("📁 Full path with subfolder:", fullPath);
-
     // Parse site and folder path
     const { siteUrl, folderPath } = parseSiteAndFolder(fullPath);
-    console.log("🌐 Site URL:", siteUrl);
-    console.log("📂 Folder path:", folderPath);
 
     // Get the web context for the target site using absolute URL
     let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
-    
+
     // Ensure the URL is valid and doesn't have double slashes (except after protocol)
     absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
-    
-    console.log("🌍 Absolute site URL:", absoluteSiteUrl);
 
     // Fallback to current web if siteUrl is empty or root
     const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
+    const listPath = fullPath.split('/').slice(0, fullPath.startsWith('/sites/') ? 4 : 2).join('/');
 
-    // Get files from the folder
-    const items = await targetWeb
-      .getFolderByServerRelativePath(fullPath)
-      .files
-      .select(
-        "Name",
-        "TimeLastModified",
-        "ServerRelativeUrl",
-        "Length"
-      )();
+    const skip = (page - 1) * pageSize;
+    
+    // Server-side pagination: folders always first, then files
+    const [rawFiles, rawFolders] = await Promise.all([
+      targetWeb.getFolderByServerRelativePath(fullPath).files
+        .select("Name", "TimeLastModified", "ServerRelativeUrl", "Length", "ListItemAllFields/Id", "ListItemAllFields/Modified")
+        .expand("ListItemAllFields")
+        .top(pageSize)
+        .skip(Math.max(0, skip - 0))(),
+      targetWeb.getFolderByServerRelativePath(fullPath).folders
+        .select("Name", "ServerRelativeUrl", "ItemCount", "TimeLastModified", "ListItemAllFields/Id", "ListItemAllFields/Modified")
+        .expand("ListItemAllFields")
+        .filter("Name ne 'Forms'")
+        .top(200)()
+    ]);
 
-    // Get subfolders
-    const folders = await targetWeb
-      .getFolderByServerRelativePath(fullPath)
-      .folders
-      .select("Name", "ServerRelativeUrl")
-      .filter("Name ne 'Forms'")();
-
-    console.log("📁 Raw files:", items.length);
-    console.log("📂 Raw folders:", folders.length);
-
-    // Combine files and folders
-    const allItems = [
-      ...folders.map((folder: any, index: number) => ({
-        Id: Math.random() * 1000000 + index,
-        FileLeafRef: folder.Name,
-        Modified: new Date().toISOString(),
-        Editor: { Title: "" },
-        File_x0020_Type: "",
-        FileRef: folder.ServerRelativeUrl,
-        FSObjType: 1, // 1 = Folder
-        VersionLabel: "",
-        ServerRelativeUrl: folder.ServerRelativeUrl
-      })),
-      ...items.map((item: any, index: number) => ({
-        Id: Math.random() * 1000000 + index + 100000,
-        FileLeafRef: item.Name,
-        Modified: item.TimeLastModified || new Date().toISOString(),
-        Editor: { Title: "System" },
-        File_x0020_Type: item.Name?.split('.').pop() || "",
-        FileRef: item.ServerRelativeUrl,
-        FSObjType: 0, // 0 = File
-        VersionLabel: "1.0",
-        ServerRelativeUrl: item.ServerRelativeUrl
-      }))
+    // Step 2: Get Editor data using indexed IDs (no throttling - ID is indexed)
+    const allIds = [
+      ...rawFiles.map((f: any) => f.ListItemAllFields?.Id).filter(Boolean),
+      ...rawFolders.map((f: any) => f.ListItemAllFields?.Id).filter(Boolean)
     ];
 
-    console.log("✅ Combined items:", allItems.length);
+    let editorMap: Record<number, string> = {};
+    if (allIds.length > 0) {
+      const idFilter = allIds.map((id: number) => `Id eq ${id}`).join(' or ');
+      const editorItems = await targetWeb.getList(listPath).items
+        .select("Id", "Editor/Title", "Author/Title")
+        .expand("Editor", "Author")
+        .filter(idFilter)
+        .top(500)();
+      editorItems.forEach((item: any) => {
+        editorMap[item.Id] = item.Editor?.Title || item.Author?.Title || "";
+      });
+    }
 
-    const totalCount = allItems.length;
-    const skip = (page - 1) * pageSize;
-    const pagedItems = allItems.slice(skip, skip + pageSize);
+    const mappedFolders = rawFolders.map((folder: any, index: number) => ({
+      Id: folder.ListItemAllFields?.Id || Math.random() * 1000000 + index,
+      FileLeafRef: folder.Name,
+      Modified: folder.ListItemAllFields?.Modified || folder.TimeLastModified || new Date().toISOString(),
+      Editor: { Title: editorMap[folder.ListItemAllFields?.Id] || "" },
+      File_x0020_Type: "",
+      FileRef: folder.ServerRelativeUrl,
+      FSObjType: 1,
+      VersionLabel: "",
+      ServerRelativeUrl: folder.ServerRelativeUrl,
+      ItemCount: folder.ItemCount || 0
+    }));
+
+    const mappedFiles = rawFiles.map((item: any, index: number) => ({
+      Id: item.ListItemAllFields?.Id || Math.random() * 1000000 + index + 100000,
+      FileLeafRef: item.Name,
+      Modified: item.TimeLastModified || new Date().toISOString(),
+      Editor: { Title: editorMap[item.ListItemAllFields?.Id] || "" },
+      File_x0020_Type: item.Name?.split('.').pop() || "",
+      FileRef: item.ServerRelativeUrl,
+      FSObjType: 0,
+      VersionLabel: "",
+      ServerRelativeUrl: item.ServerRelativeUrl,
+      Length: item.Length || 0
+    }));
+
+    // Folders first, then files (folders not paginated - always show all)
+    const pagedItems = [...mappedFolders, ...mappedFiles];
+    const totalCount = pagedItems.length + (rawFiles.length === pageSize ? 1 : 0); // approximate
 
     return { items: pagedItems, totalCount };
   } catch (error) {
-    console.error("❌ Error fetching documents by server relative URL:", error);
-    console.error("📍 Failed URL:", serverRelativeUrl);
-    console.error("📍 SubFolder:", subFolderPath);
+
+
+
 
     // Provide more specific error information
     if (error instanceof Error) {
-      console.error("📍 Error message:", error.message);
+
       if (error.message.includes('404') || error.message.includes('Not Found')) {
-        console.error("💡 Folder may not exist or access denied. Check URL format and permissions.");
+
       }
     }
 
@@ -598,7 +612,7 @@ export const getProjectDocuments = async (
   if (!sp) throw new Error("PnPjs not initialized");
 
   try {
-    console.log("Library:", libraryName, "Folder:", folderPath || "root");
+
 
     // If no folder path, get items from root
     if (!folderPath) {
@@ -621,6 +635,9 @@ export const getProjectDocuments = async (
         .orderBy("FileLeafRef", true)
         .top(500)();
 
+      console.log("Items>>>>>>>>>>>>>>>>>>>>>>>>", items);
+
+
       // Filter to only root level items
       const rootPath = await sp.web.lists.getByTitle(libraryName).rootFolder.select("ServerRelativeUrl")();
       const rootItems = items.filter(item => {
@@ -635,21 +652,23 @@ export const getProjectDocuments = async (
         VersionLabel: item.OData__UIVersionString,
       }));
 
-      console.log("Root items found:", mappedRootItems.length);
+      console.log(mappedRootItems, 'mappedRootItems');
+
 
       const totalCount = mappedRootItems.length;
       const skip = (page - 1) * pageSize;
       const pagedItems = mappedRootItems.slice(skip, skip + pageSize);
 
       return { items: pagedItems, totalCount };
-    } else {
+    }
+    else {
       // Get items from specific folder
       // Construct the full server-relative path accurately
       const rootFolder = await sp.web.lists.getByTitle(libraryName).rootFolder.select("ServerRelativeUrl")();
       const rootFolderPath = rootFolder.ServerRelativeUrl;
-      
+
       let cleanFolderPath = folderPath.startsWith('/') ? folderPath.substring(1) : folderPath;
-      
+
       // Deduplicate library name if it's already in the folderPath
       const libNameClean = libraryName.replace(/\s/g, '');
       const folderPathClean = cleanFolderPath.replace(/\s/g, '');
@@ -659,14 +678,14 @@ export const getProjectDocuments = async (
       }
 
       const fullFolderPath = `${rootFolderPath}/${cleanFolderPath}`.replace(/\/+/g, '/').replace(/\/$/, "");
-      console.log("📂 Sanitized Fetch Path:", fullFolderPath);
+
 
       // Get files and folders separately from the folder object (more reliable than filtering list items)
       const folderObj = sp.web.getFolderByServerRelativePath(fullFolderPath);
-      
+
       const [files, folders] = await Promise.all([
-        folderObj.files.select("Name", "TimeLastModified", "Length", "ServerRelativeUrl", "UniqueId").expand("ListItemAllFields")(),
-        folderObj.folders.select("Name", "ServerRelativeUrl", "UniqueId").expand("ListItemAllFields").filter("Name ne 'Forms'")()
+        folderObj.files.select("Name", "TimeLastModified", "Length", "ServerRelativeUrl", "UniqueId", "ListItemAllFields/Editor/Title", "ListItemAllFields/Author/Title").expand("ListItemAllFields")(),
+        folderObj.folders.select("Name", "ServerRelativeUrl", "UniqueId", "ItemCount", "ListItemAllFields/Editor/Title", "ListItemAllFields/Author/Title").expand("ListItemAllFields").filter("Name ne 'Forms'")()
       ]);
 
       const allItems = [
@@ -674,25 +693,29 @@ export const getProjectDocuments = async (
           Id: f.ListItemAllFields?.Id || Math.random(),
           FileLeafRef: f.Name,
           Modified: f.ListItemAllFields?.Modified || new Date().toISOString(),
-          Editor: { Title: f.ListItemAllFields?.Editor?.Title || "System" },
+          Editor: { Title: f.ListItemAllFields?.Editor?.Title || f.ListItemAllFields?.Author?.Title || "System" },
           File_x0020_Type: "",
           FileRef: f.ServerRelativeUrl,
           FSObjType: 1,
-          VersionLabel: f.ListItemAllFields?.OData__UIVersionString || "1.0"
+          VersionLabel: f.ListItemAllFields?.OData__UIVersionString || "1.0",
+          ItemCount: f.ItemCount || 0
         })),
         ...files.map((f: any) => ({
           Id: f.ListItemAllFields?.Id || Math.random(),
           FileLeafRef: f.Name,
           Modified: f.TimeLastModified || new Date().toISOString(),
-          Editor: { Title: f.ListItemAllFields?.Editor?.Title || "System" },
+          Editor: { Title: f.ListItemAllFields?.Editor?.Title || f.ListItemAllFields?.Author?.Title || "System" },
           File_x0020_Type: f.Name.split('.').pop() || "",
           FileRef: f.ServerRelativeUrl,
           FSObjType: 0,
-          VersionLabel: f.ListItemAllFields?.OData__UIVersionString || "1.0"
+          VersionLabel: f.ListItemAllFields?.OData__UIVersionString || "1.0",
+          Length: f.Length || 0
         }))
       ];
 
-      console.log("✅ Items found in folder:", allItems.length);
+      console.log('allItems>>>>>>>>>>>>>>>>', allItems);
+
+
 
       const totalCount = allItems.length;
       const skip = (page - 1) * pageSize;
@@ -701,7 +724,7 @@ export const getProjectDocuments = async (
       return { items: pagedItems, totalCount };
     }
   } catch (error) {
-    console.error("Error fetching documents:", error);
+
     return { items: [], totalCount: 0 };
   }
 };
@@ -719,23 +742,23 @@ export const createFolderByServerRelativeUrl = async (serverRelativeUrl: string,
     // Convert to server relative URL if it's a full URL
     const relativeUrl = toServerRelativeUrl(serverRelativeUrl);
     const parentPath = subFolderPath ? `${relativeUrl}/${subFolderPath}` : relativeUrl;
-    console.log("📁 Creating folder:", folderName, "in:", parentPath);
+
 
     // Parse site and folder path
     const { siteUrl } = parseSiteAndFolder(parentPath);
     let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
     absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
-    
+
     const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
 
     const result = await targetWeb.getFolderByServerRelativePath(parentPath)
       .folders
       .addUsingPath(folderName);
 
-    console.log("✅ Folder created successfully");
+
     return result;
   } catch (error) {
-    console.error("❌ Error creating folder by server relative URL:", error);
+
     throw error;
   }
 };
@@ -751,13 +774,13 @@ export const ensureFolderPathByServerRelativeUrl = async (serverRelativeUrl: str
   try {
     // Convert to server relative URL if it's a full URL
     const relativeUrl = toServerRelativeUrl(serverRelativeUrl);
-    console.log("🔍 Ensuring folder path exists:", folderPath, "in:", relativeUrl);
+
 
     // Parse site and folder path
     const { siteUrl } = parseSiteAndFolder(relativeUrl);
     let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
     absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
-    
+
     const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
 
     // Split the folder path and create each folder in the hierarchy
@@ -770,22 +793,22 @@ export const ensureFolderPathByServerRelativeUrl = async (serverRelativeUrl: str
       try {
         // Check if folder exists
         await targetWeb.getFolderByServerRelativePath(newPath).select("Name")();
-        console.log("📁 Folder exists:", newPath);
+
       } catch (error) {
         // Folder doesn't exist, create it
-        console.log("📁 Creating folder:", folderName, "in:", currentPath);
+
         await targetWeb.getFolderByServerRelativePath(currentPath)
           .folders
           .addUsingPath(folderName);
-        console.log("✅ Created folder:", newPath);
+
       }
 
       currentPath = newPath;
     }
 
-    console.log("✅ Folder path ensured:", folderPath);
+
   } catch (error) {
-    console.error("❌ Error ensuring folder path:", error);
+
     throw error;
   }
 };
@@ -803,23 +826,23 @@ export const uploadDocumentByServerRelativeUrl = async (serverRelativeUrl: strin
     // Convert to server relative URL if it's a full URL
     const relativeUrl = toServerRelativeUrl(serverRelativeUrl);
     const fullPath = subFolderPath ? `${relativeUrl}/${subFolderPath}` : relativeUrl;
-    console.log("📤 Uploading to server relative URL:", fullPath);
+
 
     // Parse site and folder path
     const { siteUrl } = parseSiteAndFolder(fullPath);
     let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
     absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
-    
+
     const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
 
     const result = await targetWeb.getFolderByServerRelativePath(fullPath)
       .files
       .addUsingPath(file.name, file, { Overwrite: true });
 
-    console.log("File uploaded successfully");
+
     return result;
   } catch (error) {
-    console.error("Error uploading file by server relative URL:", error);
+
     throw error;
   }
 };
@@ -842,7 +865,7 @@ export const uploadDocumentWithFolderCreation = async (serverRelativeUrl: string
     // Then upload the file using the original upload function
     return await uploadDocumentByServerRelativeUrl(serverRelativeUrl, file, subFolderPath);
   } catch (error) {
-    console.error("Error uploading document with folder creation:", error);
+
     throw error;
   }
 };
@@ -857,19 +880,19 @@ export const deleteDocumentByServerRelativeUrl = async (fileServerRelativeUrl: s
   try {
     // Convert to server relative URL if it's a full URL
     const relativeUrl = toServerRelativeUrl(fileServerRelativeUrl);
-    console.log("🗑️ Deleting file at:", relativeUrl);
+
 
     // Parse site URL
     const { siteUrl } = parseSiteAndFolder(relativeUrl);
     let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
     absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
-    
+
     const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
 
     await targetWeb.getFileByServerRelativePath(relativeUrl).delete();
-    console.log("File deleted successfully");
+
   } catch (error) {
-    console.error("Error deleting file by server relative URL:", error);
+
     throw error;
   }
 };
@@ -879,7 +902,7 @@ export const uploadProjectDocument = async (libraryName: string, file: File, fol
   if (!sp) throw new Error("PnPjs not initialized");
 
   try {
-    console.log("Uploading to library:", libraryName, "folder:", folderPath || "root");
+
 
     let result;
 
@@ -904,14 +927,14 @@ export const uploadProjectDocument = async (libraryName: string, file: File, fol
         .addUsingPath(file.name, file, { Overwrite: true });
     }
 
-    console.log("File uploaded successfully");
+
 
     // Optionally update metadata if required by your library
     // (Removed Status update: the field does not exist in this library)
 
     return result;
   } catch (error) {
-    console.error("Error uploading file:", error);
+
     throw error;
   }
 };
@@ -933,9 +956,9 @@ const ensureFolderPath = async (libraryName: string, folderPath: string): Promis
           .rootFolder
           .folders
           .getByUrl(currentPath)();
-        console.log("Folder exists:", currentPath);
+
       } catch {
-        console.log("Creating folder:", currentPath);
+
         const parentPath = currentPath.substring(0, currentPath.lastIndexOf("/"));
         if (parentPath) {
           await sp.web.lists
@@ -963,10 +986,7 @@ export const getProjectsByOwnerAndStatus = async (
 ): Promise<IDashboardProject[]> => {
   if (!sp) throw new Error("PnPjs not initialized");
 
-  console.log("[ProjectService] Fetching data", {
-    ownerEmail,
-    status,
-  });
+
 
   // Handle both single status and multiple statuses
   const statusFilter = Array.isArray(status)
@@ -989,7 +1009,7 @@ export const getProjectsByOwnerAndStatus = async (
     )
     .top(20)();
 
-  console.log(`[ProjectService] Raw ${status} items`, items);
+
 
   return items.map(item => ({
     Id: item.ID,
@@ -1008,7 +1028,7 @@ export const getRecentDocuments = async (limit: number = 10) => {
     const currentUser = await sp.web.currentUser();
     const userEmail = currentUser.Email;
 
-    console.log("Fetching recent documents for user via Search API:", currentUser.Title);
+
 
     // Using Search API is much more efficient as it retrieves documents across all libraries in a single call
     const results = await sp.search({
@@ -1019,7 +1039,7 @@ export const getRecentDocuments = async (limit: number = 10) => {
     });
 
     if (!results || !results.PrimarySearchResults || results.PrimarySearchResults.length === 0) {
-      console.log("No recent documents found via search.");
+
       return [];
     }
 
@@ -1045,11 +1065,11 @@ export const getRecentDocuments = async (limit: number = 10) => {
       };
     });
 
-    console.log(`Found ${mappedDocs.length} recent documents via search.`);
+
     return mappedDocs;
 
   } catch (error) {
-    console.error("Error fetching recent documents:", error);
+
     // Return mock data for testing
     return [
       {
@@ -1118,7 +1138,7 @@ const getRequestDigest = async (): Promise<string> => {
     const data = await response.json();
     return data.d.GetContextWebInformation.FormDigestValue;
   } catch (error) {
-    console.error('Error getting request digest:', error);
+
     throw error;
   }
 };
@@ -1145,9 +1165,9 @@ export const deleteProjectDocument = async (
       throw new Error(`Failed to delete document: ${response.statusText}`);
     }
 
-    console.log('Document deleted successfully:', fileServerRelativeUrl);
+
   } catch (error) {
-    console.error('Error deleting document:', error);
+
     throw error;
   }
 };
@@ -1176,9 +1196,9 @@ export const downloadProjectDocument = async (
     link.click();
     document.body.removeChild(link);
 
-    console.log('Document download initiated:', fileName);
+
   } catch (error) {
-    console.error('Error downloading document:', error);
+
     throw error;
   }
 };
@@ -1222,9 +1242,9 @@ export const downloadProjectDocumentBlob = async (
     // Clean up
     window.URL.revokeObjectURL(url);
 
-    console.log('Document downloaded successfully:', fileName);
+
   } catch (error) {
-    console.error('Error downloading document:', error);
+
     throw error;
   }
 };

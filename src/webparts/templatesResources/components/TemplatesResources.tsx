@@ -221,7 +221,7 @@
 //             <p>{folder.Description || `${folder.files.length} files, ${folder.subFolders.length} folders`}</p>
 //           </div>
 //         </div>
-        
+
 //         {expandedFolders.has(folder.Id) && (
 //           <div className={styles.folderContent}>
 //             {/* Render files in this folder */}
@@ -239,7 +239,7 @@
 //                 </div>
 //               </div>
 //             ))}
-            
+
 //             {/* Render subfolders recursively */}
 //             {folder.subFolders.length > 0 && renderFolderStructure(folder.subFolders, level + 1)}
 //           </div>
@@ -284,55 +284,55 @@
 //       try {
 //         setIsLoading(true);
 //         setDataError(null);
-        
-//         console.log('Fetching SharePoint data...');
-        
+
+//         
+
 //         // Fetch folders from Templates library (try multiple library names)
 //         try {
 //           let folders = [];
 //           const libraryNames = ["TemplatesandDocuments", "Templates", "TemplatesandResources", "Templates and Resources", "Documents"];
-          
+
 //           for (const libName of libraryNames) {
 //             try {
-//               console.log(`Trying library: ${libName}`);
+//               
 //               folders = await getRootFoldersWithCounts(libName);
 //               if (folders && folders.length > 0) {
-//                 console.log(`Success! Folders fetched from ${libName}:`, folders);
+//                 
 //                 setTemplatesFolders(folders);
 //                 break;
 //               }
 //             } catch (err) {
-//               console.log(`Library ${libName} not found or error:`, err);
+//               
 //             }
 //           }
-          
+
 //           if (!folders || folders.length === 0) {
-//             console.warn('No folders found in any library');
+//             
 //           }
 //         } catch (folderError) {
-//           console.error('Error fetching folders:', folderError);
+//           
 //           // Fallback to list data if folder fetch fails
 //         }
-        
+
 //         // Fetch templates from the TemplatesandDocuments list
 //         const templatesData = await getTemplatesAndDocumentsListData();
-//         console.log('Templates list data retrieved:', templatesData);
+//         
 //         setTemplatesListData(templatesData);
-        
+
 //         // First try to get data from the specific SharePoint site and folder
 //         let data = await getTemplatesResourcesData();
-        
+
 //         // If no data was found, try the current site's Documents library as fallback
 //         if (!data.allFiles.length && !data.allFolders.length && !data.folderStructure.length) {
-//           console.log('No data found, showing empty state...');
+//           
 //           setDataError('No templates and resources found in the SharePoint library. Please check if the documents exist or if you have the necessary permissions.');
 //         }
-        
-//         console.log('SharePoint data retrieved:', data);
+
+//         
 //         setDocumentsData(data);
-        
+
 //       } catch (error) {
-//         console.error('Error loading SharePoint data:', error);
+//         
 //         setDataError('Failed to load templates and resources data. Please check your permissions or try refreshing the page.');
 //         setDocumentsData({
 //           standardDocuments: [],
@@ -403,7 +403,7 @@
 //                     <p>{dataError}</p>
 //                   </div>
 //                 )}
-                
+
 //                 {/* Show grid view if we have folders OR list data */}
 //                 {((templatesFolders && templatesFolders.length > 0) || (templatesListData && templatesListData.length > 0)) ? (
 //                   <div className={styles.foldersContainer}>
@@ -458,7 +458,7 @@
 //                         </div>
 //                       </div>
 //                     </div>
-                    
+
 //                     {/* Folder Grid or List View based on viewMode */}
 //                     {viewMode === 'grid' ? (
 //                       <div className={styles.folderGrid}>
@@ -689,7 +689,7 @@
 //                     <p>No templates or resources found.</p>
 //                   </div>
 //                 )}
-                
+
 //                 {/* <Section title="Standard Documents" viewAll>
 //                   <div className={styles.grid}>
 //                     {documentsData?.standardDocuments.length ? (
@@ -746,7 +746,7 @@
 //                     <p>{dataError}</p>
 //                   </div>
 //                 )}
-                
+
 //                 <div className={styles.resourceGrid}>
 //                   {documentsData?.resourceFolders.length ? (
 //                     documentsData.resourceFolders.map((folder) => (
@@ -763,7 +763,7 @@
 //                       />
 //                     ))
 //                   ) : null}
-                  
+
 //                   {documentsData?.allFiles.filter(file => 
 //                     !documentsData.standardDocuments.find(std => std.Id === file.Id) &&
 //                     !documentsData.invoicingDocuments.find(inv => inv.Id === file.Id)
@@ -789,14 +789,14 @@
 //                     <p>{dataError}</p>
 //                   </div>
 //                 )}
-                
+
 //                 <div className={styles.infoMessage}>
 //                   <p>
 //                     <strong>📂 Hierarchical View:</strong> 
 //                     {" "}This shows the complete folder and file structure. Click folders to expand/collapse and click files to preview.
 //                   </p>
 //                 </div>
-                
+
 //                 <div className={styles.folderStructureContainer}>
 //                   {documentsData?.folderStructure.length ? (
 //                     renderFolderStructure(documentsData.folderStructure)
@@ -871,7 +871,7 @@
 // export default TemplatesResources;
 import * as React from "react";
 import styles from "./TemplatesResources.module.scss";
- 
+
 import type { ITemplatesResourcesProps } from "./ITemplatesResourcesProps";
 import GlobalLoader from "../../../shared/component/GlobalLoader";
 import "../../../shared/globalcss/globalcss.scss";
@@ -889,9 +889,9 @@ import {
   List,
   MoreVertical
 } from 'lucide-react';
- 
+
 /* ===================== COMPONENT ===================== */
- 
+
 const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [templatesListData, setTemplatesListData] = React.useState<Array<{
@@ -915,7 +915,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
   }> | null>(null);
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
- 
+
   const handleDropdownToggle = (templateId: string, templateTitle: string, e: React.MouseEvent): void => {
     e.stopPropagation();
     if (openDropdownId === templateId) {
@@ -937,22 +937,22 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
         });
     }
   };
- 
+
   React.useEffect(() => {
     const fetchData = async (): Promise<void> => {
       try {
         setIsLoading(true);
         setDataError(null);
-       
-        console.log('Fetching SharePoint data for Templates & Resources...');
-        
-       
+
+
+
+
         // Fetch folders from Templates library
         try {
 
           const libraryNames = ["TemplatesandDocuments"];
           let folders = [];
-         
+
           for (const libName of libraryNames) {
             try {
               folders = await getRootFoldersWithCounts(libName);
@@ -961,32 +961,32 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                 break;
               }
             } catch (err) {
-              console.log(`Library ${libName} not accessible:`, err);
+
             }
           }
         } catch (folderError) {
-          console.error('Error fetching folders:', folderError);
+
         }
-       
+
         // Fetch templates from the TemplatesandDocuments list
         try {
           const templatesListData = await getTemplatesAndDocumentsListData();
           setTemplatesListData(templatesListData);
         } catch (listError) {
-          console.error('Error fetching list data:', listError);
+
         }
-       
+
       } catch (error) {
-        console.error('Error loading data:', error);
+
         setDataError('Failed to load templates and resources data.');
       } finally {
         setIsLoading(false);
       }
     };
- 
-    fetchData().catch((err: unknown) => console.error(err));
+
+    fetchData().catch((err: unknown) => console.log(err));
   }, []);
- 
+
   const formatDate = (dateStr: string): string => {
     if (!dateStr) return "--";
     const date = new Date(dateStr);
@@ -996,17 +996,17 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
       year: 'numeric'
     });
   };
- 
+
   const filteredFolders = (templatesFolders || []).filter(folder =>
     folder.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
- 
+
   const filteredListItems = (templatesListData || []).filter(template =>
     template.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
- 
+
   const totalItems = filteredFolders.length + filteredListItems.length;
- 
+
   return (
     <div className={styles.page}>
       {/* Page Title Section */}
@@ -1019,7 +1019,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
           <span className={styles.itemCount}>{isLoading ? 'Loading...' : `${totalItems} items`}</span>
         </div>
       </div>
- 
+
       {/* Header Bar */}
       <div className={styles.headerBar}>
         <div className={styles.leftSection}>
@@ -1027,7 +1027,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
             <span className={styles.breadcrumbItem}>Root</span>
           </div>
         </div>
- 
+
         <div className={styles.rightSection}>
           <div className={styles.searchBox}>
             <div className={styles.searchIcon}><Search size={18} /></div>
@@ -1054,7 +1054,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
           </div>
         </div>
       </div>
- 
+
       {/* Main Content Area */}
       <div className={styles.contentWrapper}>
         {isLoading ? (
@@ -1080,8 +1080,8 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                 <tbody>
                   {filteredFolders.map((folder, idx) => (
                     <tr key={`folder-${idx}`} className={styles.tableRow} onClick={() => {
-                        const siteUrl = window.location.origin;
-                        window.open(`${siteUrl}${folder.serverRelativeUrl}`, '_blank');
+                      const siteUrl = window.location.origin;
+                      window.open(`${siteUrl}${folder.serverRelativeUrl}`, '_blank');
                     }}>
                       <td>
                         <div className={styles.itemCell}>
@@ -1094,11 +1094,11 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                       <td><span className={styles.sizeText}>{folder.itemCount} items</span></td>
                     </tr>
                   ))}
- 
+
                   {filteredListItems.map((item, idx) => (
                     <tr key={`list-item-${idx}`} className={styles.tableRow} onClick={() => {
-                        if (openDropdownId === item.id) return;
-                        if (item.link) window.open(item.link, '_blank');
+                      if (openDropdownId === item.id) return;
+                      if (item.link) window.open(item.link, '_blank');
                     }}>
                       <td>
                         <div className={styles.itemCell}>
@@ -1110,34 +1110,34 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                       <td><span className={styles.dateText}>{item.description || "Template Document"}</span></td>
                       <td>
                         {item.hasChildren ? (
-                            <div className={styles.dropdownWrapper}>
-                                <button className={styles.dropdownTrigger} onClick={(e) => handleDropdownToggle(item.id, item.title, e)}>
-                                    <MoreVertical size={18} />
-                                </button>
-                                {openDropdownId === item.id && (
-                                    <div className={styles.dropdownMenu}>
-                                        {loadingChildId === item.id ? (
-                                            <div className={styles.dropdownOption}>Loading...</div>
-                                        ) : (childItemsCache[item.title]?.map(child => (
-                                            <button key={child.id} className={styles.dropdownOption} onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (child.link) window.open(child.link, '_blank');
-                                                setOpenDropdownId(null);
-                                            }}>{child.title}</button>
-                                        )))}
-                                    </div>
-                                )}
-                            </div>
+                          <div className={styles.dropdownWrapper}>
+                            <button className={styles.dropdownTrigger} onClick={(e) => handleDropdownToggle(item.id, item.title, e)}>
+                              <MoreVertical size={18} />
+                            </button>
+                            {openDropdownId === item.id && (
+                              <div className={styles.dropdownMenu}>
+                                {loadingChildId === item.id ? (
+                                  <div className={styles.dropdownOption}>Loading...</div>
+                                ) : (childItemsCache[item.title]?.map(child => (
+                                  <button key={child.id} className={styles.dropdownOption} onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (child.link) window.open(child.link, '_blank');
+                                    setOpenDropdownId(null);
+                                  }}>{child.title}</button>
+                                )))}
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <span className={styles.sizeText}>Link</span>
                         )}
                       </td>
                     </tr>
                   ))}
-                 
+
                   {totalItems === 0 && (
                     <tr>
-                        <td colSpan={4} className={styles.emptyCell}>No items found</td>
+                      <td colSpan={4} className={styles.emptyCell}>No items found</td>
                     </tr>
                   )}
                 </tbody>
@@ -1149,8 +1149,8 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                     key={`folder-${idx}`}
                     className={`${styles.gridCard} ${styles['card' + (idx % 6)]}`}
                     onClick={() => {
-                        const siteUrl = window.location.origin;
-                        window.open(`${siteUrl}${folder.serverRelativeUrl}`, '_blank');
+                      const siteUrl = window.location.origin;
+                      window.open(`${siteUrl}${folder.serverRelativeUrl}`, '_blank');
                     }}
                   >
                     <div className={styles.cardIcon}><Folder size={18} /></div>
@@ -1173,33 +1173,33 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                     key={`list-item-${idx}`}
                     className={`${styles.gridCard} ${styles['card' + ((filteredFolders.length + idx) % 6)]}`}
                     onClick={() => {
-                        if (openDropdownId === item.id) return;
-                        if (item.link) window.open(item.link, '_blank');
+                      if (openDropdownId === item.id) return;
+                      if (item.link) window.open(item.link, '_blank');
                     }}
                   >
                     <div className={styles.cardIcon}><FileText size={18} /></div>
-                   
+
                     {item.hasChildren && (
-                        <div className={styles.dropdownWrapper}>
-                            <button className={styles.dropdownTrigger} onClick={(e) => handleDropdownToggle(item.id, item.title, e)}>
-                                <MoreVertical size={18} />
-                            </button>
-                            {openDropdownId === item.id && (
-                                <div className={styles.dropdownMenu}>
-                                    {loadingChildId === item.id ? (
-                                        <div className={styles.dropdownOption}>Loading...</div>
-                                    ) : (childItemsCache[item.title]?.map(child => (
-                                        <button key={child.id} className={styles.dropdownOption} onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (child.link) window.open(child.link, '_blank');
-                                            setOpenDropdownId(null);
-                                        }}>{child.title}</button>
-                                    )))}
-                                </div>
-                            )}
-                        </div>
+                      <div className={styles.dropdownWrapper}>
+                        <button className={styles.dropdownTrigger} onClick={(e) => handleDropdownToggle(item.id, item.title, e)}>
+                          <MoreVertical size={18} />
+                        </button>
+                        {openDropdownId === item.id && (
+                          <div className={styles.dropdownMenu}>
+                            {loadingChildId === item.id ? (
+                              <div className={styles.dropdownOption}>Loading...</div>
+                            ) : (childItemsCache[item.title]?.map(child => (
+                              <button key={child.id} className={styles.dropdownOption} onClick={(e) => {
+                                e.stopPropagation();
+                                if (child.link) window.open(child.link, '_blank');
+                                setOpenDropdownId(null);
+                              }}>{child.title}</button>
+                            )))}
+                          </div>
+                        )}
+                      </div>
                     )}
- 
+
                     <div className={styles.cardTitle}>{item.title}</div>
                     <div className={styles.cardSub} title={item.description || "Template and Document"} key={`description-${item.id}`}>{item.description || "Template and Document"}</div>
                     <div className={styles.cardFooter}>
@@ -1222,6 +1222,5 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
     </div>
   );
 };
- 
+
 export default TemplatesResources;
- 

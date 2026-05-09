@@ -23,6 +23,8 @@ interface DocumentItem {
   Status?: string;
   ServerRelativeUrl?: string;
   FileDirRef?: string;
+  ItemCount?: number;
+  Length?: number;
 }
 
 interface IDocumentsProps {
@@ -108,7 +110,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
     const fetchProjectUrls = async (): Promise<void> => {
       try {
         const projectData = await getProjectById(projectId);
-        console.log('📊 Project Data fetched:', projectData);
+        
 
         if (projectData && typeof projectData === 'object' && 'ProjectDocumentsUrl' in projectData) {
           const cleanUrl = (url: any) => {
@@ -153,7 +155,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
           setActiveDocTab('project');
         }
       } catch (error) {
-        console.error('Error fetching project URLs:', error);
+        
         const found = await findProjectLibraryByProject(projectCode, projectTitle);
         setLibraryName(found || '');
       }
@@ -238,7 +240,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
       });
       setSelectedItems(new Set());
     } catch (error) {
-      console.error("Error loading documents:", error);
+      
     } finally {
       setLoading(false);
     }
@@ -350,7 +352,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
         autoClose: 3000,
       });
     } catch (error) {
-      console.error("Upload error:", error);
+      
       toast.error("Failed to upload document. Please try again.", {
         position: "top-right",
         autoClose: 5000,
@@ -388,7 +390,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
         autoClose: 3000,
       });
     } catch (error) {
-      console.error("Create folder error:", error);
+      
       toast.error("Failed to create folder. Please try again.", {
         position: "top-right",
         autoClose: 5000,
@@ -447,7 +449,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
         autoClose: 3000,
       });
     } catch (error) {
-      console.error("Error deleting documents:", error);
+      
       toast.error("Failed to delete some items. Please try again.", {
         position: "top-right",
         autoClose: 5000,
@@ -477,7 +479,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
 
       alert(`Successfully downloaded ${fileDocs.length} file(s)`);
     } catch (error) {
-      console.error("Error downloading documents:", error);
+      
       alert("Failed to download some files. Please try again.");
     }
   };
@@ -622,6 +624,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
                   />
                 </th>
                 <th className={styles.nameCol}>Name</th>
+                <th className={styles.modifiedCol}>Size / Items</th>
                 <th className={styles.modifiedCol}>Modified</th>
                 <th className={styles.byCol}>By</th>
               </tr>
@@ -629,7 +632,7 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
             <tbody>
               {documents.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className={styles.noData}>
+                  <td colSpan={5} className={styles.noData}>
                     No documents found
                   </td>
                 </tr>
@@ -650,6 +653,9 @@ const CustomDocumentsList: React.FC<IDocumentsProps> = ({
                     >
                       <span className={styles.fileIcon}>{getFileIcon(doc)}</span>
                       <span className={styles.fileName}>{doc.FileLeafRef}</span>
+                    </td>
+                    <td className={styles.modifiedCol}>
+                      {doc.FSObjType === 1 ? `${doc.ItemCount ?? 0} items` : doc.Length ? (doc.Length < 1024 ? `${doc.Length} B` : doc.Length < 1048576 ? `${(doc.Length / 1024).toFixed(1)} KB` : `${(doc.Length / 1048576).toFixed(1)} MB`) : ''}
                     </td>
                     <td className={styles.modifiedCol}>{formatDate(doc.Modified)}</td>
                     <td className={styles.byCol}>{doc.Editor?.Title || ""}</td>

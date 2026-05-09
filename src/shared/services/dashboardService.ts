@@ -43,14 +43,14 @@ export const getProjectStats = async (): Promise<any> => {
       .items
       .select("Id", "Title", "Status", "OwnerEmail","NonCmap")
       .getAll();
-   console.log(allProjects,'getProjectStats>>>');
+   
     
     // Calculate stats
     const totalProjects = allProjects.length;
     
     // Status == "Live" means live projects
     const liveProjects = allProjects.filter(p => p.Status === "Project"&& p.NonCmap!=true).length;
-    console.log(liveProjects,'liveProjects');
+    
     
     // Status == "Potential" means bids
     const myBids = allProjects.filter(p => p.Status === "Potential").length;
@@ -67,7 +67,7 @@ export const getProjectStats = async (): Promise<any> => {
       myBids
     };
   } catch (err) {
-    console.error("Error fetching project stats:", err);
+    
     // Return default values if lists don't exist
     return {
       totalProjects: 0,
@@ -87,7 +87,7 @@ export const getComplianceItems = async (): Promise<any[]> => {
       .select("Id", "Title", "Description", "Color", "Icon", "Links")
       .top(4)
       .getAll();
-   console.log(items,'getComplianceItems>>>');
+   
     return items.map(item => {
       let iconUrl = "";
       if (item.Icon) {
@@ -97,7 +97,7 @@ export const getComplianceItems = async (): Promise<any[]> => {
             iconUrl = `${iconData.serverUrl}${iconData.serverRelativeUrl}`;
           }
         } catch (e) {
-          console.warn("Error parsing icon data:", e);
+          
         }
       }
       let linkUrl = "";
@@ -106,7 +106,7 @@ export const getComplianceItems = async (): Promise<any[]> => {
           const linkData = typeof item.Links === 'string' ? JSON.parse(item.Links) : item.Links;
           linkUrl = linkData.Url || linkData.url || "";
         } catch (e) {
-          console.warn("Error parsing link data:", e);
+          
         }
       }
       return {
@@ -119,7 +119,7 @@ export const getComplianceItems = async (): Promise<any[]> => {
       };
     });
   } catch (error) {
-    console.error("Error fetching compliance items:", error);
+    
     // Return sample data if list doesn't exist
     return [
       {
@@ -163,7 +163,7 @@ export const getKeyPeople = async (): Promise<any[]> => {
       .select("Id", "Title", "JobTitle", "Email", "WorkPhone", "Picture")
       .top(8)
       .getAll();
-   console.log(items,'itemskeypeople>>>');
+   
     return items.map(item => {
       let imageUrl = "";
       if (item.Picture) {
@@ -189,7 +189,7 @@ export const getKeyPeople = async (): Promise<any[]> => {
       };
     });
   } catch (error) {
-    console.error("Error fetching key people:", error);
+    
     // Return sample data if list doesn't exist
     return [
       { id: 1, name: "Darrell Steward", title: "Project Head", imageUrl: "", email: "", phone: "" },
@@ -217,7 +217,7 @@ export const getUpcomingEvents = async (): Promise<any[]> => {
       .top(5)
       .getAll();
 
-      console.log(items,'getUpcomingEvents>>>');
+      
       
 
     return items.map(item => {
@@ -235,7 +235,7 @@ export const getUpcomingEvents = async (): Promise<any[]> => {
       };
     });
   } catch (error) {
-    console.error("Error fetching upcoming events:", error);
+    
     // Return sample data if list doesn't exist
     return [
       { id: 1, title: "New Partnership Announcement", date: "Monday, Nov 4, 2024", time: "10:00 AM", day: "4", month: "Nov" },
@@ -255,7 +255,7 @@ export const getKeyTools = async (): Promise<any[]> => {
       .items
       .select("Id", "Title", "Description", "Color", "Icon","Link")
       .getAll();
-  console.log(items,'getKeyTools>>>');
+  
     return items.map(item => {
       let iconUrl = "";
       if (item.Icon) {
@@ -265,7 +265,7 @@ export const getKeyTools = async (): Promise<any[]> => {
             iconUrl = `${iconData.serverUrl}${iconData.serverRelativeUrl}`;
           }
         } catch (e) {
-          console.warn("Error parsing icon data:", e);
+          
         }
       }
       return {
@@ -278,7 +278,7 @@ export const getKeyTools = async (): Promise<any[]> => {
       };
     });
   } catch (error) {
-    console.error("Error fetching key tools:", error);
+    
     // Return sample data if list doesn't exist
     return [
       { id: 1, title: "CMAP", description: "Project Management", color: "#FF8C42", icon: require("../assets/secFrame.png") },
@@ -304,7 +304,7 @@ export const getChildLinksByParent = async (parentName: string): Promise<Array<{
       url: item.URL?.Url || item.URL || "#"
     }));
   } catch (error) {
-    console.error(`Error fetching child links for parent "${parentName}":`, error);
+    
     return [];
   }
 };
@@ -331,7 +331,7 @@ export const getQuickLinks = async (): Promise<any[]> => {
             iconUrl = `${iconData.serverUrl}${iconData.serverRelativeUrl}`;
           }
         } catch (e) {
-          console.warn("Error parsing icon data:", e);
+          
         }
       }
 
@@ -346,7 +346,7 @@ export const getQuickLinks = async (): Promise<any[]> => {
           .top(1)();
         hasChildren = childItems.length > 0;
       } catch (e) {
-        console.warn(`Error checking children for "${item.Title}":`, e);
+        
       }
 
       return {
@@ -361,7 +361,7 @@ export const getQuickLinks = async (): Promise<any[]> => {
 
     return itemsWithChildren;
   } catch (error) {
-    console.error("Error fetching quick links:", error);
+    
     // Return sample data if list doesn't exist
     return [
       { 

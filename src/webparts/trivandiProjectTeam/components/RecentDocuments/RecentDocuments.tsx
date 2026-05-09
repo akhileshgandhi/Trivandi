@@ -25,14 +25,14 @@ const RecentDocuments: React.FC = () => {
       const docs = await getRecentDocuments();
       setDocuments(docs);
     } catch (error) {
-      console.error("Error loading recent documents:", error);
+      
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadRecentDocuments().catch((err: unknown) => console.error(err));
+    loadRecentDocuments().catch((err: unknown) => console.log(err));
   }, []);
 
   const getFileIcon = (fileType?: string): string => {

@@ -34,7 +34,7 @@ export class PrivateService {
                 return await folder.files.addChunked(file.name, file, undefined, true);
             }
         } catch (error) {
-            console.error("❌ Error uploading file:", error);
+            
             throw error;
         }
     }
@@ -44,7 +44,7 @@ export class PrivateService {
             const folder = this.sp.web.getFolderByServerRelativePath(folderPath);
             return await folder.folders.addUsingPath(folderName);
         } catch (error) {
-            console.error("❌ Error creating folder:", error);
+            
             throw error;
         }
     }
@@ -61,7 +61,7 @@ export class PrivateService {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
         } catch (error) {
-            console.error("❌ Error downloading file:", error);
+            
         }
     }
 
@@ -84,7 +84,7 @@ export class PrivateService {
                 .select('ID', 'FileLeafRef', 'FileRef', 'Modified', 'Editor/Title', 'Editor/ID', 'Author/Title', 'Author/ID', 'Author/EMail', 'FSObjType', 'File/Length', 'Folder/ItemCount', 'UniqueId')
                 .expand('Editor', 'Author', 'File', 'Folder')();
 
-            console.log(`📂 Private Content for ${userEmail}:`, items);
+            
 
             const folders: any[] = [];
             const files: any[] = [];
@@ -127,7 +127,7 @@ export class PrivateService {
                 currentPath: normalizedPath 
             };
         } catch (error) {
-            console.error("❌ Error fetching library contents:", error);
+            
             return { folders: [], files: [], currentPath: "" };
         }
     }

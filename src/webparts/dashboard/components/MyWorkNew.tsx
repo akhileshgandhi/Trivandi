@@ -19,7 +19,7 @@ const MyWorkNew = ({ props }) => {
   React.useEffect(() => {
     const loadData = async () => {
       try {
-        console.log("[Dashboard] Loading dashboard data...");
+        
         setIsLoading(true);
 
         const ownerEmail = props?.context?.pageContext?.user?.email;
@@ -34,13 +34,13 @@ const MyWorkNew = ({ props }) => {
           getProjectsByOwnerAndStatus(ownerEmail, ["Potential"]),
         ]);
 
-        console.log("[Dashboard] Live Projects:", projects);
-        console.log("[Dashboard] Live Bids:", bids);
+        
+        
 
         setLiveProjects(projects);
         setLiveBids(bids);
       } catch (error) {
-        console.error("[Dashboard] Data load failed", error);
+        
       } finally {
         setIsLoading(false);
       }

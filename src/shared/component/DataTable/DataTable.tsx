@@ -18,6 +18,7 @@ export interface TableColumn {
   filterType?: "search";
   sortable?: boolean;
   render?: (value: any, row: any) => React.ReactNode;
+  minWidth?: number | string;
 }
 
 interface DataTableProps {
@@ -284,7 +285,7 @@ const DataTable: React.FC<DataTableProps> = ({
             <thead>
               <tr>
                 {columns.map((col) => (
-                  <th key={col.key}>
+                  <th key={col.key} style={col.minWidth ? { minWidth: col.minWidth, maxWidth: col.minWidth } : undefined}>
                     <div className={styles.headerCell}>
                       <span>{col.label}</span>
 
@@ -334,7 +335,7 @@ const DataTable: React.FC<DataTableProps> = ({
                     className={onRowClick ? styles.clickableRow : ''}
                   >
                     {columns.map((col) => (
-                      <td key={col.key}>
+                      <td key={col.key} style={col.minWidth ? { minWidth: col.minWidth, maxWidth: col.minWidth } : undefined}>
                         {col.render ? col.render(row[col.key], row) : (row[col.key] ?? '-')}
                       </td>
                     ))}
@@ -491,7 +492,7 @@ const DataTable: React.FC<DataTableProps> = ({
                               [activeFilter as string]: String(v)  // Add/update this column's filter
                             };
                             setFilters(updated);
-                            console.log("Setting filters:", updated);
+                            
                             
                             if (serverSide) {
                               onFilterChange?.(updated);

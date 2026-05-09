@@ -47,7 +47,7 @@ export const initTemplatesResourcesService = (spInstance: SPFI): void => {
  */
 export const getDataFromExternalSharePointSite = async (): Promise<IDocumentLibraryResponse> => {
   try {
-    console.log("Attempting to access external SharePoint site via REST API...");
+    
     
     // The specific external SharePoint site and folder path
     const externalSiteUrl = "https://trivandildn.sharepoint.com/sites/TrivandiLondon";
@@ -59,7 +59,7 @@ export const getDataFromExternalSharePointSite = async (): Promise<IDocumentLibr
     // Get current context for authentication
     // Note: Cross-site access may require different authentication approach
     const webInfo = await sp.web.select("Url", "Title")();
-    console.log("Current web:", webInfo.Title);
+    
     
     // Make REST API call with proper headers
     const response = await fetch(apiUrl, {
@@ -125,7 +125,7 @@ export const getDataFromExternalSharePointSite = async (): Promise<IDocumentLibr
             );
             folderStructure.push(subFolderStructure);
           } catch (subError) {
-            console.warn(`Error fetching subfolder structure for ${folder.Name}:`, subError);
+            
             // Add basic folder structure without subfolders
             folderStructure.push({
               Id: folder.ServerRelativeUrl.hashCode(),
@@ -145,7 +145,7 @@ export const getDataFromExternalSharePointSite = async (): Promise<IDocumentLibr
       }
     }
     
-    console.log(`External SharePoint data retrieved: ${allFiles.length} files, ${allFolders.length} folders`);
+    
     
     return {
       standardDocuments: allFiles.filter(f => getFileCategory(f.File_x0020_Type) === 'template'),
@@ -157,7 +157,7 @@ export const getDataFromExternalSharePointSite = async (): Promise<IDocumentLibr
     };
     
   } catch (error) {
-    console.error("Error accessing external SharePoint site:", error);
+    
     
     // Return empty response on error
     return getEmptyResponse();
@@ -166,14 +166,14 @@ export const getDataFromExternalSharePointSite = async (): Promise<IDocumentLibr
 
 export const getTemplatesResourcesData = async (): Promise<IDocumentLibraryResponse> => {
   try {
-    console.log("Attempting to fetch data from specific SharePoint location...");
+    
     
     // Try to get data from the specific external SharePoint location first
     const externalData = await getDataFromExternalSharePointSite();
     
     // If we got some data from external site, return it
     if (externalData.allFiles.length > 0 || externalData.allFolders.length > 0 || externalData.folderStructure.length > 0) {
-      console.log("Successfully retrieved data from external SharePoint site");
+      
       return externalData;
     }
     
@@ -182,7 +182,7 @@ export const getTemplatesResourcesData = async (): Promise<IDocumentLibraryRespo
     
     // If we got some data, return it
     if (sharePointData.allFiles.length > 0 || sharePointData.allFolders.length > 0 || sharePointData.folderStructure.length > 0) {
-      console.log("Successfully retrieved folder structure from current SharePoint site");
+      
       return sharePointData;
     }
     
@@ -192,20 +192,20 @@ export const getTemplatesResourcesData = async (): Promise<IDocumentLibraryRespo
       try {
         const altData = await getCompletefolderStructure(libName);
         if (altData.allFiles.length > 0 || altData.folderStructure.length > 0) {
-          console.log(`Successfully retrieved data from ${libName}`);
+          
           return altData;
         }
       } catch (altError) {
-        console.warn(`Failed to get data from ${libName}:`, altError);
+        
       }
     }
     
     // If no data was found, return empty response
-    console.warn("No data found in any SharePoint location, returning empty response");
+    
     return getEmptyResponse();
     
   } catch (error) {
-    console.error("Error fetching templates and resources data, returning empty response:", error);
+    
     
     // Return empty data on error
     return getEmptyResponse();
@@ -216,7 +216,7 @@ export const getTemplatesResourcesData = async (): Promise<IDocumentLibraryRespo
  */
 export const getCompletefolderStructure = async (libraryName: string = "Documents"): Promise<IDocumentLibraryResponse> => {
   try {
-    console.log("Fetching complete folder structure from library:", libraryName);
+    
 
     // Get all items from the document library with folder information
     const libraryItems = await sp.web.lists
@@ -230,7 +230,7 @@ export const getCompletefolderStructure = async (libraryName: string = "Document
       .filter("FSObjType eq 0 or FSObjType eq 1") // Include both files and folders
       .top(5000)();
 
-    console.log("All library items retrieved:", libraryItems.length);
+    
 
     // Separate files and folders
     const allFiles: IDocumentItem[] = libraryItems
@@ -284,7 +284,7 @@ export const getCompletefolderStructure = async (libraryName: string = "Document
       folderStructure,
     };
   } catch (error) {
-    console.error("Error fetching complete folder structure:", error);
+    
     return getEmptyResponse();
   }
 };
@@ -361,7 +361,7 @@ const getRandomFolderColor = (): string => {
  */
 export const getTemplatesResourcesDataFromCurrentSite = async (libraryName: string = "Documents"): Promise<IDocumentLibraryResponse> => {
   try {
-    console.log("Fetching from current site library:", libraryName);
+    
 
     // First, let's try to find documents in a specific folder if it exists
     // Look for template-related folders or documents
@@ -380,7 +380,7 @@ export const getTemplatesResourcesDataFromCurrentSite = async (libraryName: stri
         .filter("FSObjType eq 0 or FSObjType eq 1") // Include both files and folders
         .top(5000)();
     } catch (libraryError) {
-      console.warn("Could not access library, trying alternative methods:", libraryError);
+      
       
       // Try alternative library names
       const alternativeNames = ["Shared Documents", "Site Assets", "Style Library"];
@@ -398,15 +398,15 @@ export const getTemplatesResourcesDataFromCurrentSite = async (libraryName: stri
             .filter("FSObjType eq 0 or FSObjType eq 1")
             .top(1000)()
           
-          console.log(`Successfully accessed library: ${altName}`);
+          
           break;
         } catch (altError) {
-          console.warn(`Failed to access ${altName}:`, altError);
+          
         }
       }
     }
 
-    console.log("Library items retrieved:", libraryItems);
+    
 
     // Separate files and folders
     const allFiles: IDocumentItem[] = libraryItems
@@ -457,7 +457,7 @@ export const getTemplatesResourcesDataFromCurrentSite = async (libraryName: stri
       folderStructure: [], // Empty for old method
     };
   } catch (error) {
-    console.error("Error fetching from current site library:", error);
+    
     
     // Return empty data structure - let the main function handle fallback to mock data
     return {
@@ -644,7 +644,7 @@ export const checkExternalSiteAccess = async (): Promise<boolean> => {
     // For now, we'll assume access is not available and return false
     return false;
   } catch (error) {
-    console.error("Error checking external site access:", error);
+    
     return false;
   }
 };
@@ -711,7 +711,7 @@ export const getExternalFolderStructureRecursiveREST = async (
             );
             subFolders.push(subFolderStructure);
           } catch (subError) {
-            console.warn(`Error fetching subfolder ${subFolder.Name}:`, subError);
+            
           }
         }
       }
@@ -731,7 +731,7 @@ export const getExternalFolderStructureRecursiveREST = async (
     };
     
   } catch (error) {
-    console.error(`Error fetching folder structure for ${folderPath}:`, error);
+    
     return {
       Id: folderPath.hashCode(),
       Name: folderName,
@@ -774,7 +774,7 @@ export const getTemplatesAndDocumentsListData = async (): Promise<Array<{
   hasChildren: boolean;
 }>> => {
   try {
-    console.log("Fetching templates from TemplatesandDocuments list...");
+    
     
     // Fetch all items including ParentName
     const allItems = await sp.web.lists
@@ -782,7 +782,7 @@ export const getTemplatesAndDocumentsListData = async (): Promise<Array<{
       .items
       .select("ID,Title,Description,Link,ParentName").orderBy("SortOrder", true)();
     
-    console.log("Templates list items:", allItems);
+    
 
     // Separate parents (no ParentName) from children
     const parentItems = allItems.filter((item: any) => !item.ParentName || item.ParentName.trim() === "");
@@ -799,7 +799,7 @@ export const getTemplatesAndDocumentsListData = async (): Promise<Array<{
       hasChildren: parentTitlesWithChildren.has((item.Title || "").trim())
     }));
   } catch (error) {
-    console.error("Error fetching templates list:", error);
+    
     return [];
   }
 };
@@ -823,7 +823,7 @@ export const getTemplatesChildItemsByParent = async (parentTitle: string): Promi
       link: item.Link || null
     }));
   } catch (error) {
-    console.error(`Error fetching child items for "${parentTitle}":`, error);
+    
     return [];
   }
 };
@@ -840,7 +840,7 @@ export const getRootFoldersWithCounts = async (libraryName: string = "Documents"
   color: string;
 }>> => {
   try {
-    console.log("Fetching root folders from library:", libraryName);
+    
 
     // Get all folders from the library
     const folders = await sp.web.lists
@@ -850,7 +850,7 @@ export const getRootFoldersWithCounts = async (libraryName: string = "Documents"
       .filter("FSObjType eq 1")
       .top(5000)();
 
-    console.log("All folders retrieved:", folders.length);
+    
 
     // Get the library root path
     const library = await sp.web.lists.getByTitle(libraryName).rootFolder();
@@ -862,7 +862,7 @@ export const getRootFoldersWithCounts = async (libraryName: string = "Documents"
       return parentPath === libraryRootPath;
     });
 
-    console.log("Root folders found:", rootFolders.length);
+    
 
     // Get item counts for each folder
     const foldersWithCounts = await Promise.all(
@@ -884,7 +884,7 @@ export const getRootFoldersWithCounts = async (libraryName: string = "Documents"
             color: getRandomFolderColor()
           };
         } catch (error) {
-          console.warn(`Error getting item count for folder ${folder.FileLeafRef}:`, error);
+          
           return {
             id: folder.Id,
             name: folder.FileLeafRef,
@@ -899,7 +899,7 @@ export const getRootFoldersWithCounts = async (libraryName: string = "Documents"
 
     return foldersWithCounts.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
-    console.error("Error fetching root folders:", error);
+    
     return [];
   }
 };

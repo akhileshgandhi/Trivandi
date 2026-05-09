@@ -66,9 +66,9 @@ export default class InviteGuestDialog extends React.Component<IInviteGuestDialo
         inviteRedeemUrl: redirectUrl
       };
 
-      console.log('Sending Graph API invitation:', invitation);
+      
       const inviteResponse = await graphClient.api("/invitations").post(invitation);
-      console.log('Graph API invitation response:', inviteResponse);
+      
       
       // Add invited user to SharePoint group via PnP (no sp-http import needed)
       if (inviteResponse && inviteResponse.invitedUser) {
@@ -85,7 +85,7 @@ export default class InviteGuestDialog extends React.Component<IInviteGuestDialo
       
       return inviteResponse;
     } catch (error) {
-      console.error('Error inviting external user:', error);
+      
       throw new Error(`Failed to send invitation: ${error.message}`);
     }
   }
@@ -106,16 +106,12 @@ export default class InviteGuestDialog extends React.Component<IInviteGuestDialo
     this.setState({ inviting: true, error: undefined });
 
     try {
-      console.log('InviteGuestDialog: Inviting external user via Graph API:', {
-        name: guestName,
-        email: guestEmail,
-        projectId: this.props.projectId
-      });
+      
       
       // Use Graph API to send real B2B invitation
       await this.inviteExternalUser(guestName, guestEmail);
       
-      console.log('InviteGuestDialog: Guest invited successfully via Graph API');
+      
       
       toast.success('External user invitation sent successfully! User has been added to the ExternalUsers group.', {
         position: "top-right",
@@ -126,12 +122,12 @@ export default class InviteGuestDialog extends React.Component<IInviteGuestDialo
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Refresh the guests list
-      console.log('InviteGuestDialog: About to call onGuestInvited callback');
+      
       if (this.props.onGuestInvited) {
-        console.log('InviteGuestDialog: Calling onGuestInvited callback');
+        
         this.props.onGuestInvited();
       } else {
-        console.warn('InviteGuestDialog: onGuestInvited callback not provided');
+        
       }
       
       // Small delay before closing to ensure refresh completes

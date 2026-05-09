@@ -29,7 +29,7 @@ const QuickLinkCard: React.FC<QuickLinkCardProps> = ({
             fetchChildren(title)
                 .then(setChildLinks)
                 .catch(error => {
-                    console.error('Error loading child links:', error);
+                    
                     setChildLinks([]);
                 })
                 .then(() => setIsLoadingChildren(false));

@@ -51,7 +51,7 @@ export default class TrivandiProjectTeamWebPart
     // ✅ Check permissions for the webpart
     await checkPermissions(this.context);
 
-    console.log("[WebPart] PnP SPFI and Permissions initialized");
+    
   }
 
   private _getEnvironmentMessage(): string {

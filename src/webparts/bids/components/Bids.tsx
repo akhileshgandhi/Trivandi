@@ -24,6 +24,7 @@ const DEFAULT_COLUMNS: TableColumn[] = [
   {
     key: "Title",
     label: "Project Title",
+    minWidth: 350,
     filterable: true,
     render: (value: any, row: any) => (
       <span className={styles.pipelineTitle}>
@@ -32,7 +33,7 @@ const DEFAULT_COLUMNS: TableColumn[] = [
     ),
     sortable: true,
   },
-  { key: "Company", label: "Company", filterable: true, sortable: true },
+  { key: "Company", label: "Company", minWidth: 200, filterable: true, sortable: true },
   { key: "Owner", label: "Owner", filterable: true, sortable: true },
   { key: "BusinessUnit", label: "Business Unit", filterable: true, sortable: true },
   { key: "Sector", label: "Sector", filterable: true, sortable: true },
@@ -100,7 +101,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
     if (!silent) setIsLoading(true);
     try {
       const termToUse = sTerm ?? searchTerm;
-      console.log(`🔍 Loading ${activeTab} tab`);
+      
 
       let allItems: any[] = [];
 
@@ -112,7 +113,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
             const { items } = await getProjectsPage(statuss, 1, 5000, filters);
             allItems.push(...items);
           } catch (err) {
-            console.error(`Error fetching ${statuss}:`, err);
+            
           }
         }
       } else {
@@ -120,7 +121,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
         // const allStatuses = ['Lead', 'Potential', 'Project', 'Closed'];
         const lostStatusValues = ['Dead', 'Deleted', 'DeletedLead', 'DeadLead'];
 
-        console.log(`🔍 Lost tab: Fetching all items and filtering by Status field...`);
+        
 
         for (const status of lostStatusValues) {
           try {
@@ -128,7 +129,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
             const { items } = await getProjectsPage(status, 1, 5000, filters);
             allItems.push(...items);
           } catch (err) {
-            console.error(`Error checking ${status}:`, err);
+            
           }
         }
 
@@ -158,7 +159,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
         });
       }
 
-      console.log(`📊 Total items for ${activeTab}: ${allItems.length}`);
+      
 
       // Remove duplicates
       const uniqueItems = allItems.filter((item, index, self) =>
@@ -174,7 +175,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
       setTotalItems(uniqueItems.length);
       setCurrentPage(page);
     } catch (err) {
-      console.error('Fatal error:', err);
+      
       setRows([]);
       setTotalItems(0);
     } finally {
@@ -219,7 +220,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
           const { items } = await getProjectsPage(status, 1, 5000, {});
           allItems = allItems.concat(items);
         } catch (err) {
-          console.error(`Error fetching ${status}:`, err);
+          
         }
       }
 
@@ -259,7 +260,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
 
       setUniqueValues(map);
     } catch (err) {
-      console.error("Error loading unique values:", err);
+      
     }
   };
 
@@ -285,7 +286,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
                 const { items } = await getProjectsPage(status, 1, 5000, {});
                 allItems.push(...items);
               } catch (err) {
-                console.error(`Error fetching ${status}:`, err);
+                
               }
             }
 
@@ -296,14 +297,14 @@ const Bids: React.FC<IBidsProps> = (props) => {
 
             counts[tab] = uniqueItems.length;
           } catch (err) {
-            console.error(`Error loading count for tab ${tab}:`, err);
+            
             counts[tab] = 0;
           }
         })
       );
       setTabCounts(counts);
     } catch (err) {
-      console.error("Error loading tab counts:", err);
+      
     }
   };
 

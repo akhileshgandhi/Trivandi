@@ -18,14 +18,19 @@ import "@pnp/sp/presets/all";
 let _sp: SPFI;
 let _context: WebPartContext;
 
-export const getSP = (context?: WebPartContext): SPFI => {
-  if (context !== null && context !== undefined) {
-    _context = context;
-  }
 
-  if (_context && (_sp === undefined || _sp === null)) {
+export const getSP = (context?: WebPartContext): SPFI => {
+  if (context) {
+    _context = context;
+    // Always re-initialize or refresh if a new context is provided 
+    // This is crucial for SPA navigation to avoid stale context errors
     _sp = spfi().using(SPFx(_context)).using(PnPLogging(LogLevel.Warning));
   }
+
+  if (!_sp && _context) {
+    _sp = spfi().using(SPFx(_context)).using(PnPLogging(LogLevel.Warning));
+  }
+  
   return _sp;
 };
 

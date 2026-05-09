@@ -18,17 +18,17 @@ const ComplianceCard: React.FC<ComplianceCardProps> = ({
 }) => {
   const handleClick = (e: React.MouseEvent): void => {
     e.stopPropagation();
-    console.log('Card clicked! Link:', link);
+    
     if (link) {
-      console.log('Opening link:', link);
+      
       window.open(link, '_blank', 'noopener,noreferrer');
     } else {
-      console.log('No link available for this card');
+      
     }
   };
 
   React.useEffect(() => {
-    console.log(`ComplianceCard ${title} - Link:`, link);
+    
   }, [title, link]);
 
   return (

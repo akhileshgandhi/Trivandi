@@ -48,7 +48,7 @@ const FileUploadModal: React.FC<IFileUploadModalProps> = ({ isOpen, onClose, onU
       setShowFolderInput(false);
       onClose();
     } catch (error) {
-      console.error("Create folder failed:", error);
+      
       alert("Failed to create folder. Please try again.");
     } finally {
       setUploading(false);
@@ -97,7 +97,7 @@ const FileUploadModal: React.FC<IFileUploadModalProps> = ({ isOpen, onClose, onU
       setSelectedFiles(null);
       onClose();
     } catch (error) {
-      console.error("Upload failed:", error);
+      
       alert("Failed to upload file. Please try again.");
     } finally {
       setUploading(false);

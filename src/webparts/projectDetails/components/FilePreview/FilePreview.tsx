@@ -33,7 +33,7 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
       fileType: this._getFileType(props.fileName)
     };
     
-    console.log('FilePreview: Constructor - file type:', this.state.fileType, 'for', props.fileName);
+    
   }
 
   private _getFileIconByExtension = (fileName: string): string => {
@@ -46,39 +46,39 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
 
   private _getFileType = (fileName: string): string => {
     const extension = fileName.split('.').pop()?.toLowerCase() || '';
-    console.log('FilePreview: Detecting file type for:', fileName, 'extension:', extension);
+    
     
     // Image files
     if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(extension)) {
-      console.log('FilePreview: Detected as image');
+      
       return 'image';
     }
     
     // PDF files
     if (extension === 'pdf') {
-      console.log('FilePreview: Detected as PDF');
+      
       return 'pdf';
     }
     
     // Office documents
     if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension)) {
-      console.log('FilePreview: Detected as Office document');
+      
       return 'office';
     }
     
     // Text files
     if (['txt', 'csv', 'json', 'xml', 'js', 'ts', 'tsx', 'css', 'scss', 'html'].includes(extension)) {
-      console.log('FilePreview: Detected as text');
+      
       return 'text';
     }
     
     // Video files
     if (['mp4', 'avi', 'mov', 'wmv', 'flv'].includes(extension)) {
-      console.log('FilePreview: Detected as video');
+      
       return 'video';
     }
     
-    console.log('FilePreview: Unknown file type');
+    
     return 'unknown';
   }
 
@@ -96,7 +96,7 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
   private _buildPreviewUrl = (fileUrl: string, fileType: string): string => {
     const { siteUrl } = this.props;
     
-    console.log('FilePreview: Building preview URL', { fileUrl, fileType, siteUrl });
+    
 
     if (!siteUrl) return fileUrl;
 
@@ -108,7 +108,7 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
         : fileUrl;
       
       const previewUrl = `${siteUrl}/_layouts/15/WopiFrame.aspx?sourcedoc=${encodeURIComponent(serverRelativeUrl)}&action=embedview`;
-      console.log('FilePreview: WopiFrame URL:', previewUrl);
+      
       return previewUrl;
     }
 
@@ -121,7 +121,7 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
     // Always compute fileType fresh from current fileName (avoids stale state)
     const fileType = this._getFileType(fileName);
 
-    console.log('FilePreview: Rendering content for', fileName, 'type:', fileType, 'loading:', loading);
+    
 
     if (error) {
       return (
@@ -143,10 +143,10 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
               alt={fileName}
               className={styles.previewImage}
               onLoad={() => {
-                console.log('Image loaded:', fileName);
+                
               }}
               onError={() => {
-                console.error('Image failed to load:', fileName);
+                
                 this.setState({ error: `Cannot display image: ${fileName}` });
               }}
             />
@@ -156,7 +156,7 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
       case 'pdf': {
         const pdfPreviewUrl = this._buildPreviewUrl(fileUrl, 'pdf');
         const readOnly = this.props.canDownload === false;
-        console.log('PDF preview URL:', pdfPreviewUrl);
+        
         return (
           <div className={styles.pdfContainer}>
             <iframe
@@ -182,7 +182,7 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
       case 'office': {
         const officePreviewUrl = this._buildPreviewUrl(fileUrl, 'office');
         const readOnly = this.props.canDownload === false;
-        console.log('Office WopiFrame URL:', officePreviewUrl);
+        
         return (
           <div className={styles.officeContainer}>
             <iframe
@@ -213,7 +213,7 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
               className={styles.previewFrame}
               title={fileName}
               onLoad={() => {
-                console.log('Text file loaded:', fileName);
+                
               }}
             />
           </div>
@@ -253,12 +253,7 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
     const { isOpen, onDismiss, fileName, filePath, fileUrl, canDownload = true } = this.props;
     const { error } = this.state;
 
-    console.log('FilePreview: Rendering modal', { 
-      isOpen, 
-      fileName, 
-      fileUrl,
-      hasError: !!error
-    });
+    
 
     if (!isOpen) {
       return null;

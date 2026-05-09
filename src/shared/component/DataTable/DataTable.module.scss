@@ -316,52 +316,7 @@
    🎯 SMART COLUMN WIDTH CONTROL (DESKTOP)
    ----------------------------------------------------- */
 
-/* Project Title */
-.table th:nth-child(1),
-.table td:nth-child(1) {
-  max-width: 132px;        /* 🔥 prevents over-expansion */
-  min-width: 132px;
-}
-
-/* Company */
-.table th:nth-child(2),
-.table td:nth-child(2) {
-  max-width: 133px;
-  min-width: 133px;
-}
-
-/* Stage (still text-heavy but smaller) */
-.table th:nth-child(3),
-.table td:nth-child(3) {
-  max-width: 200px;
-}
-
-/* % Completed (numeric/compact) */
-.table th:nth-child(4),
-.table td:nth-child(4) {
-  max-width: 120px;
-  text-align: left;
-}
-
-/* Budget */
-.table th:nth-child(5),
-.table td:nth-child(5) {
-  max-width: 110px;
-}
-
-/* Owner */
-.table th:nth-child(6),
-.table td:nth-child(6) {
-  max-width: 160px;
-}
-
-/* Dates */
-.table th:nth-child(7),
-.table td:nth-child(7),
-.table th:nth-child(8),
-.table td:nth-child(8) {
-  max-width: 120px;
-}
+/* Removed rigid nth-child constraints to allow dynamic width control */
 
 /* -----------------------------------------------------
    🚨 NEVER SQUEEZE — SCROLL WHEN MORE COLUMNS ARE ADDED
@@ -425,41 +380,6 @@
   .table th,
   .table td {
      padding: 12px 8px;
-  }
-
-  /* Project Title */
-  .table th:nth-child(1),
-  .table td:nth-child(1) {
-    min-width: 140px;
-    max-width: 140px;
-  }
-
-  /* Company */
-  .table th:nth-child(2),
-  .table td:nth-child(2) {
-    min-width: 120px;
-    max-width: 120px;
-  }
-
-  /* Stage */
-  .table th:nth-child(3),
-  .table td:nth-child(3) {
-    min-width: 140px;
-    max-width: 140px;
-  }
-
-  /* % Completed */
-  .table th:nth-child(4),
-  .table td:nth-child(4) {
-    min-width: 90px;
-    max-width: 90px;
-  }
-
-  /* Budget */
-  .table th:nth-child(5),
-  .table td:nth-child(5) {
-    min-width: 90px;
-    max-width: 90px;
   }
 }
 

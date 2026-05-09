@@ -117,7 +117,7 @@ const Dashboard: React.FC<IDashboardProps> = (props) => {
             // setKeyTools(tools);
             setQuickLinks(links);
         } catch (error) {
-            console.error('Error loading dashboard data:', error);
+            
         } finally {
             setIsLoading(false);
         }

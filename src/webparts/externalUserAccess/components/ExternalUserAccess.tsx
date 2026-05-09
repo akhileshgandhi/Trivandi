@@ -579,7 +579,7 @@ const ExternalUserAccess: React.FC<IExternalUserAccessProps> = ({ context }) => 
           .top(1)();
         if (projects.length > 0)
           setProjectInfo({ Title: projects[0].Title, Company: projects[0].Company });
-      } catch { console.warn("Could not load project info:", pid); }
+      } catch {  }
 
       // ── 3. SharedDocumentLog ─────────────────────────────────────────────
       //
@@ -615,7 +615,7 @@ const ExternalUserAccess: React.FC<IExternalUserAccessProps> = ({ context }) => 
           .orderBy("ActionDate", false)
           .top(500)();
       } catch (logErr) {
-        console.warn("substringof filter failed, falling back to full project fetch:", logErr);
+        
         // Fallback: get all logs for project and filter client-side
         allLogs = await sp.web.lists
           .getByTitle("SharedDocumentLog")
@@ -729,7 +729,7 @@ const ExternalUserAccess: React.FC<IExternalUserAccessProps> = ({ context }) => 
           .orderBy("Modified", false)
           .top(500)();
       } catch (libErr: any) {
-        console.error("Failed to fetch from ExternalShareDocument:", libErr);
+        
         setError(`Could not load library: ${libErr.message || libErr}`);
         return;
       }
@@ -766,14 +766,14 @@ const ExternalUserAccess: React.FC<IExternalUserAccessProps> = ({ context }) => 
 
       setSharedFiles(merged);
     } catch (err: any) {
-      console.error("ExternalUserAccess error:", err);
+      
       setError(`Failed to load: ${err.message || err}`);
     } finally {
       setLoading(false);
     }
   }, [context]);
 
-  useEffect(() => { loadData().catch(console.error); }, [loadData]);
+  useEffect(() => { loadData().catch(() => {}); }, [loadData]);
 
   /* ── Checkboxes ── */
   const toggleAll = (): void => {

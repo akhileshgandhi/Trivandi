@@ -181,24 +181,26 @@ const Projects: React.FC<IProjectsProps> = (props) => {
   const mapTabToStatus = (tab: string): string => {
     const statusMap: Record<string, string> = {
       Pipeline: "Potential",
-      Live: "Project",
+      Live: "Project", // This will match "Project", "Project - Live", etc.
       Closed: "Closed",
-      "Non-CMAP": "", // Non-CMAP: no Status filter, only NonCmap=1
+      "Non-CMAP": "", 
     };
-    return statusMap[tab] ?? "Project";
+    return statusMap[tab] ?? "";
   };
 
+
+
   const loadProjects = async (
-    page = 1,
+    page: number = 1,
     filters: Record<string, string> = {},
     status?: string,
     tab?: string,
     sCol?: string,
     sAsc?: boolean,
     sTerm?: string,
-    silent: boolean = false
+    skipLoading?: boolean
   ) => {
-    if (!silent) setIsLoading(true);
+    if (!skipLoading) setIsLoading(true);
     try {
       const currentTab = tab || activeTab;
       const statusToUse = status || mapTabToStatus(currentTab);
@@ -211,7 +213,10 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         ? { ...filters, NonCmap: "1" }
         : { ...filters, NonCmap: "0" };
 
-      console.log("Loading projects - Page:", page, "Status:", statusToUse, "Filters:", finalFilters);
+      // In projectService.ts, the '0' case will now be handled as 'ne 1' for better compatibility
+
+
+      
 
       const { items, totalCount } = await getProjectsPage(
         statusToUse,
@@ -223,14 +228,29 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         sTermToUse
       );
 
-      console.log("Loaded projects - Count:", items.length, "Total:", totalCount, "Page:", page, items, "items:");
+      
+
+      // 🛡️ ANTI-FLICKER GUARD: If fresh fetch returns 0 but cache has data, keep cache
+      if (items.length === 0 && rows.length > 0 && page === 1 && !sTermToUse) {
+        
+        setIsLoading(false);
+        return;
+      }
 
       // No need for client-side filtering - now done on server
       setRows(items);
+      try {
+        // Cache the current page results for instant restoration on back navigation
+        // We only cache the first page (or up to 50 items) to keep sessionStorage light
+        if (page === 1) {
+          sessionStorage.setItem("projects_cached_rows", JSON.stringify(items));
+        }
+      } catch (e) {  }
+
       setTotalItems(totalCount);
       setCurrentPage(page);
     } catch (err) {
-      console.error("Error loading projects:", err);
+      
       setRows([]);
       setTotalItems(0);
     } finally {
@@ -291,7 +311,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
 
       setUniqueValues(map);
     } catch (err) {
-      console.error("Error loading unique values:", err);
+      
     }
   };
 
@@ -308,14 +328,14 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             const { totalCount } = await getProjectsPage(status, 1, 1, filters);
             counts[tab] = totalCount;
           } catch (err) {
-            console.error(`Error loading count for tab ${tab}:`, err);
+            
             counts[tab] = 0;
           }
         })
       );
       setTabCounts(counts);
     } catch (err) {
-      console.error("Error loading tab counts:", err);
+      
     }
   };
 
@@ -370,7 +390,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       setIsCreateNew(true); // Reset to default state
       setShowCreateModal(true);
     } catch (e) {
-      console.error("Failed to load fields", e);
+      
       alert("Couldn't load fields. Please try again.");
     }
   };
@@ -514,7 +534,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
 
       // Close modal and refresh the project list
       setShowCreateModal(false);
-      loadProjects(1, serverFilters).catch(console.error);
+      loadProjects(1, serverFilters).catch(() => {});
 
       // Show success toast
       toast.success("Project created successfully!", {
@@ -523,7 +543,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       });
     } catch (e: unknown) {
       const error = e as Error;
-      console.error("Create failed", error);
+      
       // Show error toast
       toast.error(error?.message || "Failed to create project", {
         position: "top-right",
@@ -548,17 +568,17 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       setOrderedColumnKeys(DEFAULT_COLUMN_KEYS);
     }
     const status = mapTabToStatus(savedTab);
-    loadProjects(1, {}, status, savedTab, undefined, undefined, searchTerm).catch(console.error);
+    loadProjects(1, {}, status, savedTab, undefined, undefined, searchTerm).catch(() => {});
   }, []);
 
   useEffect(() => {
     if (allColumns.length > 0) {
-      loadUniqueValues().catch(console.error);
+      loadUniqueValues().catch(() => {});
     }
   }, [allColumns, activeTab]);
 
   useEffect(() => {
-    loadTabCounts().catch(console.error);
+    loadTabCounts().catch(() => {});
   }, [allColumns]);
 
   /* ===================== TAB CHANGE ===================== */
@@ -573,17 +593,17 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       setOrderedColumnKeys(DEFAULT_COLUMN_KEYS);
     }
     const status = mapTabToStatus(tab);
-    loadProjects(1, {}, status, tab).catch(console.error);
-    loadUniqueValues(tab).catch(console.error);
+    loadProjects(1, {}, status, tab).catch(() => {});
+    loadUniqueValues(tab).catch(() => {});
   };
 
   /* ===================== PAGE CHANGE HANDLER ===================== */
   const handlePageChange = useCallback((p: number) => {
-    console.log("handlePageChange called with page:", p, "Current page state:", currentPage);
+    
     setCurrentPage(p);
     const status = mapTabToStatus(activeTab);
-    console.log("Calling loadProjects with page:", p, "status:", status, "filters:", serverFilters);
-    loadProjects(p, serverFilters, status, activeTab, undefined, undefined, searchTerm).catch(console.error);
+    
+    loadProjects(p, serverFilters, status, activeTab, undefined, undefined, searchTerm).catch(() => {});
   }, [activeTab, serverFilters, searchTerm]);
 
   const handleResetFilters = (): void => {
@@ -591,7 +611,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     setCurrentPage(1);
     setSearchTerm("");
     const status = mapTabToStatus(activeTab);
-    loadProjects(1, {}, status, activeTab, undefined, undefined, "").catch(console.error);
+    loadProjects(1, {}, status, activeTab, undefined, undefined, "").catch(() => {});
   };
 
   /* ===================== ORDERED COLUMNS ===================== */
@@ -744,7 +764,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
                 cleanedFilters.Title = cleanedFilters.Title.split(" - ").slice(1).join(" - ");
               }
 
-              loadProjects(1, cleanedFilters, status, activeTab, undefined, undefined, searchTerm).catch(console.error);
+              loadProjects(1, cleanedFilters, status, activeTab, undefined, undefined, searchTerm).catch(() => {});
             }}
             onResetFilters={handleResetFilters}
             activeFilters={serverFilters}

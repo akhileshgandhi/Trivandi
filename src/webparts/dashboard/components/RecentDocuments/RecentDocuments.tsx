@@ -29,7 +29,7 @@ const RecentDocuments: React.FC = () => {
       const docs = await getRecentDocuments();
       setDocuments(docs);
     } catch (error) {
-      console.error("Error loading recent documents:", error);
+      
     } finally {
       setLoading(false);
     }

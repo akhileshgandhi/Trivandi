@@ -119,7 +119,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
   private _loadDocuments = async (page: number = this.state.pagination.currentPage, pageSize: number = this.state.pagination.pageSize): Promise<void> => {
     // Prevent multiple simultaneous loads
     if (this.state.loading) {
-      console.log('Load already in progress, skipping...');
+      
       return;
     }
 
@@ -128,10 +128,10 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
       clearTimeout(this._loadDebounceTimer as any);
     }
 
-    console.log(`→ Loading documents from path: "${this.props.currentPath}"`);
-    this.setState({ 
-      loading: true, 
-      selectedDocuments: [], 
+    
+    this.setState({
+      loading: true,
+      selectedDocuments: [],
       selectAll: false,
       totalDocumentsFound: 0,
       accessFilteredCount: 0
@@ -142,10 +142,10 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
         this.portalService.getUserPermissionForFolderPath(this.props.currentPath),
         this.portalService.getCurrentGuestRole()
       ]);
-      console.log(`✓ Loaded ${documents.length} accessible documents, total: ${totalCount}, guestRole: ${guestRole}`);
       
-      this.setState({ 
-        documents, 
+
+      this.setState({
+        documents,
         currentPermission,
         guestRole,
         loading: false,
@@ -160,8 +160,8 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
       });
     } catch (error) {
       const errorMessage = error.message || 'Failed to load documents';
-      console.error('Error loading documents:', error);
       
+
       let displayError: string;
       if (errorMessage.includes('404') || errorMessage.includes('does not exist')) {
         displayError = 'ExternalShareDocument library does not exist at this site.';
@@ -174,7 +174,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
       } else {
         displayError = errorMessage;
       }
-      
+
       this.setState({
         error: displayError,
         loading: false,
@@ -185,14 +185,14 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
   }
 
   public refreshDocuments = (): void => {
-    console.log('→ SharedFiles.refreshDocuments called');
+    
     // Debounce refresh calls to prevent rapid successive requests
     if (this._loadDebounceTimer) {
       clearTimeout(this._loadDebounceTimer as any);
     }
 
     this._loadDebounceTimer = window.setTimeout(() => {
-      console.log('→ Executing _loadDocuments after debounce');
+      
       this._loadDocuments(1); // Reset to page 1 on refresh
     }, 300); // 300ms debounce
   }
@@ -250,12 +250,12 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
     // Enhanced permission checking with better user feedback
     const readOnlyDocs = selectedDocs.filter(doc => doc.permission === 'Read' || doc.permission === 'Review');
     const hasReadOnlyUser = currentPermission === 'Read' || currentPermission === 'Review';
-    
+
     if (hasReadOnlyUser) {
       alert(`You only have ${currentPermission} permission for this location. Sharing is not allowed. Please contact your project administrator to request Edit or Admin access.`);
       return;
     }
-    
+
     if (readOnlyDocs.length > 0) {
       const docNames = readOnlyDocs.map(doc => doc.name).join(', ');
       alert(`You don't have Edit or Admin permission for the following documents: ${docNames}. Sharing requires Edit or Admin permission on all selected items.`);
@@ -276,7 +276,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
     if (this.props.onFolderChange) {
       this.props.onFolderChange(folderPath);
     }
-    
+
     this.setState({
       loading: true
     }, () => {
@@ -458,8 +458,8 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
               disabled={!canEditCurrent || isUserRestricted}
               title={
                 isUserRestricted ? 'You do not have permission to import documents' :
-                !globalCanEdit ? 'You do not have global edit permission' :
-                !canEditCurrent ? 'Import requires Edit permission for this folder' : ''
+                  !globalCanEdit ? 'You do not have global edit permission' :
+                    !canEditCurrent ? 'Import requires Edit permission for this folder' : ''
               }
             />
 
@@ -471,8 +471,8 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                 disabled={!canEditCurrent || isUserRestricted}
                 title={
                   isUserRestricted ? 'You do not have permission to add documents' :
-                  !globalCanAdd ? 'You do not have global add permission' :
-                  !canEditCurrent ? 'Adding requires Edit permission for this folder' : ''
+                    !globalCanAdd ? 'You do not have global add permission' :
+                      !canEditCurrent ? 'Adding requires Edit permission for this folder' : ''
                 }
                 className={styles.newButton}
               />
@@ -499,7 +499,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                 disabled={!canShareSelection}
                 title={
                   isUserRestricted ? 'You do not have permission to share documents' :
-                  !canShareSelection ? 'Sharing requires Edit permission' : ''
+                    !canShareSelection ? 'Sharing requires Edit permission' : ''
                 }
                 className={styles.shareButton}
               />
@@ -509,33 +509,33 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
 
         {/* Permission Info Message */}
         {!this.state.loading && !this.state.error && this.state.currentPermission && (
-          <MessageBar 
+          <MessageBar
             messageBarType={
               this.state.currentPermission === 'Read' ? MessageBarType.warning :
-              this.state.currentPermission === 'Review' ? MessageBarType.info :
-              this.state.currentPermission === 'Admin' ? MessageBarType.success :
-              MessageBarType.info
+                this.state.currentPermission === 'Review' ? MessageBarType.info :
+                  this.state.currentPermission === 'Admin' ? MessageBarType.success :
+                    MessageBarType.info
             }
             isMultiline={false}
             className={styles.permissionInfo}
           >
-          {this.state.currentPermission === 'Read' ? (
-            <>
-              <strong>Read access:</strong> You can view documents in the portal but cannot download, upload, share, or import files.
-            </>
-          ) : this.state.currentPermission === 'Review' ? (
-            <>
-              <strong>Review access:</strong> You can view and comment on documents but cannot download, upload, share, or import files.
-            </>
-          ) : this.state.currentPermission === 'Admin' ? (
-            <>
-              <strong>Admin access:</strong> You have full control — view, edit, download, upload, share, import and manage guest permissions.
-            </>
-          ) : (
-            <>
-              <strong>Edit access:</strong> You can view, edit, download, upload, share, and import documents.
-            </>
-          )}
+            {this.state.currentPermission === 'Read' ? (
+              <>
+                <strong>Read access:</strong> You can view documents in the portal but cannot download, upload, share, or import files.
+              </>
+            ) : this.state.currentPermission === 'Review' ? (
+              <>
+                <strong>Review access:</strong> You can view and comment on documents but cannot download, upload, share, or import files.
+              </>
+            ) : this.state.currentPermission === 'Admin' ? (
+              <>
+                <strong>Admin access:</strong> You have full control — view, edit, download, upload, share, import and manage guest permissions.
+              </>
+            ) : (
+              <>
+                <strong>Edit access:</strong> You can view, edit, download, upload, share, and import documents.
+              </>
+            )}
           </MessageBar>
         )}
 
@@ -577,7 +577,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                         <>
                           <p>External Portal not available</p>
                           <p className={styles.emptySubtext}>
-                            The External Portal library has not been set up or you don't have access to it. 
+                            The External Portal library has not been set up or you don't have access to it.
                             Please contact your site administrator to set up the External Portal for this project.
                           </p>
                         </>
@@ -585,7 +585,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                         <>
                           <p>No documents have been shared with you</p>
                           <p className={styles.emptySubtext}>
-                            As an external guest, you can only see documents that have been specifically shared with you. 
+                            As an external guest, you can only see documents that have been specifically shared with you.
                             Please contact your project administrator if you believe you should have access to additional documents.
                           </p>
                         </>
@@ -640,7 +640,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                               <Icon iconName="FabricFolder" className={styles.folderIcon} />
                               <span
                                 className={styles.folderLink}
-                                 onClick={() => this._onFolderClick(doc)}
+                                onClick={() => this._onFolderClick(doc)}
                               >
                                 {doc.name}
                               </span>
@@ -649,9 +649,9 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                             <>
                               <Icon iconName="Page" className={styles.fileIcon} />
                               <span
-                              //  href={doc.fileRef}
-                               // target="_blank"
-                               // rel="noopener noreferrer"
+                                //  href={doc.fileRef}
+                                // target="_blank"
+                                // rel="noopener noreferrer"
                                 className={styles.fileLink}
                               >
                                 {doc.name}
@@ -682,8 +682,8 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                                 title: doc.isFolder
                                   ? 'Cannot preview folders'
                                   : !canPreviewDoc(doc)
-                                  ? 'You do not have access to preview this file'
-                                  : `Preview ${doc.name}`
+                                    ? 'You do not have access to preview this file'
+                                    : `Preview ${doc.name}`
                               },
                               {
                                 key: 'view',
@@ -691,7 +691,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                                 iconProps: { iconName: 'History' },
                                 onClick: () => {
                                   this._onViewLogClick(doc).catch((error) => {
-                                    console.error('Failed to open log dialog:', error);
+                                    
                                   });
                                 }
                               },
@@ -721,8 +721,8 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                                 title: doc.isFolder
                                   ? 'Cannot download folders - navigate into the folder to access individual files'
                                   : !canDownloadDoc(doc)
-                                  ? 'Download requires Edit permission'
-                                  : 'Download this file'
+                                    ? 'Download requires Edit permission'
+                                    : 'Download this file'
                               },
                               {
                                 key: 'openInNewTab',
@@ -747,8 +747,8 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
                                 title: doc.isFolder
                                   ? 'Cannot open folders in new tab'
                                   : !canDownloadDoc(doc)
-                                  ? 'Open in new tab requires Edit permission'
-                                  : 'Open in new browser tab'
+                                    ? 'Open in new tab requires Edit permission'
+                                    : 'Open in new browser tab'
                               }
                             ]
                           }}
@@ -847,7 +847,7 @@ export default class SharedFiles extends React.Component<ISharedFilesProps, ISha
             <DefaultButton text="Close" onClick={this._closeLogDialog} />
           </DialogFooter>
         </Dialog>
-        
+
         <FilePreview
           isOpen={this.state.filePreview.isOpen}
           onDismiss={this._closeFilePreview}

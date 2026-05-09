@@ -32,6 +32,9 @@ export interface IProjectDocument {
   FSObjType: number;
   selected?: boolean;
   isImported?: boolean;
+  ItemCount?: number;
+  Length?: number;
+  EditorTitle?: string;
 }
 
 const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> = (props) => {
@@ -46,6 +49,14 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
   const [bidDocumentsUrl, setBidDocumentsUrl] = useState<string>('');
   const [contractsDocumentsUrl, setContractsDocumentsUrl] = useState<string>('');
   const [existingFiles, setExistingFiles] = useState<Set<string>>(new Set());
+
+  const formatFileSize = (bytes?: number): string => {
+    if (bytes === undefined || bytes === 0) return '0 KB';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   // 1. Initial Discovery and Metadata Fetch (Mirroring CustomDocumentsList.tsx)
   useEffect(() => {
@@ -93,12 +104,12 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
             const names = new Set<string>((result.items || []).map((f: any) => String(f.name || '')));
             setExistingFiles(names);
           } catch (e) {
-            console.warn('Could not fetch existing files:', e);
+
           }
         }
 
       } catch (err) {
-        console.error('Initialization error:', err);
+
       }
     };
 
@@ -133,13 +144,28 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
         result = await getProjectDocuments(targetLibrary, currentFolderPath, 1, 100);
       }
 
-      setDocuments((result.items || []).map(item => {
-        const name = item.FileLeafRef || item.name;
-        const isImported = existingFiles.has(name) && (item.FSObjType !== 1);
-        return { ...item, FileLeafRef: name, selected: false, isImported };
-      }));
+      console.log('Doc=====================>>>>>>>>>>>>>>>>>>>>', result);
+
+
+      setDocuments(
+        (result.items || []).map(item => {
+          const name = item.FileLeafRef || item.name;
+          const isImported =
+            existingFiles.has(name) && item.FSObjType !== 1;
+
+
+          console.log('name=====================>>>>>>>>>>>>>>>>>>>>', item.Editor);
+          return {
+            ...item,
+            FileLeafRef: name,
+            EditorTitle: item.Editor?.Title || "",
+            selected: false,
+            isImported,
+          };
+        })
+      );
     } catch (err) {
-      console.error("Error loading documents:", err);
+
     } finally {
       setLoading(false);
     }
@@ -248,13 +274,14 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
                 <tr>
                   <th style={{ width: '40px' }}></th>
                   <th>Name</th>
+                  <th>Size / Items</th>
                   <th>Modified</th>
                   <th>By</th>
                 </tr>
               </thead>
               <tbody>
                 {documents.length === 0 ? (
-                  <tr><td colSpan={4} style={{ textAlign: 'center', padding: '20px' }}>No documents found</td></tr>
+                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>No documents found</td></tr>
                 ) : (
                   documents.map((doc) => (
                     <tr key={doc.Id} className={`${styles.tableRow} ${doc.selected ? styles.selected : ''} ${doc.isImported ? styles.imported : ''}`} onClick={() => handleItemClick(doc)}>
@@ -278,7 +305,10 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
                           {doc.isImported && <span className={styles.importedLabel}>Imported</span>}
                         </span>
                       </td>
-                      <td className={styles.modifiedCol}>{new Date(doc.Modified).toLocaleDateString()}</td>
+                      <td className={styles.sizeCol}>
+                        {doc.FSObjType === 1 ? `${doc.ItemCount || 0} items` : formatFileSize(doc.Length)}
+                      </td>
+                      <td className={styles.modifiedCol}>{doc.Modified ? new Date(doc.Modified).toLocaleDateString() : ''}</td>
                       <td className={styles.byCol}>{doc.Editor?.Title || ""}</td>
                     </tr>
                   ))

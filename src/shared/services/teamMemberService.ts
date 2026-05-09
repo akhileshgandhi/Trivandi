@@ -51,7 +51,7 @@ export const getTeamMembersByProjectId = async (projectId: number): Promise<ITea
       ProjectIdId: item.ProjectId?.Id,
     }));
   } catch (error) {
-    console.error("Error fetching team members:", error);
+    
     throw error;
   }
 };
@@ -80,7 +80,7 @@ export const addTeamMember = async (
       .items
       .add(itemData);
 
-    console.log("Team member added successfully:", result);
+    
 
     return {
       Id: result.data.Id,
@@ -92,7 +92,7 @@ export const addTeamMember = async (
       ProjectIdId: projectId,
     };
   } catch (error) {
-    console.error("Error adding team member:", error);
+    
     throw new Error("Failed to add team member. Please try again.");
   }
 };
@@ -121,9 +121,9 @@ export const updateTeamMember = async (
       .getById(itemId)
       .update(itemData);
 
-    console.log("Team member updated successfully");
+    
   } catch (error) {
-    console.error("Error updating team member:", error);
+    
     throw new Error("Failed to update team member. Please try again.");
   }
 };
@@ -141,9 +141,9 @@ export const deleteTeamMember = async (itemId: number): Promise<void> => {
       .getById(itemId)
       .delete();
 
-    console.log("Team member deleted successfully");
+    
   } catch (error) {
-    console.error("Error deleting team member:", error);
+    
     throw new Error("Failed to delete team member. Please try again.");
   }
 };
@@ -160,10 +160,10 @@ export const sendInvitation = async (
   try {
     // In a real implementation, you would call a Flow/Power Automate endpoint
     // or use SharePoint's email capabilities
-    console.log("Sending invitation email to:", memberEmail);
-    console.log("Member Name:", memberName);
-    console.log("Project:", projectTitle);
-    console.log("Project ID:", projectId);
+    
+    
+    
+    
 
     // Simulate email sending
     // You can implement actual email sending using:
@@ -174,7 +174,7 @@ export const sendInvitation = async (
     // For now, just log and return success
     return Promise.resolve();
   } catch (error) {
-    console.error("Error sending invitation:", error);
+    
     throw new Error("Failed to send invitation email.");
   }
 };
@@ -191,7 +191,7 @@ export const ensureTeamMemberList = async (): Promise<void> => {
     const teamMemberList = lists.find((l: any) => l.Title === "TeamMember");
 
     if (!teamMemberList) {
-      console.log("TeamMember list does not exist. Creating...");
+      
       
       // Create the list
       await sp.web.lists.add("TeamMember", "List to store project team members", 100, false);
@@ -222,12 +222,12 @@ export const ensureTeamMemberList = async (): Promise<void> => {
         LookupFieldName: "Title",
       });
 
-      console.log("TeamMember list created successfully");
+      
     } else {
-      console.log("TeamMember list already exists");
+      
     }
   } catch (error) {
-    console.error("Error ensuring TeamMember list:", error);
+    
     // Don't throw - list might exist already
   }
 };

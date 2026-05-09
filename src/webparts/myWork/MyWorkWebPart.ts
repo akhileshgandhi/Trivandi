@@ -53,7 +53,7 @@ export default class MyWorkWebPart extends BaseClientSideWebPart<IMyWorkWebPartP
     // ✅ Check permissions
     await checkPermissions(this.context);
 
-    console.log("[WebPart] PnP SPFI and Permissions initialized");
+    
   }
 
   private _getEnvironmentMessage(): string {

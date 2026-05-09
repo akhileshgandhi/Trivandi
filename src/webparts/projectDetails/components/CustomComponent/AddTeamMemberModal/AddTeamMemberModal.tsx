@@ -67,7 +67,7 @@ const AddTeamMemberModal: React.FC<IAddTeamMemberModalProps> = ({
                 setShowCopied(true);
                 setTimeout(() => setShowCopied(false), 2000);
             } catch (err) {
-                console.error('Failed to copy mobile number:', err);
+                
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
                 textArea.value = mobileNumber;
@@ -80,7 +80,7 @@ const AddTeamMemberModal: React.FC<IAddTeamMemberModalProps> = ({
                     setShowCopied(true);
                     setTimeout(() => setShowCopied(false), 2000);
                 } catch (e) {
-                    console.error('Fallback copy failed:', e);
+                    
                 }
                 document.body.removeChild(textArea);
             }

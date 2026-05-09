@@ -182,7 +182,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
       try {
         if (!useMock && projectId) {
           const data = await getProjectById(Number(projectId));
-          console.log(data, 'Project data fetched from service');
+          
           setProject(data as ProjectItem);
 
           // Scope the External Portal to this project's subfolder
@@ -196,7 +196,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
             const libraryName = await getProjectLibraryName(data.Code, data.Title);
             // Note: The project library is for the Documents tab, not External Portal
             // External Portal uses 'ExternalShareDocument' library by default
-            console.log('Project library name:', libraryName);
+            
           }
 
           // Load team members
@@ -251,7 +251,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
           initPortalFolderPath(mock.Id || 25128);
 
           // Note: External Portal uses 'ExternalShareDocument' by default, not project library
-          console.log('Mock project loaded');
+          
         }
       } finally {
         setLoading(false);
@@ -277,7 +277,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
     
     if (id && currentFolderPath === "") {
       const targetFolder = `Project-${id}`;
-      console.log('🎯 Locking portal to folder:', targetFolder);
+      
       setCurrentFolderPath(targetFolder);
       setBreadcrumbs([
         { text: targetFolder, key: targetFolder, path: targetFolder }
@@ -298,10 +298,10 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
         setIsUserRestricted(isRestricted);
 
         if (isRestricted) {
-          console.warn('Current user is restricted from sharing files and inviting guests');
+          
         }
       } catch (error) {
-        console.error('Error checking user restriction:', error);
+        
         // Fail safely - if we cannot verify, don't restrict
         setIsUserRestricted(false);
       } finally {
@@ -319,7 +319,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
       const members = await getTeamMembersByProjectId(projectId);
       setTeamMembers(members);
     } catch (error) {
-      console.error("Error loading team members:", error);
+      
       setTeamMembers([]);
     } finally {
       setIsLoadingMembers(false);
@@ -349,9 +349,9 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
       // Reload team members
       await loadTeamMembers(projectId);
 
-      console.log("Team member added and invitation sent");
+      
     } catch (error) {
-      console.error("Error adding team member:", error);
+      
       toast.error(error instanceof Error ? error.message : "Failed to add team member", {
         position: "top-right",
         autoClose: 5000,
@@ -369,13 +369,13 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
     try {
       await deleteTeamMember(memberId);
       setTeamMembers(prevMembers => prevMembers.filter(m => m.Id !== memberId));
-      console.log("Team member removed successfully");
+      
       toast.success("Team member removed successfully!", {
         position: "top-right",
         autoClose: 3000,
       });
     } catch (error) {
-      console.error("Error deleting team member:", error);
+      
       toast.error("Failed to remove team member. Please try again.", {
         position: "top-right",
         autoClose: 5000,
@@ -391,7 +391,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
         setCopiedMemberId(memberId);
         setTimeout(() => setCopiedMemberId(null), 2000);
       } catch (err) {
-        console.error('Failed to copy mobile number:', err);
+        
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
         textArea.value = mobileNumber;
@@ -404,7 +404,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
           setCopiedMemberId(memberId);
           setTimeout(() => setCopiedMemberId(null), 2000);
         } catch (e) {
-          console.error('Fallback copy failed:', e);
+          
         }
         document.body.removeChild(textArea);
       }
@@ -464,12 +464,12 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
 
   // Handler for refresh after document operations
   const handleRefreshDocuments = (): void => {
-    console.log('→ handleRefreshDocuments called');
+    
     if (sharedFilesRef.current && sharedFilesRef.current.refreshDocuments) {
-      console.log('→ Calling refreshDocuments on SharedFiles component');
+      
       sharedFilesRef.current.refreshDocuments();
     } else {
-      console.warn('⚠ SharedFiles ref not available or refreshDocuments method missing');
+      
     }
   };
 
@@ -496,18 +496,18 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
 
   // Handler for successful guest invitation
   const handleGuestInvited = (): void => {
-    console.log('ProjectDetails: handleGuestInvited called');
+    
 
     // Update refresh trigger to force ActiveGuests component to refresh
     setGuestRefreshTrigger(Date.now());
 
     // Also call the ref method as backup
-    console.log('ProjectDetails: activeGuestsRef.current =', activeGuestsRef.current);
+    
     if (activeGuestsRef.current) {
-      console.log('ProjectDetails: Calling refreshGuests on ActiveGuests component');
+      
       activeGuestsRef.current.refreshGuests();
     } else {
-      console.warn('ProjectDetails: activeGuestsRef.current is null');
+      
     }
   };
 

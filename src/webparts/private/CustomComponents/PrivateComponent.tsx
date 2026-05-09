@@ -65,7 +65,7 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
     setLoading(true);
     try {
       const result = await service.getLibraryContents(path);
-      console.log("🖼️ Private Component Content:", result);
+      
       setContent({ folders: result.folders, files: result.files });
       setCurrentPath(result.currentPath);
 
@@ -74,7 +74,7 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
         setHistory([{ name: libraryName, path: '' }]);
       }
     } catch (error) {
-      console.error('PrivateFolders: Error loading data', error);
+      
     } finally {
       setLoading(false);
     }
@@ -167,7 +167,7 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
       setShowAddModal(false);
       await loadData(currentPath);
     } catch (error) {
-      console.error("Upload error:", error);
+      
       alert("Failed to upload some files. Please check your connection.");
     } finally {
       setIsSubmitting(false);

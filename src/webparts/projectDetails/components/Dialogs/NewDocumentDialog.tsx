@@ -88,7 +88,7 @@ export default class NewDocumentDialog extends React.Component<INewDocumentDialo
       });
     } catch (error) {
       const errorMessage = error.message || 'Failed to load guests';
-      console.error('Error loading guests:', error);
+      
       this.setState({ 
         error: errorMessage.includes('429') || errorMessage.includes('throttle')
           ? 'Too many requests. Please wait a moment and try again.'
@@ -115,7 +115,7 @@ export default class NewDocumentDialog extends React.Component<INewDocumentDialo
     if (files && files.length > 0) {
       const selectedFiles: ISelectedFile[] = [];
       
-      console.log('Individual files selected:', files.length);
+      
       
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -139,13 +139,13 @@ export default class NewDocumentDialog extends React.Component<INewDocumentDialo
     if (files && files.length > 0) {
       const selectedFiles: ISelectedFile[] = [];
       
-      console.log('Folder upload - Total files selected:', files.length);
+      
       
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         // Get relative path from webkitRelativePath
         const relativePath = (file as any).webkitRelativePath || file.name;
-        console.log('Processing file:', file.name, 'Relative path:', relativePath);
+        
         
         // Extract folder path from relative path
         const pathParts = relativePath.split('/');
@@ -159,7 +159,7 @@ export default class NewDocumentDialog extends React.Component<INewDocumentDialo
         });
       }
       
-      console.log('Selected files processed:', selectedFiles);
+      
       this.setState({ 
         selectedFiles: [...this.state.selectedFiles, ...selectedFiles]
       });
@@ -253,7 +253,7 @@ export default class NewDocumentDialog extends React.Component<INewDocumentDialo
               : `${this.props.currentPath}/${path}`;
           }
           
-          console.log(`Uploading ${file.name} to path: ${targetPath}`);
+          
           const uploadedFileRef = await this.portalService.uploadToExternalShareDocument(
             targetPath,
             file
@@ -277,7 +277,7 @@ export default class NewDocumentDialog extends React.Component<INewDocumentDialo
           
           successCount++;
         } catch (error) {
-          console.error(`Failed to upload ${file.name}:`, error);
+          
           errorCount++;
         }
       }
