@@ -8,7 +8,8 @@ interface QuickLinkCardProps {
     backgroundColor: string;
     icon: string;
     hasChildren?: boolean;
-    fetchChildren?: (parentTitle: string) => Promise<Array<{ name: string; url: string }>>;
+    openInNewTab?: boolean;
+    fetchChildren?: (parentTitle: string) => Promise<Array<{ name: string; url: string; openInNewTab?: boolean }>>;
 }
 
 const QuickLinkCard: React.FC<QuickLinkCardProps> = ({ 
@@ -17,10 +18,11 @@ const QuickLinkCard: React.FC<QuickLinkCardProps> = ({
     backgroundColor, 
     icon, 
     hasChildren,
+    openInNewTab,
     fetchChildren
 }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [childLinks, setChildLinks] = useState<Array<{ name: string; url: string }>>([]);
+    const [childLinks, setChildLinks] = useState<Array<{ name: string; url: string; openInNewTab?: boolean }>>([]);
     const [isLoadingChildren, setIsLoadingChildren] = useState(false);
 
     useEffect(() => {
@@ -36,10 +38,16 @@ const QuickLinkCard: React.FC<QuickLinkCardProps> = ({
         }
     }, [isDropdownOpen, hasChildren, fetchChildren, title, childLinks.length]);
 
-    const handleClick = (urlToOpen?: string): void => {
+    const handleClick = (urlToOpen?: string, forceNewTab?: boolean): void => {
         const targetUrl = urlToOpen || url;
+        const shouldNewTab = forceNewTab !== undefined ? forceNewTab : openInNewTab;
+        
         if (targetUrl && targetUrl !== '#') {
-            window.open(targetUrl, '_blank', 'noopener,noreferrer');
+            if (shouldNewTab) {
+                window.open(targetUrl, '_blank', 'noopener,noreferrer');
+            } else {
+                window.open(targetUrl, '_self');
+            }
         }
         setIsDropdownOpen(false);
     };
@@ -49,9 +57,9 @@ const QuickLinkCard: React.FC<QuickLinkCardProps> = ({
         setIsDropdownOpen(!isDropdownOpen);
     };
 
-    const handleLocationSelect = (locationUrl: string, e: React.MouseEvent): void => {
+    const handleLocationSelect = (child: { url: string; openInNewTab?: boolean }, e: React.MouseEvent): void => {
         e.stopPropagation();
-        handleClick(locationUrl);
+        handleClick(child.url, child.openInNewTab);
     };
 
     const badgeColor = backgroundColor
@@ -97,7 +105,7 @@ const QuickLinkCard: React.FC<QuickLinkCardProps> = ({
                                     <button
                                         key={index}
                                         className={styles.dropdownOption}
-                                        onClick={(e) => handleLocationSelect(child.url, e)}
+                                        onClick={(e) => handleLocationSelect(child, e)}
                                     >
                                         {child.name}
                                     </button>

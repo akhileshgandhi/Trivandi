@@ -295,13 +295,14 @@ export const getChildLinksByParent = async (parentName: string): Promise<Array<{
     const items = await sp.web.lists
       .getByTitle(LISTS.QUICK_LINKS)
       .items
-      .select("Id", "Title", "URL", "ParentName")
+      .select("Id", "Title", "URL", "ParentName", "OpennewTab")
       .filter(`ParentName eq '${parentName}'`)
       .orderBy("SortOrder", true)();
 
     return items.map((item: any) => ({
       name: item.Title,
-      url: item.URL?.Url || item.URL || "#"
+      url: item.URL?.Url || item.URL || "#",
+      openInNewTab: item.OpennewTab
     }));
   } catch (error) {
     
@@ -315,7 +316,7 @@ export const getQuickLinks = async (): Promise<any[]> => {
     const items = await sp.web.lists
       .getByTitle(LISTS.QUICK_LINKS)
       .items
-      .select("Id", "Title", "URL", "Icon", "BackgroundColor", "ParentName", "SortOrder")
+      .select("Id", "Title", "URL", "Icon", "BackgroundColor", "ParentName", "SortOrder", "OpennewTab")
       .filter("ParentName eq null or ParentName eq ''")
       .orderBy("SortOrder", true)();
       // .top(10)();
@@ -355,7 +356,8 @@ export const getQuickLinks = async (): Promise<any[]> => {
         url: item.URL?.Url || item.URL || "#",
         backgroundColor: item.BackgroundColor || "#E8EEFF",
         icon: iconUrl,
-        hasChildren: hasChildren
+        hasChildren: hasChildren,
+        openInNewTab: item.OpennewTab
       };
     }));
 

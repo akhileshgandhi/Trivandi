@@ -230,7 +230,7 @@
 //                 key={file.Id} 
 //                 className={styles.fileItem}
 //                 style={{ paddingLeft: `${(level + 1) * 20}px` }}
-//                 onClick={() => window.open(getFilePreviewUrl(file.FileRef, file.File_x0020_Type), '_blank')}
+//                 onClick={() => window.open(getFilePreviewUrl(file.FileRef, file.File_x0020_Type), '_self')}
 //               >
 //                 <div className={styles.fileIcon}>📄</div>
 //                 <div className={styles.fileDetails}>
@@ -474,7 +474,7 @@
 //                                 className={styles.folderCard}
 //                                 onClick={() => {
 //                                   const siteUrl = window.location.origin;
-//                                   window.open(`${siteUrl}${folder.serverRelativeUrl}`, '_blank');
+//                                   window.open(`${siteUrl}${folder.serverRelativeUrl}`, '_self');
 //                                 }}
 //                               >
 //                                 <div className={styles.folderCardBorder} style={{ backgroundColor: folder.color }}></div>
@@ -515,7 +515,7 @@
 //                                 onClick={() => {
 //                                   if (openDropdownId === template.id) return;
 //                                   if (template.link) {
-//                                     window.open(template.link, '_blank');
+//                                     window.open(template.link, '_self');
 //                                   }
 //                                 }}
 //                               >
@@ -551,7 +551,7 @@
 //                                                 className={styles.cardDropdownOption}
 //                                                 onClick={(e) => {
 //                                                   e.stopPropagation();
-//                                                   if (child.link) window.open(child.link, '_blank');
+//                                                   if (child.link) window.open(child.link, '_self');
 //                                                   setOpenDropdownId(null);
 //                                                 }}
 //                                               >
@@ -595,7 +595,7 @@
 //                                   className={styles.listRow}
 //                                   onClick={() => {
 //                                     const siteUrl = window.location.origin;
-//                                     window.open(`${siteUrl}${folder.serverRelativeUrl}`, '_blank');
+//                                     window.open(`${siteUrl}${folder.serverRelativeUrl}`, '_self');
 //                                   }}
 //                                 >
 //                                   <div className={styles.listRowName}>
@@ -628,7 +628,7 @@
 //                                   onClick={() => {
 //                                     if (openDropdownId === template.id) return;
 //                                     if (template.link) {
-//                                       window.open(template.link, '_blank');
+//                                       window.open(template.link, '_self');
 //                                     }
 //                                   }}
 //                                 >
@@ -661,7 +661,7 @@
 //                                                   className={styles.cardDropdownOption}
 //                                                   onClick={(e) => {
 //                                                     e.stopPropagation();
-//                                                     if (child.link) window.open(child.link, '_blank');
+//                                                     if (child.link) window.open(child.link, '_self');
 //                                                     setOpenDropdownId(null);
 //                                                   }}
 //                                                 >
@@ -700,7 +700,7 @@
 //                           isDocument
 //                           documentType={doc.DocumentType || "book"}
 //                           variant="template"
-//                           onClick={() => window.open(getFilePreviewUrl(doc.FileRef, doc.File_x0020_Type), '_blank')}
+//                           onClick={() => window.open(getFilePreviewUrl(doc.FileRef, doc.File_x0020_Type), '_self')}
 //                         />
 //                       ))
 //                     ) : (
@@ -723,7 +723,7 @@
 //                             isDocument
 //                             documentType={doc.DocumentType || "book"}
 //                             variant="invoice"
-//                             onClick={() => window.open(getFilePreviewUrl(doc.FileRef, doc.File_x0020_Type), '_blank')}
+//                             onClick={() => window.open(getFilePreviewUrl(doc.FileRef, doc.File_x0020_Type), '_self')}
 //                           />
 //                         ))
 //                       ) : (
@@ -758,7 +758,7 @@
 //                         iconRight
 //                         onClick={() => {
 //                           const folderUrl = `https://trivandildn.sharepoint.com${folder.FileRef}`;
-//                           window.open(folderUrl, '_blank');
+//                           window.open(folderUrl, '_self');
 //                         }}
 //                       />
 //                     ))
@@ -774,7 +774,7 @@
 //                       subtitle={`File • Modified ${new Date(file.Modified).toLocaleDateString()}`}
 //                       color="#8fa3e8"
 //                       iconRight
-//                       onClick={() => window.open(getFilePreviewUrl(file.FileRef, file.File_x0020_Type), '_blank')}
+//                       onClick={() => window.open(getFilePreviewUrl(file.FileRef, file.File_x0020_Type), '_self')}
 //                     />
 //                   ))}
 //                 </div>
@@ -1081,7 +1081,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                   {filteredFolders.map((folder, idx) => (
                     <tr key={`folder-${idx}`} className={styles.tableRow} onClick={() => {
                       const siteUrl = window.location.origin;
-                      window.open(`${siteUrl}${folder.serverRelativeUrl}`, '_blank');
+                      window.location.href = `${siteUrl}${folder.serverRelativeUrl}`;
                     }}>
                       <td>
                         <div className={styles.itemCell}>
@@ -1098,7 +1098,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                   {filteredListItems.map((item, idx) => (
                     <tr key={`list-item-${idx}`} className={styles.tableRow} onClick={() => {
                       if (openDropdownId === item.id) return;
-                      if (item.link) window.open(item.link, '_blank');
+                      if (item.link) window.location.href = item.link;
                     }}>
                       <td>
                         <div className={styles.itemCell}>
@@ -1121,7 +1121,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                                 ) : (childItemsCache[item.title]?.map(child => (
                                   <button key={child.id} className={styles.dropdownOption} onClick={(e) => {
                                     e.stopPropagation();
-                                    if (child.link) window.open(child.link, '_blank');
+                                    if (child.link) window.location.href = child.link;
                                     setOpenDropdownId(null);
                                   }}>{child.title}</button>
                                 )))}
@@ -1150,7 +1150,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                     className={`${styles.gridCard} ${styles['card' + (idx % 6)]}`}
                     onClick={() => {
                       const siteUrl = window.location.origin;
-                      window.open(`${siteUrl}${folder.serverRelativeUrl}`, '_blank');
+                      window.location.href = `${siteUrl}${folder.serverRelativeUrl}`;
                     }}
                   >
                     <div className={styles.cardIcon}><Folder size={18} /></div>
@@ -1174,7 +1174,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                     className={`${styles.gridCard} ${styles['card' + ((filteredFolders.length + idx) % 6)]}`}
                     onClick={() => {
                       if (openDropdownId === item.id) return;
-                      if (item.link) window.open(item.link, '_blank');
+                      if (item.link) window.location.href = item.link;
                     }}
                   >
                     <div className={styles.cardIcon}><FileText size={18} /></div>
@@ -1191,7 +1191,7 @@ const TemplatesResources: React.FC<ITemplatesResourcesProps> = (props) => {
                             ) : (childItemsCache[item.title]?.map(child => (
                               <button key={child.id} className={styles.dropdownOption} onClick={(e) => {
                                 e.stopPropagation();
-                                if (child.link) window.open(child.link, '_blank');
+                                if (child.link) window.location.href = child.link;
                                 setOpenDropdownId(null);
                               }}>{child.title}</button>
                             )))}

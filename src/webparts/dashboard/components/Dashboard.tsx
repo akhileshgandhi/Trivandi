@@ -74,6 +74,7 @@ interface QuickLink {
     backgroundColor: string;
     icon: string;
     hasChildren?: boolean;
+    openInNewTab?: boolean;
 }
 
 const Dashboard: React.FC<IDashboardProps> = (props) => {
@@ -178,6 +179,7 @@ const Dashboard: React.FC<IDashboardProps> = (props) => {
                                         backgroundColor={link.backgroundColor}
                                         icon={link.icon}
                                         hasChildren={link.hasChildren}
+                                        openInNewTab={link.openInNewTab}
                                         fetchChildren={getChildLinksByParent}
                                     />
                                 ))}
