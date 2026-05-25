@@ -16,6 +16,39 @@
   background: #ffffff;
 }
 
+.barWrapper {
+  width: 100%;
+  height: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.progressBar {
+  width: 100%;
+  height: 100%;
+  background: #f0f0f0;
+}
+
+.progressFill {
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, #F22797, #820B52, #0511F2, #FF6010);
+  background-size: 200% 100%;
+  animation: barSlide 1.5s infinite ease-in-out;
+}
+
+@keyframes barSlide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
 .saturationLoader {
   position: relative;
   width: 60px;

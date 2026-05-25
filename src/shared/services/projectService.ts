@@ -32,6 +32,9 @@ export interface IDashboardProject {
 export const initializePnP = (context: any) => {
   try {
     sp = spfi().using(SPFx(context));
+    if (context && context.pageContext && context.pageContext.web) {
+      (globalThis as any).webServerRelativeUrl = context.pageContext.web.serverRelativeUrl;
+    }
 
     return sp;
   } catch (error) {
@@ -140,7 +143,7 @@ export const getProjectsByStatus = async (status: string) => {
     .getByTitle("ProjectsNew")
     .items
     .select(...selectFields) // 👈 ID IS NOW INCLUDED
-    .filter(`startswith(Status,'${status}')`)
+    .filter(`Status eq '${status}'`)
     .top(5000)();
 
 
@@ -200,12 +203,14 @@ export const getProjectsPage = async (
   });
 
   if (!regularFields.includes("ID")) regularFields.push("ID");
+  if (!regularFields.includes("ProjectID")) regularFields.push("ProjectID");
+  if (!regularFields.includes("ProjectId")) regularFields.push("ProjectId");
 
   // Build filter string (exact matches for provided filters)
   const filterParts: string[] = [];
   // Only add Status filter if status is provided (empty string = no status filter, e.g. Non-CMAP tab)
   if (status) {
-    filterParts.push(`startswith(Status,'${status}')`);
+    filterParts.push(`Status eq '${status}'`);
   }
 
   Object.entries(filters).forEach(([k, v]) => {
@@ -324,7 +329,7 @@ export const getProjectsPage = async (
 
   } catch (error) {
 
-    throw new Error(`Failed to fetch projects: ${error.message || error}`);
+    throw new Error(`Failed to fetch projects: ${error || error}`);
   }
 };
 
@@ -487,11 +492,6 @@ const parseSiteAndFolder = (serverRelativeUrl: string): { siteUrl: string; folde
   return { siteUrl: `/${parts[0]}`, folderPath: `/${parts.slice(1).join('/')}` };
 };
 
-/**
- * Get documents from a server relative URL directly
- * @param serverRelativeUrl - The full or server relative URL to the folder
- * @param subFolderPath - Optional subfolder navigation within the URL
- */
 export const getDocumentsByServerRelativeUrl = async (
   serverRelativeUrl: string,
   subFolderPath: string = "",
@@ -501,41 +501,48 @@ export const getDocumentsByServerRelativeUrl = async (
   if (!sp) throw new Error("PnPjs not initialized");
 
   try {
-
     // Convert to server relative URL if it's a full URL
     const relativeUrl = toServerRelativeUrl(serverRelativeUrl);
-    const fullPath = subFolderPath ? `${relativeUrl}/${subFolderPath}` : relativeUrl;
+    let fullPath = relativeUrl;
+    if (subFolderPath) {
+      const cleanSubPath = toServerRelativeUrl(subFolderPath);
+      if (cleanSubPath === relativeUrl || cleanSubPath.startsWith(relativeUrl + '/')) {
+        fullPath = cleanSubPath;
+      } else {
+        fullPath = `${relativeUrl}/${subFolderPath}`.replace(/\/+/g, '/');
+      }
+    }
 
     // Parse site and folder path
-    const { siteUrl, folderPath } = parseSiteAndFolder(fullPath);
+    const { siteUrl } = parseSiteAndFolder(fullPath);
 
     // Get the web context for the target site using absolute URL
     let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
-
-    // Ensure the URL is valid and doesn't have double slashes (except after protocol)
     absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
 
     // Fallback to current web if siteUrl is empty or root
     const targetWeb = (!siteUrl || siteUrl === "/") ? sp.web : Web([sp.web, absoluteSiteUrl]);
     const listPath = fullPath.split('/').slice(0, fullPath.startsWith('/sites/') ? 4 : 2).join('/');
 
+    // Server-side: retrieve folders and files with real server-side pagination
     const skip = (page - 1) * pageSize;
-    
-    // Server-side pagination: folders always first, then files
-    const [rawFiles, rawFolders] = await Promise.all([
+
+    const [rawFiles, rawFolders, allFilesForCount] = await Promise.all([
       targetWeb.getFolderByServerRelativePath(fullPath).files
         .select("Name", "TimeLastModified", "ServerRelativeUrl", "Length", "ListItemAllFields/Id", "ListItemAllFields/Modified")
         .expand("ListItemAllFields")
         .top(pageSize)
-        .skip(Math.max(0, skip - 0))(),
+        .skip(Math.max(0, skip))(),
       targetWeb.getFolderByServerRelativePath(fullPath).folders
-        .select("Name", "ServerRelativeUrl", "ItemCount", "TimeLastModified", "ListItemAllFields/Id", "ListItemAllFields/Modified")
+        .select("Name", "ServerRelativeUrl", "ItemCount", "TimeLastModified", "ListItemAllFields/Id", "ListItemAllFields/Modified", "ListItemAllFields/ItemCount")
         .expand("ListItemAllFields")
         .filter("Name ne 'Forms'")
-        .top(200)()
+        .top(200)(),
+      targetWeb.getFolderByServerRelativePath(fullPath).files
+        .select("UniqueId")()
     ]);
 
-    // Step 2: Get Editor data using indexed IDs (no throttling - ID is indexed)
+    // Step 2: Get Editor data using indexed IDs
     const allIds = [
       ...rawFiles.map((f: any) => f.ListItemAllFields?.Id).filter(Boolean),
       ...rawFolders.map((f: any) => f.ListItemAllFields?.Id).filter(Boolean)
@@ -564,7 +571,7 @@ export const getDocumentsByServerRelativeUrl = async (
       FSObjType: 1,
       VersionLabel: "",
       ServerRelativeUrl: folder.ServerRelativeUrl,
-      ItemCount: folder.ItemCount || 0
+      ItemCount: folder.ListItemAllFields?.ItemCount || folder.ItemCount || 0
     }));
 
     const mappedFiles = rawFiles.map((item: any, index: number) => ({
@@ -580,24 +587,13 @@ export const getDocumentsByServerRelativeUrl = async (
       Length: item.Length || 0
     }));
 
-    // Folders first, then files (folders not paginated - always show all)
+    // Folders first, then files (already paginated server-side)
     const pagedItems = [...mappedFolders, ...mappedFiles];
-    const totalCount = pagedItems.length + (rawFiles.length === pageSize ? 1 : 0); // approximate
+    const totalCount = mappedFolders.length + allFilesForCount.length;
 
     return { items: pagedItems, totalCount };
   } catch (error) {
-
-
-
-
-    // Provide more specific error information
-    if (error instanceof Error) {
-
-      if (error.message.includes('404') || error.message.includes('Not Found')) {
-
-      }
-    }
-
+    console.error("Error in getDocumentsByServerRelativeUrl:", error);
     return { items: [], totalCount: 0 };
   }
 };
@@ -607,12 +603,13 @@ export const getProjectDocuments = async (
   libraryName: string,
   folderPath: string = "",
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  businessProjectId?: string
 ): Promise<{ items: any[]; totalCount: number }> => {
   if (!sp) throw new Error("PnPjs not initialized");
 
   try {
-
+    console.log("GET_PROJECT_DOCUMENTS_QUERY:", { libraryName, folderPath, businessProjectId });
 
     // If no folder path, get items from root
     if (!folderPath) {
@@ -627,13 +624,15 @@ export const getProjectDocuments = async (
           "File_x0020_Type",
           "FileRef",
           "FSObjType",
-          "OData__UIVersionString",
+          "OData__UIVersionString"
         )
         .expand("Editor")
         .filter("FSObjType eq 1 or FSObjType eq 0")
         .orderBy("FSObjType", false)
         .orderBy("FileLeafRef", true)
         .top(500)();
+
+      console.log(`GET_PROJECT_DOCUMENTS_SUCCESS (${libraryName}):`, items);
 
       console.log("Items>>>>>>>>>>>>>>>>>>>>>>>>", items);
 
@@ -698,7 +697,7 @@ export const getProjectDocuments = async (
           FileRef: f.ServerRelativeUrl,
           FSObjType: 1,
           VersionLabel: f.ListItemAllFields?.OData__UIVersionString || "1.0",
-          ItemCount: f.ItemCount || 0
+          ItemCount: f.ListItemAllFields?.ItemCount || f.ItemCount || 0
         })),
         ...files.map((f: any) => ({
           Id: f.ListItemAllFields?.Id || Math.random(),
@@ -724,7 +723,7 @@ export const getProjectDocuments = async (
       return { items: pagedItems, totalCount };
     }
   } catch (error) {
-
+    console.error(`GET_PROJECT_DOCUMENTS_ERROR (${libraryName}):`, error);
     return { items: [], totalCount: 0 };
   }
 };
@@ -796,21 +795,24 @@ export const ensureFolderPathByServerRelativeUrl = async (serverRelativeUrl: str
 
       } catch (error) {
         // Folder doesn't exist, create it
-
         await targetWeb.getFolderByServerRelativePath(currentPath)
           .folders
           .addUsingPath(folderName);
-
       }
 
       currentPath = newPath;
     }
-
-
   } catch (error) {
-
     throw error;
   }
+};
+
+/**
+ * Get the root folder of a library by its title
+ */
+export const getLibraryRootFolder = async (libraryName: string) => {
+  if (!sp) throw new Error("PnPjs not initialized");
+  return await sp.web.lists.getByTitle(libraryName).rootFolder.select("ServerRelativeUrl")();
 };
 
 /**
@@ -902,91 +904,34 @@ export const uploadProjectDocument = async (libraryName: string, file: File, fol
   if (!sp) throw new Error("PnPjs not initialized");
 
   try {
+    const rootFolder = await sp.web.lists.getByTitle(libraryName).rootFolder.select("ServerRelativeUrl")();
+    const rootPath = rootFolder.ServerRelativeUrl;
 
-
-    let result;
-
-    if (!folderPath) {
-      // Upload to root of library
-      result = await sp.web.lists
-        .getByTitle(libraryName)
-        .rootFolder
-        .files
-        .addUsingPath(file.name, file, { Overwrite: true });
-    } else {
-      // Ensure folder exists
-      await ensureFolderPath(libraryName, folderPath);
-
-      // Upload to specific folder
-      result = await sp.web.lists
-        .getByTitle(libraryName)
-        .rootFolder
-        .folders
-        .getByUrl(folderPath)
-        .files
-        .addUsingPath(file.name, file, { Overwrite: true });
+    // First ensure the folder path exists
+    if (folderPath && folderPath.trim() !== "") {
+      await ensureFolderPathByServerRelativeUrl(rootPath, folderPath);
     }
 
-
-
-    // Optionally update metadata if required by your library
-    // (Removed Status update: the field does not exist in this library)
+    // Now upload the file
+    const targetPath = folderPath ? `${rootPath}/${folderPath}` : rootPath;
+    const result = await sp.web.getFolderByServerRelativePath(targetPath)
+      .files
+      .addUsingPath(file.name, file, { Overwrite: true });
 
     return result;
   } catch (error) {
-
+    console.error(`UPLOAD_PROJECT_DOCUMENT_ERROR (${libraryName}):`, error);
     throw error;
   }
 };
 
-// Helper function to ensure folder path exists
-const ensureFolderPath = async (libraryName: string, folderPath: string): Promise<void> => {
-  if (!sp) throw new Error("PnPjs not initialized");
 
-  const pathParts = folderPath.split("/");
-  let currentPath = "";
-
-  for (const part of pathParts) {
-    if (part) {
-      currentPath += (currentPath ? "/" : "") + part;
-
-      try {
-        await sp.web.lists
-          .getByTitle(libraryName)
-          .rootFolder
-          .folders
-          .getByUrl(currentPath)();
-
-      } catch {
-
-        const parentPath = currentPath.substring(0, currentPath.lastIndexOf("/"));
-        if (parentPath) {
-          await sp.web.lists
-            .getByTitle(libraryName)
-            .rootFolder
-            .folders
-            .getByUrl(parentPath)
-            .folders
-            .addUsingPath(part);
-        } else {
-          await sp.web.lists
-            .getByTitle(libraryName)
-            .rootFolder
-            .folders
-            .addUsingPath(part);
-        }
-      }
-    }
-  }
-};
 
 export const getProjectsByOwnerAndStatus = async (
-  ownerEmail: string,
   status: "Project" | "Potential" | string[]
 ): Promise<IDashboardProject[]> => {
   if (!sp) throw new Error("PnPjs not initialized");
-
-
+  const ownerEmail = await sp.web.currentUser();
 
   // Handle both single status and multiple statuses
   const statusFilter = Array.isArray(status)
@@ -1005,7 +950,7 @@ export const getProjectsByOwnerAndStatus = async (
       "Status"
     )
     .filter(
-      `OwnerEmail eq '${ownerEmail}' and (${statusFilter})`
+      `(OwnerEmail eq '${ownerEmail}' and (${statusFilter})) or (ProjectManagerEmail eq '${ownerEmail}' and (${statusFilter}))`
     )
     .top(20)();
 
@@ -1054,11 +999,18 @@ export const getRecentDocuments = async (limit: number = 10) => {
         // Fallback to original path
       }
 
+      let decodedPath = relativePath;
+      try {
+        decodedPath = decodeURIComponent(relativePath);
+      } catch (e) {
+        // ignore
+      }
+
       return {
         Id: parseInt(res.ListItemID) || Math.floor(Math.random() * 100000),
         FileLeafRef: res.Filename || res.Title,
         Modified: res.LastModifiedTime,
-        FileRef: relativePath,
+        FileRef: decodedPath,
         File_x0020_Type: res.FileExtension,
         ProjectTitle: res.SiteTitle,
         LibraryTitle: res.SiteTitle
@@ -1070,41 +1022,7 @@ export const getRecentDocuments = async (limit: number = 10) => {
 
   } catch (error) {
 
-    // Return mock data for testing
-    return [
-      {
-        Id: 1,
-        FileLeafRef: "Project_Kickoff_Deck_v2.pptx",
-        Modified: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-        FileRef: "/sites/test/docs/Project_Kickoff_Deck_v2.pptx",
-        File_x0020_Type: "pptx",
-        ProjectTitle: "Event Readiness Programme"
-      },
-      {
-        Id: 2,
-        FileLeafRef: "Budget_Tracking_Oct25.xlsx",
-        Modified: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
-        FileRef: "/sites/test/docs/Budget_Tracking_Oct25.xlsx",
-        File_x0020_Type: "xlsx",
-        ProjectTitle: "London Gatwick Airport"
-      },
-      {
-        Id: 3,
-        FileLeafRef: "Meeting_Minutes_SteerCo.docx",
-        Modified: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
-        FileRef: "/sites/test/docs/Meeting_Minutes_SteerCo.docx",
-        File_x0020_Type: "docx",
-        ProjectTitle: "Driving Council Steering"
-      },
-      {
-        Id: 4,
-        FileLeafRef: "RFP_Response_Draft.docx",
-        Modified: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-        FileRef: "/sites/test/docs/RFP_Response_Draft.docx",
-        File_x0020_Type: "docx",
-        ProjectTitle: "Wembley Security Review"
-      }
-    ];
+
   }
 };
 
@@ -1246,5 +1164,113 @@ export const downloadProjectDocumentBlob = async (
   } catch (error) {
 
     throw error;
+  }
+};
+/* ================= MOVE / COPY FILE ================= */
+export const moveFile = async (sourcePath: string, destinationPath: string) => {
+  if (!sp) throw new Error("PnPjs not initialized");
+  const fileName = sourcePath.split('/').filter(Boolean).pop();
+  const fullDestPath = `${destinationPath}/${fileName}`;
+  return sp.web.getFileByServerRelativePath(sourcePath).moveTo(fullDestPath, true);
+};
+
+export const copyFile = async (sourcePath: string, destinationPath: string) => {
+  if (!sp) throw new Error("PnPjs not initialized");
+  const fileName = sourcePath.split('/').filter(Boolean).pop();
+  const fullDestPath = `${destinationPath}/${fileName}`;
+  return sp.web.getFileByServerRelativePath(sourcePath).copyTo(fullDestPath, true);
+};
+
+export const moveFileOrFolder = async (sourcePath: string, destinationPath: string, isFolder: boolean) => {
+  if (!sp) throw new Error("PnPjs not initialized");
+  let decodedSource = decodeURIComponent(sourcePath);
+  let decodedDest = decodeURIComponent(destinationPath);
+
+  const webServerRelativeUrl = (globalThis as any).webServerRelativeUrl;
+  if (webServerRelativeUrl) {
+    if (decodedSource.toLowerCase().startsWith(webServerRelativeUrl.toLowerCase())) {
+      decodedSource = webServerRelativeUrl + decodedSource.substring(webServerRelativeUrl.length);
+    }
+    if (decodedDest.toLowerCase().startsWith(webServerRelativeUrl.toLowerCase())) {
+      decodedDest = webServerRelativeUrl + decodedDest.substring(webServerRelativeUrl.length);
+    }
+  }
+
+  const { siteUrl } = parseSiteAndFolder(decodedSource);
+  let targetWeb = sp.web;
+  if (siteUrl && siteUrl !== "/") {
+    let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
+    absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
+    targetWeb = Web([sp.web, absoluteSiteUrl]);
+  }
+
+  const name = decodedSource.split('/').filter(Boolean).pop();
+  const fullDestPath = `${decodedDest}/${name}`.replace(/\/+/g, '/');
+
+  if (isFolder) {
+    const folder = targetWeb.getFolderByServerRelativePath(decodedSource);
+    if (typeof (folder as any).moveByPath === 'function') {
+      return (folder as any).moveByPath(fullDestPath, false);
+    } else if (typeof (folder as any).moveTo === 'function') {
+      return (folder as any).moveTo(fullDestPath);
+    } else {
+      throw new Error("Folder move method not supported by this PnPjs version");
+    }
+  } else {
+    const file = targetWeb.getFileByServerRelativePath(decodedSource);
+    if (typeof (file as any).moveTo === 'function') {
+      return (file as any).moveTo(fullDestPath, true);
+    } else if (typeof (file as any).moveByPath === 'function') {
+      return (file as any).moveByPath(fullDestPath, false);
+    } else {
+      throw new Error("File move method not supported by this PnPjs version");
+    }
+  }
+};
+
+export const copyFileOrFolder = async (sourcePath: string, destinationPath: string, isFolder: boolean) => {
+  if (!sp) throw new Error("PnPjs not initialized");
+  let decodedSource = decodeURIComponent(sourcePath);
+  let decodedDest = decodeURIComponent(destinationPath);
+
+  const webServerRelativeUrl = (globalThis as any).webServerRelativeUrl;
+  if (webServerRelativeUrl) {
+    if (decodedSource.toLowerCase().startsWith(webServerRelativeUrl.toLowerCase())) {
+      decodedSource = webServerRelativeUrl + decodedSource.substring(webServerRelativeUrl.length);
+    }
+    if (decodedDest.toLowerCase().startsWith(webServerRelativeUrl.toLowerCase())) {
+      decodedDest = webServerRelativeUrl + decodedDest.substring(webServerRelativeUrl.length);
+    }
+  }
+
+  const { siteUrl } = parseSiteAndFolder(decodedSource);
+  let targetWeb = sp.web;
+  if (siteUrl && siteUrl !== "/") {
+    let absoluteSiteUrl = `${window.location.protocol}//${window.location.host}${siteUrl}`;
+    absoluteSiteUrl = absoluteSiteUrl.replace(/([^:]\/)\/+/g, "$1");
+    targetWeb = Web([sp.web, absoluteSiteUrl]);
+  }
+
+  const name = decodedSource.split('/').filter(Boolean).pop();
+  const fullDestPath = `${decodedDest}/${name}`.replace(/\/+/g, '/');
+
+  if (isFolder) {
+    const folder = targetWeb.getFolderByServerRelativePath(decodedSource);
+    if (typeof (folder as any).copyByPath === 'function') {
+      return (folder as any).copyByPath(fullDestPath, false);
+    } else if (typeof (folder as any).copyTo === 'function') {
+      return (folder as any).copyTo(fullDestPath);
+    } else {
+      throw new Error("Folder copy method not supported by this PnPjs version");
+    }
+  } else {
+    const file = targetWeb.getFileByServerRelativePath(decodedSource);
+    if (typeof (file as any).copyTo === 'function') {
+      return (file as any).copyTo(fullDestPath, true);
+    } else if (typeof (file as any).copyByPath === 'function') {
+      return (file as any).copyByPath(fullDestPath, false);
+    } else {
+      throw new Error("File copy method not supported by this PnPjs version");
+    }
   }
 };

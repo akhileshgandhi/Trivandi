@@ -3,7 +3,9 @@ import { useState, useEffect } from "react";
 import styles from "./RecentDocuments.module.scss";
 import { getRecentDocuments } from "../../../../shared/services/projectService";
 import GlobalLoader from "../../../../shared/component/GlobalLoader";
-
+import { WebPartContext } from "@microsoft/sp-webpart-base";
+import FilePreview from "../../../projectDetails/components/FilePreview/FilePreview";
+import { getFileIcon } from "../../../../shared/utils/iconHelper";
 
 interface RecentDocument {
   Id: number;
@@ -15,17 +17,36 @@ interface RecentDocument {
   LibraryTitle?: string;
 }
 
-const RecentDocuments: React.FC = () => {
+interface RecentDocumentsProps {
+  context?: WebPartContext;
+}
+
+const RecentDocuments: React.FC<RecentDocumentsProps> = ({ context }) => {
   const [documents, setDocuments] = useState<RecentDocument[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [filePreview, setFilePreview] = useState<{
+    isOpen: boolean;
+    fileUrl: string;
+    fileName: string;
+    filePath?: string;
+    canDownload?: boolean;
+    siteUrl?: string;
+  }>({
+    isOpen: false,
+    fileUrl: '',
+    fileName: '',
+    filePath: '',
+    canDownload: true,
+    siteUrl: '',
+  });
 
   const loadRecentDocuments = async (): Promise<void> => {
     try {
       setLoading(true);
       const docs = await getRecentDocuments();
       setDocuments(docs);
-    } catch (error) {
-      
+    } catch (_error) {
+      console.log("Failed to load recent documents", _error);
     } finally {
       setLoading(false);
     }
@@ -34,25 +55,6 @@ const RecentDocuments: React.FC = () => {
   useEffect(() => {
     loadRecentDocuments().catch((err: unknown) => console.log(err));
   }, []);
-
-  const getFileIcon = (fileType?: string): string => {
-    const ext = fileType?.toLowerCase();
-    switch (ext) {
-      case "pdf":
-        return "📄";
-      case "docx":
-      case "doc":
-        return "📘";
-      case "xlsx":
-      case "xls":
-        return "📊";
-      case "pptx":
-      case "ppt":
-        return "📙";
-      default:
-        return "📄";
-    }
-  };
 
   const getRelativeTime = (dateString: string): string => {
     const date = new Date(dateString);
@@ -75,11 +77,67 @@ const RecentDocuments: React.FC = () => {
     }
   };
 
+  const getSiteUrlForDocument = (fileRef: string): string => {
+    const currentSiteUrl = context?.pageContext?.web?.absoluteUrl || window.location.origin;
+    
+    // 1. Resolve OneDrive files e.g. /personal/username/
+    if (fileRef.toLowerCase().startsWith("/personal/")) {
+      try {
+        const url = new URL(currentSiteUrl);
+        const hostParts = url.hostname.split(".");
+        const tenantName = hostParts[0].replace("-my", "");
+        
+        const parts = fileRef.split("/");
+        if (parts.length >= 3 && parts[1].toLowerCase() === "personal") {
+          const personalUser = parts[2];
+          return `https://${tenantName}-my.sharepoint.com/personal/${personalUser}`;
+        }
+        return `https://${tenantName}-my.sharepoint.com`;
+      } catch (e) {
+        // Fallback
+      }
+    }
+    
+    // 2. Resolve external SharePoint Site Collections e.g. /sites/PeopleHub
+    if (fileRef.toLowerCase().startsWith("/sites/")) {
+      const parts = fileRef.split("/");
+      if (parts.length >= 3 && parts[1].toLowerCase() === "sites") {
+        const siteName = parts[2];
+        try {
+          const url = new URL(currentSiteUrl);
+          return `${url.protocol}//${url.hostname}/sites/${siteName}`;
+        } catch (e) {
+          return `${window.location.origin}/sites/${siteName}`;
+        }
+      }
+    }
+
+    return currentSiteUrl;
+  };
+
   const handleDocumentClick = (doc: RecentDocument): void => {
     if (doc.FileRef) {
-      const siteUrl = window.location.origin;
-      window.open(`${siteUrl}${doc.FileRef}`, "_blank");
+      const computedSiteUrl = getSiteUrlForDocument(doc.FileRef);
+      setFilePreview({
+        isOpen: true,
+        fileUrl: doc.FileRef,
+        fileName: doc.FileLeafRef,
+        filePath: doc.FileRef,
+        canDownload: true,
+        siteUrl: computedSiteUrl,
+      });
     }
+  };
+
+  const closeFilePreview = (): void => {
+    setFilePreview({
+      isOpen: false,
+      fileUrl: '',
+      fileName: '',
+      filePath: '',
+      canDownload: true,
+      siteUrl: '',
+    });
   };
 
   if (loading) {
@@ -117,6 +175,15 @@ const RecentDocuments: React.FC = () => {
           ))
         )}
       </div>
+      <FilePreview
+        isOpen={filePreview.isOpen}
+        onDismiss={closeFilePreview}
+        fileUrl={filePreview.fileUrl}
+        fileName={filePreview.fileName}
+        filePath={filePreview.filePath}
+        siteUrl={filePreview.siteUrl}
+        canDownload={filePreview.canDownload}
+      />
     </div>
   );
 };

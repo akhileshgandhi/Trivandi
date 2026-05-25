@@ -1,0 +1,59 @@
+.toastContainer {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    min-width: 300px;
+    max-width: 450px;
+    animation: slideInRight 0.3s ease-out;
+    color: white;
+
+    .icon {
+        display: flex;
+        align-items: center;
+    }
+
+    .message {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .closeBtn {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        padding: 4px;
+        transition: all 0.2s;
+
+        &:hover {
+            color: white;
+            transform: scale(1.1);
+        }
+    }
+
+    &.success { background: #16a34a; }
+    &.error { background: #ef4444; }
+    &.warning { background: #ca8a04; }
+    &.info { background: #2563eb; }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

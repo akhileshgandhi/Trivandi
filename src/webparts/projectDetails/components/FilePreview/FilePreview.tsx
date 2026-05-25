@@ -5,6 +5,7 @@ import { Stack } from '@fluentui/react/lib/Stack';
 import { Text } from '@fluentui/react/lib/Text';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { Icon } from '@fluentui/react/lib/Icon';
+import { FiFile, FiFileText, FiFilePlus, FiVideo, FiMusic, FiImage } from 'react-icons/fi';
 import styles from './FilePreview.module.scss';
 import * as pdfjsLib from 'pdfjs-dist';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -63,6 +64,11 @@ const AiCanvasPreview: React.FC<{ fileUrl: string }> = ({ fileUrl }) => {
   );
 };
 
+const OFFICE_EXTENSIONS = ['doc', 'docx', 'xls', 'xlsx', 'xlsm', 'ppt', 'pptx', 'rtf', 'msg', 'eml'];
+const TEXT_EXTENSIONS = ['txt', 'csv', 'json', 'xml', 'js', 'ts', 'tsx', 'jsx', 'css', 'scss', 'html', 'cs', 'java', 'py', 'sql', 'yaml', 'yml'];
+const VIDEO_EXTENSIONS = ['mp4', 'avi', 'mov', 'wmv', 'flv'];
+const AUDIO_EXTENSIONS = ['mp3', 'wav'];
+
 export interface IFilePreviewProps {
   isOpen: boolean;
   onDismiss: () => void;
@@ -80,96 +86,110 @@ export interface IFilePreviewState {
 }
 
 export class FilePreview extends React.Component<IFilePreviewProps, IFilePreviewState> {
-  
+
+  private _renderReactIcon = (IconComponent: React.ComponentType<any>): JSX.Element => {
+    return React.createElement(IconComponent, { 'aria-hidden': true });
+  }
+
   constructor(props: IFilePreviewProps) {
     super(props);
-    
+
     this.state = {
       loading: false, // Never start with loading
       fileType: this._getFileType(props.fileName)
     };
-    
-    
+
+
   }
 
-  private _getFileIconByExtension = (fileName: string): string => {
+  private _getFileIconByExtension = (fileName: string): JSX.Element => {
     const extension = fileName.split('.').pop()?.toLowerCase() || '';
-    if (['doc', 'docx'].includes(extension)) return 'WordDocument';
-    if (['xls', 'xlsx'].includes(extension)) return 'ExcelDocument';  
-    if (['ppt', 'pptx'].includes(extension)) return 'PowerPointDocument';
+    if (['doc', 'docx'].includes(extension)) return this._renderReactIcon(FiFileText as React.ComponentType<any>);
+    if (['xls', 'xlsx', 'xlsm', 'csv'].includes(extension)) return this._renderReactIcon(FiFilePlus as React.ComponentType<any>);
+    if (['ppt', 'pptx'].includes(extension)) return this._renderReactIcon(FiFile as React.ComponentType<any>);
     return this._getFileIcon(this._getFileType(fileName));
   }
 
   private _getFileType = (fileName: string): string => {
     const extension = fileName.split('.').pop()?.toLowerCase() || '';
-    
-    
+
+
     // Image files
     if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(extension)) {
-      
+
       return 'image';
     }
-    
+
     // PDF files
     if (extension === 'pdf') {
-      
+
       return 'pdf';
     }
-    
+
     // Office documents
-    if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension)) {
-      
+    if (OFFICE_EXTENSIONS.includes(extension)) {
+
       return 'office';
     }
-    
+
     // Text files
-    if (['txt', 'csv', 'json', 'xml', 'js', 'ts', 'tsx', 'css', 'scss', 'html'].includes(extension)) {
-      
+    if (TEXT_EXTENSIONS.includes(extension)) {
+
       return 'text';
     }
-    
+
     // Video files
-    if (['mp4', 'avi', 'mov', 'wmv', 'flv'].includes(extension)) {
-      
+    if (VIDEO_EXTENSIONS.includes(extension)) {
+
       return 'video';
     }
-    
+
+    // Audio files
+    if (AUDIO_EXTENSIONS.includes(extension)) {
+      return 'audio';
+    }
+
     // AI / EPS / DN files — PDF.js canvas rendering
     if (['ai', 'eps', 'dn'].includes(extension)) {
       return 'ai';
     }
 
-    
+
     return 'unknown';
   }
 
-  private _getFileIcon = (fileType: string): string => {
+  private _getFileIcon = (fileType: string): JSX.Element => {
     switch (fileType) {
-      case 'image': return 'FileImage';
-      case 'pdf': return 'PDF';
-      case 'office': return 'WordDocument';
-      case 'text': return 'TextDocument';
-      case 'video': return 'Video';
-      default: return 'Document';
+      case 'image': return this._renderReactIcon(FiImage as React.ComponentType<any>);
+      case 'pdf': return this._renderReactIcon(FiFileText as React.ComponentType<any>);
+      case 'office': return this._renderReactIcon(FiFileText as React.ComponentType<any>);
+      case 'text': return this._renderReactIcon(FiFileText as React.ComponentType<any>);
+      case 'video': return this._renderReactIcon(FiVideo as React.ComponentType<any>);
+      case 'audio': return this._renderReactIcon(FiMusic as React.ComponentType<any>);
+      default: return this._renderReactIcon(FiFile as React.ComponentType<any>);
     }
   }
 
-  private _buildPreviewUrl = (fileUrl: string, fileType: string): string => {
+  private _buildPreviewUrl = (
+    fileUrl: string,
+    fileType: string,
+    action: 'embedview' | 'edit' = 'embedview'
+  ): string => {
     const { siteUrl } = this.props;
-    
-    
 
     if (!siteUrl) return fileUrl;
 
-    // For Office docs + PDF - use SharePoint's built-in WopiFrame viewer
-    if (['office', 'pdf'].includes(fileType)) {
-      // fileUrl should be server-relative like /sites/.../file.docx
-      const serverRelativeUrl = fileUrl.startsWith('http') 
+    // For Office docs - use SharePoint's built-in WopiFrame viewer so they can view directly without auto-downloading
+    if (['office'].includes(fileType)) {
+      const serverRelativeUrl = fileUrl.startsWith('http')
         ? new URL(fileUrl).pathname  // extract path from full URL
         : fileUrl;
-      
-      const previewUrl = `${siteUrl}/_layouts/15/WopiFrame.aspx?sourcedoc=${encodeURIComponent(serverRelativeUrl)}&action=embedview`;
-      
+
+      const trimmedSite = siteUrl.replace(/\/$/, '');
+      const previewUrl = action === 'edit'
+        ? `${trimmedSite}/_layouts/15/Doc.aspx?sourcedoc=${encodeURIComponent(serverRelativeUrl)}&action=edit`
+        : `${trimmedSite}/_layouts/15/WopiFrame.aspx?sourcedoc=${encodeURIComponent(serverRelativeUrl)}&action=embedview`;
+
       return previewUrl;
     }
 
@@ -181,8 +201,6 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
     const { loading, error } = this.state;
     // Always compute fileType fresh from current fileName (avoids stale state)
     const fileType = this._getFileType(fileName);
-
-    
 
     if (error) {
       return (
@@ -208,66 +226,56 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
         );
       }
 
-      case 'image':
+      case 'image': {
+        const absoluteUrl = fileUrl.startsWith('http')
+          ? fileUrl
+          : `${window.location.origin}${fileUrl}`;
         return (
           <div className={styles.imageContainer}>
-            <img 
-              src={fileUrl} 
+            <img
+              src={absoluteUrl}
               alt={fileName}
               className={styles.previewImage}
-              onLoad={() => {
-                
-              }}
               onError={() => {
-                
                 this.setState({ error: `Cannot display image: ${fileName}` });
               }}
             />
           </div>
         );
+      }
 
       case 'pdf': {
-        const pdfPreviewUrl = this._buildPreviewUrl(fileUrl, 'pdf');
-        const readOnly = this.props.canDownload === false;
-        
+        const absoluteUrl = fileUrl.startsWith('http')
+          ? fileUrl
+          : `${window.location.origin}${fileUrl}`;
+
         return (
           <div className={styles.pdfContainer}>
             <iframe
-              src={pdfPreviewUrl}
+              src={absoluteUrl}
               className={styles.previewFrame}
               title={fileName}
-              // Read-only: deny popups, top-navigation and downloads.
-              // allow-forms is required — WopiFrame uses form POST to authenticate + load the document.
-              // Omitting allow-popups blocks window.open() (expand/zoom button, Download a Copy).
-              {...(readOnly ? { sandbox: 'allow-scripts allow-same-origin allow-forms' } : {})}
             />
-            {/* Blocker sits over the bottom toolbar (where the … button lives) */}
-            {readOnly && (
-              <div
-                className={styles.iframeBlocker}
-                title="Download and print are disabled in read-only view"
-              />
-            )}
           </div>
         );
       }
 
       case 'office': {
-        const officePreviewUrl = this._buildPreviewUrl(fileUrl, 'office');
         const readOnly = this.props.canDownload === false;
-        
+        const officePreviewUrl = this._buildPreviewUrl(
+          fileUrl,
+          'office',
+          readOnly ? 'embedview' : 'edit'
+        );
+
         return (
           <div className={styles.officeContainer}>
             <iframe
               src={officePreviewUrl}
               className={styles.previewFrame}
               title={fileName}
-              // Read-only: deny popups, top-navigation and downloads.
-              // allow-forms is required — WopiFrame uses form POST to authenticate + load the document.
-              // Omitting allow-popups blocks window.open() (expand/zoom button, Download a Copy).
               {...(readOnly ? { sandbox: 'allow-scripts allow-same-origin allow-forms' } : {})}
             />
-            {/* Blocker sits over the bottom toolbar (where the … button lives) */}
             {readOnly && (
               <div
                 className={styles.iframeBlocker}
@@ -286,16 +294,33 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
               className={styles.previewFrame}
               title={fileName}
               onLoad={() => {
-                
+
               }}
             />
           </div>
         );
 
+      case 'audio': {
+        const absoluteUrl = fileUrl.startsWith('http')
+          ? fileUrl
+          : `${window.location.origin}${fileUrl}`;
+
+        return (
+          <div className={styles.unsupportedContainer}>
+            <Icon iconName="MusicInCollection" className={styles.fileIcon} />
+            <Text variant="mediumPlus">Audio Preview</Text>
+            <audio controls style={{ width: '100%', maxWidth: 720 }}>
+              <source src={absoluteUrl} />
+              Your browser does not support audio playback.
+            </audio>
+          </div>
+        );
+      }
+
       default:
         return (
           <div className={styles.unsupportedContainer}>
-            <Icon iconName={this._getFileIconByExtension(fileName)} className={styles.fileIcon} />
+            <span className={styles.fileIcon}>{this._getFileIconByExtension(fileName)}</span>
             <Text variant="mediumPlus">Preview not available</Text>
             <Text variant="small">File: {fileName}</Text>
             <Text variant="small">File type: {this.state.fileType}</Text>
@@ -326,13 +351,17 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
     const { isOpen, onDismiss, fileName, filePath, fileUrl, canDownload = true } = this.props;
     const { error } = this.state;
 
-    
+
 
     if (!isOpen) {
       return null;
     }
 
     const fileIcon = this._getFileIconByExtension(fileName);
+    const fileType = this._getFileType(fileName);
+    const openInNewTabUrl = (fileType === 'office')
+      ? this._buildPreviewUrl(fileUrl, 'office', canDownload ? 'edit' : 'embedview')
+      : fileUrl.startsWith('http') ? fileUrl : `${window.location.origin}${fileUrl}`;
 
     return (
       <Modal
@@ -346,7 +375,7 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
           <Stack horizontal verticalAlign="center" className={styles.headerContent}>
             <Stack.Item grow>
               <div className={styles.fileInfo}>
-                <Icon iconName={fileIcon} className={styles.fileTypeIcon} />
+                <span className={styles.fileTypeIcon}>{fileIcon}</span>
                 <div className={styles.fileTextGroup}>
                   <Text className={styles.fileName} title={fileName}>{fileName}</Text>
                   {filePath && (
@@ -385,8 +414,12 @@ export class FilePreview extends React.Component<IFilePreviewProps, IFilePreview
             <IconButton
               iconProps={{ iconName: 'OpenInNewWindow' }}
               text="Open in New Tab"
-              href={fileUrl}
-              target="_blank"
+              onClick={() => {
+                const url = openInNewTabUrl.startsWith('http')
+                  ? openInNewTabUrl
+                  : `${window.location.origin}${openInNewTabUrl}`;
+                window.open(url, '_blank', 'noopener,noreferrer');
+              }}
               className={styles.actionButton}
             />
           )}

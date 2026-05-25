@@ -12,6 +12,31 @@ interface KeyPersonCardProps {
 
 const KeyPersonCard: React.FC<KeyPersonCardProps> = ({ name, title, imageUrl, email, phone }) => {
   const [showCopied, setShowCopied] = useState(false);
+  const [hasImageError, setHasImageError] = useState(false);
+
+  React.useEffect(() => {
+    setHasImageError(false);
+  }, [imageUrl]);
+
+  const safeImageUrl = React.useMemo(() => {
+    if (!imageUrl) {
+      return '';
+    }
+
+    try {
+      const parsedUrl = new URL(imageUrl, window.location.origin);
+      const graphPhotoMatch = parsedUrl.pathname.match(/\/v1\.0\/users\/([^/]+)\/photo\/\$value/i);
+
+      if (parsedUrl.hostname.toLowerCase() === 'graph.microsoft.com' && graphPhotoMatch?.[1]) {
+        const accountName = decodeURIComponent(graphPhotoMatch[1]);
+        return `${window.location.origin}/_layouts/15/userphoto.aspx?size=M&accountname=${encodeURIComponent(accountName)}`;
+      }
+
+      return imageUrl;
+    } catch {
+      return imageUrl;
+    }
+  }, [imageUrl]);
 
   const handleEmailClick = (): void => {
     if (email) {
@@ -26,7 +51,6 @@ const KeyPersonCard: React.FC<KeyPersonCardProps> = ({ name, title, imageUrl, em
         setShowCopied(true);
         setTimeout(() => setShowCopied(false), 2000);
       } catch (err) {
-        
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
         textArea.value = phone;
@@ -39,7 +63,7 @@ const KeyPersonCard: React.FC<KeyPersonCardProps> = ({ name, title, imageUrl, em
           setShowCopied(true);
           setTimeout(() => setShowCopied(false), 2000);
         } catch (e) {
-          
+          // no-op
         }
         document.body.removeChild(textArea);
       }
@@ -54,8 +78,13 @@ const KeyPersonCard: React.FC<KeyPersonCardProps> = ({ name, title, imageUrl, em
         </div>
       )}
       <div className={styles.personImageWrapper}>
-        {imageUrl ? (
-          <img src={imageUrl} alt={name || ''} className={styles.personImage} />
+        {safeImageUrl && !hasImageError ? (
+          <img
+            src={safeImageUrl}
+            alt={name || ''}
+            className={styles.personImage}
+            onError={() => setHasImageError(true)}
+          />
         ) : (
           <div className={styles.personImagePlaceholder}>
             {name ? name.split(' ').map(n => n[0]).join('') : '?'}
@@ -67,9 +96,9 @@ const KeyPersonCard: React.FC<KeyPersonCardProps> = ({ name, title, imageUrl, em
         <p className={styles.personTitle}>{title || ''}</p>
         <div className={styles.personActions}>
           {email && (
-            <button 
-              className={styles.actionIcon} 
-              title="Send Email" 
+            <button
+              className={styles.actionIcon}
+              title="Send Email"
               aria-label="Send email"
               onClick={handleEmailClick}
             >
@@ -80,9 +109,9 @@ const KeyPersonCard: React.FC<KeyPersonCardProps> = ({ name, title, imageUrl, em
             </button>
           )}
           {phone && (
-            <button 
-              className={styles.actionIcon} 
-              title="Copy Phone Number" 
+            <button
+              className={styles.actionIcon}
+              title="Copy Phone Number"
               aria-label="Copy phone number"
               onClick={handlePhoneClick}
             >

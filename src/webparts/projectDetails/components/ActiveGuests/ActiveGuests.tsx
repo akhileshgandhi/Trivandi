@@ -8,6 +8,7 @@ import { ProjectExternalPortalService } from '../../services/ProjectExternalPort
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { ContextualMenu, IContextualMenuItem } from '@fluentui/react/lib/ContextualMenu';
 import FilePreview from '../FilePreview/FilePreview';
+import GlobalLoader from '../../../../shared/component/GlobalLoader';
 
 export interface IActiveGuestsProps {
   context: WebPartContext;
@@ -411,11 +412,8 @@ class ActiveGuestsComponent extends React.Component<IActiveGuestsProps, IActiveG
           <span className={styles.badge}>{guests.length} Active</span>
         </div>
 
-        {loading ? (
-          <div className={styles.loadingContainer}>
-            <Spinner size={SpinnerSize.medium} />
-          </div>
-        ) : error ? (
+        {loading && <GlobalLoader variant="bar" />}
+        {error ? (
           <div className={styles.errorContainer}>
             <Icon iconName="Error" className={styles.errorIcon} />
             <p>{error}</p>

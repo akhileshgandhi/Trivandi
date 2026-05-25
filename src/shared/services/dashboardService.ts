@@ -41,7 +41,7 @@ export const getProjectStats = async (): Promise<any> => {
     const allProjects = await sp.web.lists
       .getByTitle(LISTS.PROJECTS)
       .items
-      .select("Id", "Title", "Status", "OwnerEmail","NonCmap")
+      .select("Id", "Title", "Status", "OwnerEmail","ProjectManagerEmail","NonCmap")
       .getAll();
    
     
@@ -57,7 +57,7 @@ export const getProjectStats = async (): Promise<any> => {
     
     // My projects: Status == "Live" AND OwnerEmail matches current user
     const myProjects = allProjects.filter(p => 
-      p.Status === "Project" && p.OwnerEmail === userEmail
+      p.Status === "Project" && (p.OwnerEmail === userEmail || p.ProjectManagerEmail === userEmail)
     ).length;
 
     return {

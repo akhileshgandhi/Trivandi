@@ -6,8 +6,8 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { TooltipHost } from "@fluentui/react/lib/Tooltip";
 
-import Hero from "../../../shared/component/Hero/Hero";
-import heroBg from "../../../shared/assets/hero_new.jpg";
+// import Hero from "../../../shared/component/Hero/Hero";
+// import heroBg from "../../../shared/assets/hero_new.jpg";
 
 import TrackerTable from "../../../shared/component/TrackerTable/TrackerTable";
 import { TableColumn } from "../../../shared/component/DataTable/DataTable";
@@ -26,13 +26,10 @@ import GlobalLoader from "../../../shared/component/GlobalLoader";
 import CompletedCell from "../../../shared/component/CompletedCell/CompletedCell";
 import "../../../shared/globalcss/globalcss.scss";
 import {
-  getProjectsByStatus,
   getProjectColumns,
-  getProjectById,
   enhanceProjectColumns,
   DEFAULT_COLUMN_KEYS,
   getProjectsPage,
-  getUniqueValuesForColumn,
   addProject,
 } from "../../../shared/services/projectService";
 import { Search } from "lucide-react";
@@ -41,6 +38,8 @@ import { usePermissionStore } from "../../../Permission/PermissionStore";
 const Projects: React.FC<IProjectsProps> = (props) => {
   const { canAdd } = usePermissionStore();
   const STORAGE_KEY = "projects_active_tab";
+  // ProjectID hidden from Projects tabs (Live/Closed)
+  const DEFAULT_PROJECTS_COLUMN_KEYS = [...DEFAULT_COLUMN_KEYS];
 
   const dragFromIndex = React.useRef<number | null>(null);
   const rowRefs = React.useRef<HTMLDivElement[]>([]);
@@ -55,7 +54,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
 
   const [allColumns, setAllColumns] = useState<TableColumn[]>([]);
   const [orderedColumnKeys, setOrderedColumnKeys] = useState<string[]>(
-    () => DEFAULT_COLUMN_KEYS
+    () => DEFAULT_PROJECTS_COLUMN_KEYS
   );
 
   const [showColumnPopup, setShowColumnPopup] = useState(false);
@@ -63,7 +62,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
   const [columnSearchQuery, setColumnSearchQuery] = useState("");
 
   //new
-  const [selectedProject, setSelectedProject] = useState<any | null>(null);
+  const [selectedProject] = useState<any | null>(null);
   const [showProjectPopup, setShowProjectPopup] = useState(false);
 
   /* ===================== CREATE PROJECT MODAL STATE ===================== */
@@ -96,13 +95,15 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     {}
   );
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({});
-  const [sortColumn, setSortColumn] = useState<string>("ID");
+  const [sortColumn, setSortColumn] = useState<string>("Title");
   const [sortAscending, setSortAscending] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const LOCATION_TABS = ["London", "DMCC", "Australia", "USA"] as const;
+  const [activeLocation, setActiveLocation] = useState<(typeof LOCATION_TABS)[number]>("London");
 
   /* ===================== LOAD COLUMNS ===================== */
   useEffect(() => {
-    const loadColumns = async () => {
+    const loadColumns = async (): Promise<void> => {
       const cols = await getProjectColumns();
       const enhanced = enhanceProjectColumns(cols);
 
@@ -117,15 +118,16 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       //   )
       // );
       //new
-      setAllColumns(
-        enhanced.map((col) => {
+      const mappedColumns = enhanced
+        .filter((col) => col.key !== "ProjectID")
+        .map((col) => {
           // ✅ Project Title click
           if (col.key === "Title") {
             return {
               ...col,
-              render: (_: any, row: any) => (
+              render: (_: unknown, row: any) => (
                 <TooltipHost content={row.Code ? `${row.Code} - ${row.Title}` : row.Title}>
-                  <div className={styles['titleContainer']}>
+                  <div className={styles.titleContainer}>
                     <a
                       href={`/sites/Projects/SitePages/ProjectDetails.aspx?projectId=${row.ID}`}
                       className={styles.projectLink}
@@ -154,11 +156,11 @@ const Projects: React.FC<IProjectsProps> = (props) => {
           if (col.key === "TotalProjectValue") {
             return {
               ...col,
-              render: (value: any) => {
+              render: (value: unknown) => {
                 if (!value) return "—";
 
                 // "$315,000.00" → 315000
-                const usdNumber =
+                const usdNumber: any =
                   typeof value === "string"
                     ? Number(value.replace(/[^0-9.-]+/g, ""))
                     : value;
@@ -175,8 +177,9 @@ const Projects: React.FC<IProjectsProps> = (props) => {
           }
 
           return col;
-        })
-      );
+        });
+
+      setAllColumns(mappedColumns);
     };
 
     void loadColumns();
@@ -188,7 +191,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       Pipeline: "Potential",
       Live: "Project", // This will match "Project", "Project - Live", etc.
       Closed: "Closed",
-      "Non-CMAP": "",
+      "Uncategorised": "",
     };
     return statusMap[tab] ?? "";
   };
@@ -204,18 +207,19 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     sAsc?: boolean,
     sTerm?: string,
     skipLoading?: boolean
-  ) => {
+  ): Promise<void> => {
     if (!skipLoading) setIsLoading(true);
     try {
       const currentTab = tab || activeTab;
       const statusToUse = status || mapTabToStatus(currentTab);
       const sColToUse = sCol ?? sortColumn;
+      const effectiveSortColumn = sColToUse === "Title" ? "Code" : sColToUse;
       const sAscToUse = sAsc ?? sortAscending;
       const sTermToUse = sTerm ?? searchTerm;
 
-      // Add noncmap filter: include only NonCmap items for Non-CMAP tab, exclude them for Live/Closed
-      const finalFilters = currentTab === "Non-CMAP"
-        ? { ...filters, NonCmap: "1" }
+      // Add noncmap filter: include only NonCmap items for Uncategorised tab, exclude them for Live/Closed
+      const finalFilters = currentTab === "Uncategorised"
+        ? { ...filters, NonCmap: "1", Location: activeLocation }
         : { ...filters, NonCmap: "0" };
 
       // In projectService.ts, the '0' case will now be handled as 'ne 1' for better compatibility
@@ -228,7 +232,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         page,
         PAGE_SIZE,
         finalFilters,
-        sColToUse,
+        effectiveSortColumn,
         sAscToUse,
         sTermToUse
       );
@@ -243,19 +247,23 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       }
 
       // No need for client-side filtering - now done on server
-      setRows(items);
+      const normalizedItems = items.map((item: any) => ({
+        ...item,
+        ProjectID: item.ProjectID ?? item.ProjectId ?? "",
+      }));
+      setRows(normalizedItems);
       try {
         // Cache the current page results for instant restoration on back navigation
         // We only cache the first page (or up to 50 items) to keep sessionStorage light
         if (page === 1) {
-          sessionStorage.setItem("projects_cached_rows", JSON.stringify(items));
+          sessionStorage.setItem("projects_cached_rows", JSON.stringify(normalizedItems));
         }
-      } catch (e) { }
+      } catch (_error) { console.error(_error); }
 
       setTotalItems(totalCount);
       setCurrentPage(page);
-    } catch (err) {
-
+    } catch (_error) {
+      console.error(_error);
       setRows([]);
       setTotalItems(0);
     } finally {
@@ -263,23 +271,23 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     }
   };
 
-  const handleSort = (columnKey: string, ascending: boolean) => {
+  const handleSort = (columnKey: string, ascending: boolean): void => {
     setSortColumn(columnKey);
     setSortAscending(ascending);
     setCurrentPage(1);
-    void loadProjects(1, serverFilters, undefined, undefined, columnKey, ascending, searchTerm);
+    loadProjects(1, serverFilters, undefined, undefined, columnKey, ascending, searchTerm).catch((err) => console.error(err));
   };
 
-  const handleSearch = (value: string) => {
+  const handleSearch = (value: string): void => {
     setSearchTerm(value);
     setCurrentPage(1);
-    void loadProjects(1, serverFilters, undefined, undefined, sortColumn, sortAscending, value, true);
+    loadProjects(1, serverFilters, undefined, undefined, sortColumn, sortAscending, value, true).catch((err) => console.error(err));
   };
 
-  const loadUniqueValues = async (tab?: string) => {
+  const loadUniqueValues = async (tab?: string): Promise<void> => {
     const currentTab = tab || activeTab;
     const status = mapTabToStatus(currentTab);
-    const tabFilters = currentTab === "Non-CMAP"
+    const tabFilters = currentTab === "Uncategorised"
       ? { NonCmap: "1" }
       : { NonCmap: "0" };
 
@@ -298,9 +306,9 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             new Set(
               items
                 .map((item: any) => {
-                  const title = String(item["Title"] ?? "").trim();
+                  const title = String(item.Title ?? "").trim();
                   if (!title) return "";
-                  const code = String(item["Code"] ?? "").trim();
+                  const code = String(item.Code ?? "").trim();
                   return code ? `${code} - ${title}` : title;
                 })
                 .filter((v: string) => v !== "")
@@ -315,32 +323,32 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       });
 
       setUniqueValues(map);
-    } catch (err) {
-
+    } catch (_error) {
+      console.error(_error);
     }
   };
 
-  const loadTabCounts = async () => {
+  const loadTabCounts = async (): Promise<void> => {
     const counts: Record<string, number> = {};
-    const tabs = ["Live", "Closed", "Non-CMAP"];
+    const tabs = ["Live", "Closed"];
 
     try {
       await Promise.all(
         tabs.map(async (tab) => {
           try {
-            const status = mapTabToStatus(tab); // "" for Non-CMAP
-            const filters = tab === "Non-CMAP" ? { NonCmap: "1" } : { NonCmap: "0" };
+            const status = mapTabToStatus(tab);
+            const filters = { NonCmap: "0" };
             const { totalCount } = await getProjectsPage(status, 1, 1, filters);
             counts[tab] = totalCount;
-          } catch (err) {
-
+          } catch (_folderError) {
+            // Ignore folder fetch error
             counts[tab] = 0;
           }
         })
       );
       setTabCounts(counts);
-    } catch (err) {
-
+    } catch (_error) {
+      console.error("Failed to load tab counts", _error);
     }
   };
 
@@ -350,14 +358,14 @@ const Projects: React.FC<IProjectsProps> = (props) => {
    * Step 2: Filter out "Potential" from Status choices
    * Step 3: Set default values for the form
    */
-  const openCreateModal = async () => {
+  const openCreateModal = async (): Promise<void> => {
     try {
       // Step 1: Get all fields from the Projects list
       const cols = await getProjectColumns();
 
       // Step 2: Remove "Potential", dead and deleted statuses from Status dropdown options
       const excludedStatuses = ['Potential', 'DeletedLead', 'Deleted', 'DeadLead', 'Dead', 'Lead'];
-      const processedCols = cols.map((f: any) => {
+      const processedCols = cols.map((f: IFormField) => {
         if (f.key === "Status" && Array.isArray(f.choices)) {
           return {
             ...f,
@@ -370,10 +378,10 @@ const Projects: React.FC<IProjectsProps> = (props) => {
 
       // Step 3: Set default values for each field
       const defaults: Record<string, any> = {};
-      processedCols.forEach((f: any) => {
+      processedCols.forEach((f: IFormField) => {
         // Status defaults to current tab (Live → Project, Closed → Closed, etc.)
         if (f.key === "Status") {
-          const tab = activeTab === "Non-CMAP" ? "Live" : activeTab;
+          const tab = activeTab === "Uncategorised" ? "Live" : activeTab;
           defaults[f.key] = mapTabToStatus(tab);
         }
         // Percent Complete defaults to 0
@@ -394,7 +402,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       setFormErrors({});
       setIsCreateNew(true); // Reset to default state
       setShowCreateModal(true);
-    } catch (e) {
+    } catch (_error) {
 
       alert("Couldn't load fields. Please try again.");
     }
@@ -419,11 +427,11 @@ const Projects: React.FC<IProjectsProps> = (props) => {
    * Checks that all required fields have values
    * Returns true if valid, false if there are errors
    */
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const errs: Record<string, string> = {};
 
     // Check each field
-    formFields.forEach((f: any) => {
+    formFields.forEach((f: IFormField) => {
       if (f.required) {
         const value = formValues[f.key];
 
@@ -514,7 +522,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     setIsSaving(true);
     try {
       // Step 2: Build the data object for SharePoint
-      const payload: Record<string, any> = {};
+      const payload: Record<string, unknown> = {};
 
       // Convert each form value to the correct format
       formFields.forEach((f: IFormField) => {
@@ -527,7 +535,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       // Make sure Status has a value (default to Live if missing)
       const hasStatusField = formFields.some((f: IFormField) => f.key === "Status");
       if (!payload.Status && hasStatusField) {
-        const tab = activeTab === "Non-CMAP" ? "Live" : activeTab;
+        const tab = activeTab === "Uncategorised" ? "Live" : activeTab;
         payload.Status = mapTabToStatus(tab);
       }
 
@@ -547,10 +555,10 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         autoClose: 3000,
       });
     } catch (e: unknown) {
-      const error = e as Error;
+      const _error = e as Error;
 
       // Show error toast
-      toast.error(error?.message || "Failed to create project", {
+      toast.error(_error?.message || "Failed to create project", {
         position: "top-right",
         autoClose: 5000,
       });
@@ -567,10 +575,14 @@ const Projects: React.FC<IProjectsProps> = (props) => {
       savedTab = "Live";
       sessionStorage.setItem(STORAGE_KEY, "Live");
     }
+    if (savedTab === "Non-CMAP") {
+      savedTab = "Uncategorised";
+      sessionStorage.setItem(STORAGE_KEY, "Uncategorised");
+    }
 
     setActiveTab(savedTab);
     if (savedTab === "Live") {
-      setOrderedColumnKeys(DEFAULT_COLUMN_KEYS);
+      setOrderedColumnKeys(DEFAULT_PROJECTS_COLUMN_KEYS);
     }
     const status = mapTabToStatus(savedTab);
     loadProjects(1, {}, status, savedTab, undefined, undefined, searchTerm).catch(() => { });
@@ -586,6 +598,12 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     loadTabCounts().catch(() => { });
   }, [allColumns]);
 
+  useEffect(() => {
+    if (activeTab !== "Uncategorised") return;
+    const status = mapTabToStatus(activeTab);
+    loadProjects(1, serverFilters, status, activeTab, undefined, undefined, searchTerm).catch(() => { });
+  }, [activeLocation]);
+
   /* ===================== TAB CHANGE ===================== */
   const onTabChange = (tab: string): void => {
     setActiveTab(tab);
@@ -595,7 +613,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     setCurrentPage(1);
     setUniqueValues({}); // clear stale dropdown values immediately
     if (tab === "Live") {
-      setOrderedColumnKeys(DEFAULT_COLUMN_KEYS);
+      setOrderedColumnKeys(DEFAULT_PROJECTS_COLUMN_KEYS);
     }
     const status = mapTabToStatus(tab);
     loadProjects(1, {}, status, tab).catch(() => { });
@@ -620,8 +638,8 @@ const Projects: React.FC<IProjectsProps> = (props) => {
   };
 
   /* ===================== ORDERED COLUMNS ===================== */
-  const visibleColumns = activeTab === "Non-CMAP"
-    ? allColumns.filter(col => col.key === "Title")  // Show only Project Title for Non-CMAP
+  const visibleColumns = activeTab === "Uncategorised"
+    ? allColumns.filter(col => col.key === "Title")  // Show only Project Title for Uncategorised
     : orderedColumnKeys
       .map((k) => allColumns.find((c) => c.key === k))
       .filter(Boolean) as TableColumn[];
@@ -680,7 +698,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         value && !HIDDEN_SYSTEM_FIELDS.includes(key) && key !== "MoreInfo"
     );
 
-    const grouped: Record<string, [string, any][]> = {};
+    const grouped: Record<string, [string, unknown][]> = {};
 
     cleanEntries.forEach(([key, value]) => {
       const section =
@@ -694,7 +712,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     return grouped;
   };
 
-  const formatFieldValue = (value: any): string | null => {
+  const formatFieldValue = (value: unknown): string | null => {
     if (value === null || value === undefined || value === "") return null;
 
     // ✅ Handle ISO date strings (SharePoint)
@@ -719,8 +737,9 @@ const Projects: React.FC<IProjectsProps> = (props) => {
     }
 
     // ✅ Handle user / lookup / taxonomy
-    if (typeof value === "object") {
-      return value.Title || value.Label || JSON.stringify(value);
+    if (value && typeof value === "object") {
+      const obj = value as any;
+      return obj.Title || obj.Label || JSON.stringify(value);
     }
 
     return String(value);
@@ -748,7 +767,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
         ) : (
           <TrackerTable
             title="Project Tracker"
-            tabs={["Live", "Closed", "Non-CMAP"]}
+            tabs={["Live", "Closed", "Uncategorised"]}
             activeTab={activeTab}
             onTabChange={onTabChange}
             columns={visibleColumns}
@@ -778,14 +797,14 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             isFilterActive={showFilters}
             onFilterClick={() => setShowFilters((p) => !p)}
             onSettingsClick={() => setShowColumnPopup(true)}
-            onCreateClick={(activeTab === "Non-CMAP" && canAdd) ? openCreateModal : undefined}
+            onCreateClick={(activeTab === "Uncategorised" && canAdd) ? openCreateModal : undefined}
             showFilterControls={showFilters}
             tabCounts={tabCounts}
             onRowClick={(row) => {
               // Same logic as Title click for consistency
               sessionStorage.setItem('projectDetails_navigation_source', 'projects_page');
               sessionStorage.setItem(`projectDetails_tab_${row.ID}`, 'Dashboard');
-              window.location.href = `/sites/Projects/SitePages/ProjectDetails.aspx?projectId=${row.ID}`;
+              window.location.href = `/sites/Projects/SitePages/ProjectDetails.aspx?projectId=${row.ID}&source=project`;
             }}
             sortColumn={sortColumn}
             sortAscending={sortAscending}
@@ -793,6 +812,12 @@ const Projects: React.FC<IProjectsProps> = (props) => {
             searchTerm={searchTerm}
             onSearch={handleSearch}
             searchPlaceholder="Search by Title, Company or Code..."
+            secondaryTabs={activeTab === "Uncategorised" ? [...LOCATION_TABS] : undefined}
+            activeSecondaryTab={activeTab === "Uncategorised" ? activeLocation : undefined}
+            onSecondaryTabChange={activeTab === "Uncategorised" ? (tab) => {
+              setActiveLocation(tab as (typeof LOCATION_TABS)[number]);
+              setCurrentPage(1);
+            } : undefined}
           />
         )}
 
@@ -807,7 +832,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
           <div className={styles.columnPopup} style={{ width: 720, height: isCreateNew ? '400px' : '400px' }}>
             <div className={styles.columnPopupHeader}>
               <div>
-                <h3>Add Non-CMAP Project</h3>
+                <h3>Add Uncategorised Project</h3>
                 <p>Fill in details and save</p>
               </div>
               <div>
@@ -1140,7 +1165,7 @@ const Projects: React.FC<IProjectsProps> = (props) => {
               <button onClick={() => setShowColumnPopup(false)}>Apply</button>
               <button
                 onClick={() => {
-                  setOrderedColumnKeys(DEFAULT_COLUMN_KEYS);
+                  setOrderedColumnKeys(DEFAULT_PROJECTS_COLUMN_KEYS);
                   setShowColumnPopup(false);
                 }}
               >

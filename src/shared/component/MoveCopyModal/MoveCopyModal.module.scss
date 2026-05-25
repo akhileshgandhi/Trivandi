@@ -1,0 +1,72 @@
+.modalContent {
+  padding: 10px 0;
+}
+
+.breadcrumbBar {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #edebe9;
+  margin-bottom: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.breadcrumbItem {
+  color: #0078d4;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: #eff6ff;
+    color: #106ebe;
+  }
+}
+
+.homeIcon {
+  font-size: 14px;
+}
+
+.separator {
+  margin: 0 8px;
+  color: #605e5c;
+}
+
+.folderList {
+  max-height: 300px;
+  overflow-y: auto;
+  min-height: 200px;
+}
+
+.folderRow {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  
+  &:hover {
+    background-color: #f3f2f1;
+  }
+}
+
+.folderIcon {
+  font-size: 18px;
+  margin-right: 12px;
+  color: #605e5c;
+}
+
+.emptyState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #605e5c;
+  font-style: italic;
+}

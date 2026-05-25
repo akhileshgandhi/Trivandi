@@ -107,7 +107,7 @@ export const clearLibraryCache = (): void => {
 
 export const getProjectById = async (projectId: any) => {
   try {
-    const project = await sp.web.lists.getByTitle("ProjectsNew").items.getById(projectId)();
+    const project = await sp.web.lists.getByTitle("ProjectsNew").items.getById(projectId).select("*")();
     let arr = {
       "ProjectDocumentsUrl": project.ProjectDocumentsUrl,
       "BidDocumentsUrl": project.BidDocumentsUrl,
@@ -115,7 +115,8 @@ export const getProjectById = async (projectId: any) => {
       "ProjectTitle": project.ProjectTitle,
       "Code": project.Code,
       "Status": project.Status,
-      "NonCmap": project.NonCmap
+      "NonCmap": project.NonCmap,
+      "ProjectID": project.ProjectID
     }
     return arr;
   } catch (error) {

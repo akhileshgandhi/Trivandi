@@ -25,8 +25,8 @@ const MyWork: React.FC<IMyWorkProps> = (props) => {
         setIsLoading(true);
 
         const [projects, bids] = await Promise.all([
-          getProjectsByOwnerAndStatus(OWNER_EMAIL, "Project"),
-          getProjectsByOwnerAndStatus(OWNER_EMAIL, "Potential"),
+          getProjectsByOwnerAndStatus("Project"),
+          getProjectsByOwnerAndStatus("Potential"),
         ]);
 
 

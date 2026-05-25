@@ -33,6 +33,7 @@ const DEFAULT_COLUMNS: TableColumn[] = [
     ),
     sortable: true,
   },
+  
   { key: "Company", label: "Company", minWidth: 200, filterable: true, sortable: true },
   { key: "Owner", label: "Owner", filterable: true, sortable: true },
   { key: "BusinessUnit", label: "Business Unit", filterable: true, sortable: true },
@@ -43,6 +44,11 @@ const DEFAULT_COLUMNS: TableColumn[] = [
 ];
 
 const Bids: React.FC<IBidsProps> = (props) => {
+  const sanitizeColumnKeys = (keys: string[]): string[] => {
+    const uniqueKeys = Array.from(new Set(keys.filter(Boolean)));
+    return uniqueKeys.filter((k) => k !== "ProjectID");
+  };
+
   const [activeTab, setActiveTab] = useState("Bid Documents");
   const [isLoading, setIsLoading] = useState(true);
   const [rows, setRows] = useState<any[]>([]);
@@ -52,13 +58,13 @@ const Bids: React.FC<IBidsProps> = (props) => {
   const [serverFilters, setServerFilters] = useState<Record<string, string>>({});
   const [uniqueValues, setUniqueValues] = useState<Record<string, string[]>>({});
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({});
-  const [sortColumn, setSortColumn] = useState<string>("ID");
+  const [sortColumn, setSortColumn] = useState<string>("Title");
   const [sortAscending, setSortAscending] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   const COLUMN_STORAGE_KEY = `bids_column_order_${props.userDisplayName}`;
   const COLUMN_VERSION_KEY = `bids_column_version_${props.userDisplayName}`;
-  const CURRENT_COLUMN_VERSION = '5'; // Increment when changing default columns
+  const CURRENT_COLUMN_VERSION = '7'; // Incremented after hiding ProjectID column
 
   const [allColumns, setAllColumns] = useState<TableColumn[]>(DEFAULT_COLUMNS);
 
@@ -69,10 +75,15 @@ const Bids: React.FC<IBidsProps> = (props) => {
     // If version mismatch or no version, use defaults
     if (savedVersion !== CURRENT_COLUMN_VERSION || !saved) {
       localStorage.setItem(COLUMN_VERSION_KEY, CURRENT_COLUMN_VERSION);
-      return DEFAULT_COLUMNS.map((c) => c.key);
+      return sanitizeColumnKeys(DEFAULT_COLUMNS.map((c) => c.key));
     }
 
-    return JSON.parse(saved);
+    try {
+      const parsed = JSON.parse(saved) as string[];
+      return sanitizeColumnKeys(parsed);
+    } catch {
+      return sanitizeColumnKeys(DEFAULT_COLUMNS.map((c) => c.key));
+    }
   });
 
   /* ✅ TEMP STATE FOR POPUP */
@@ -96,12 +107,33 @@ const Bids: React.FC<IBidsProps> = (props) => {
     Status: "Status",
   };
 
+  const getSortValue = (item: any, columnKey: string): string | number => {
+    // Project Title should sort by Code Name first, then Title.
+    if (columnKey === "Title") {
+      const code = String(item?.Code ?? "").trim().toLowerCase();
+      const title = String(item?.Title ?? "").trim().toLowerCase();
+      return `${code} ${title}`;
+    }
+
+    const value = item?.[columnKey];
+    if (typeof value === "number") return value;
+    if (value instanceof Date) return value.getTime();
+    return String(value ?? "").toLowerCase();
+  };
+
   /* ===================== LOAD BIDS ===================== */
-  const loadBids = async (page = 1, filters: Record<string, string> = {}, sTerm?: string, silent: boolean = false) => {
+  const loadBids = async (
+    page = 1,
+    filters: Record<string, string> = {},
+    sTerm?: string,
+    silent: boolean = false,
+    sCol?: string,
+    sAsc?: boolean
+  ) => {
     if (!silent) setIsLoading(true);
     try {
       const termToUse = sTerm ?? searchTerm;
-
+      console.log(`📋 loadBids - Tab: ${activeTab}, Page: ${page}`);
 
       let allItems: any[] = [];
 
@@ -111,25 +143,26 @@ const Bids: React.FC<IBidsProps> = (props) => {
         for (const statuss of statuses) {
           try {
             const { items } = await getProjectsPage(statuss, 1, 5000, filters);
+            console.log(`[Bid Documents] Fetched items:`, items?.length || 0);
             allItems.push(...items);
           } catch (err) {
-
+            console.error(`Error fetching Bid Documents:`, err);
           }
         }
       } else {
         // Lost tab - Fetch ALL statuses and filter client-side by Status field
         // const allStatuses = ['Lead', 'Potential', 'Project', 'Closed'];
-        const lostStatusValues = ['Dead', 'Deleted', 'DeletedLead', 'DeadLead'];
-
-
+        // const lostStatusValues = ['Dead', 'Deleted', 'DeletedLead', 'DeadLead'];
+        const lostStatusValues = ['Dead'];
+        console.log(`[Lost] Using statuses:`, lostStatusValues);
 
         for (const status of lostStatusValues) {
           try {
-            // const { items } = await getProjectsPage(status, 1, 5000, {});
             const { items } = await getProjectsPage(status, 1, 5000, filters);
+            console.log(`[Lost] Fetched ${status} items:`, items?.length || 0);
             allItems.push(...items);
           } catch (err) {
-
+            console.error(`Error fetching Lost/${status}:`, err);
           }
         }
 
@@ -159,23 +192,40 @@ const Bids: React.FC<IBidsProps> = (props) => {
         });
       }
 
-
-
       // Remove duplicates
       const uniqueItems = allItems.filter((item, index, self) =>
         index === self.findIndex(i => i.ID === item.ID)
       );
+      
+      console.log(`📊 Total unique items after all filters:`, uniqueItems.length);
+
+      // Apply sort before pagination so paging stays consistent
+      const sortKey = sCol ?? sortColumn;
+      const sortAsc = sAsc ?? sortAscending;
+      const sortedItems = [...uniqueItems].sort((a, b) => {
+        const valA = getSortValue(a, sortKey);
+        const valB = getSortValue(b, sortKey);
+
+        if (valA < valB) return sortAsc ? -1 : 1;
+        if (valA > valB) return sortAsc ? 1 : -1;
+        return 0;
+      });
 
       // Apply pagination
       const startIndex = (page - 1) * PAGE_SIZE;
       const endIndex = startIndex + PAGE_SIZE;
-      const paginatedItems = uniqueItems.slice(startIndex, endIndex);
+      const paginatedItems = sortedItems
+        .slice(startIndex, endIndex)
+        .map((item) => ({
+          ...item,
+          ProjectID: item.ProjectID ?? item.ProjectId ?? "",
+        }));
 
       setRows(paginatedItems);
       setTotalItems(uniqueItems.length);
       setCurrentPage(page);
     } catch (err) {
-
+      console.error('❌ loadBids error:', err);
       setRows([]);
       setTotalItems(0);
     } finally {
@@ -186,18 +236,8 @@ const Bids: React.FC<IBidsProps> = (props) => {
   const handleSort = (columnKey: string, ascending: boolean) => {
     setSortColumn(columnKey);
     setSortAscending(ascending);
-
-    // Client-side sort for Bids since it fetches 5000 items
-    const sortedRows = [...rows].sort((a, b) => {
-      const valA = a[columnKey] ?? "";
-      const valB = b[columnKey] ?? "";
-
-      if (valA < valB) return ascending ? -1 : 1;
-      if (valA > valB) return ascending ? 1 : -1;
-      return 0;
-    });
-
-    setRows(sortedRows);
+    setCurrentPage(1);
+    void loadBids(1, serverFilters, searchTerm, true, columnKey, ascending);
   };
 
   const handleSearch = (value: string) => {
@@ -210,7 +250,8 @@ const Bids: React.FC<IBidsProps> = (props) => {
     const currentTab = tab || activeTab;
     const statuses = currentTab === 'Bid Documents'
       ? ['Potential']
-      : ['Dead', 'Deleted', 'DeletedLead', 'DeadLead'];
+      : ['Dead'];
+      // : ['Dead', 'Deleted', 'DeletedLead', 'DeadLead'];
 
     try {
       // Fetch ALL items for this tab using the exact same filters as the table
@@ -268,6 +309,8 @@ const Bids: React.FC<IBidsProps> = (props) => {
     const counts: Record<string, number> = {};
     const tabs = ["Bid Documents", "Lost"];
 
+    console.log('🔄 loadTabCounts started');
+
     try {
       await Promise.all(
         tabs.map(async (tab) => {
@@ -278,15 +321,19 @@ const Bids: React.FC<IBidsProps> = (props) => {
             if (tab === 'Bid Documents') {
               statuses = ['Potential'];
             } else {
-              statuses = ['Dead', 'Deleted', 'DeletedLead', 'DeadLead'];
+              statuses = ['Dead'];
+              // statuses = ['Dead', 'Deleted', 'DeletedLead', 'DeadLead'];
             }
+
+            console.log(`Tab: ${tab}, Statuses:`, statuses);
 
             for (const status of statuses) {
               try {
                 const { items } = await getProjectsPage(status, 1, 5000, {});
+                console.log(`Status ${status} items count:`, items?.length || 0);
                 allItems.push(...items);
               } catch (err) {
-
+                console.error(`Error fetching ${status}:`, err);
               }
             }
 
@@ -296,15 +343,17 @@ const Bids: React.FC<IBidsProps> = (props) => {
             );
 
             counts[tab] = uniqueItems.length;
+            console.log(`Tab ${tab} final count:`, counts[tab]);
           } catch (err) {
-
+            console.error(`Error processing tab ${tab}:`, err);
             counts[tab] = 0;
           }
         })
       );
+      console.log('✅ Final Tab Counts:', counts);
       setTabCounts(counts);
     } catch (err) {
-
+      console.error('❌ loadTabCounts error:', err);
     }
   };
 
@@ -366,7 +415,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
     localStorage.setItem(COLUMN_VERSION_KEY, CURRENT_COLUMN_VERSION);
   }, [orderedColumnKeys]);
 
-  const visibleColumns = orderedColumnKeys
+  const visibleColumns = sanitizeColumnKeys(orderedColumnKeys)
     .map((k) => allColumns.find((c) => c.key === k))
     .filter(Boolean) as TableColumn[];
 
@@ -414,7 +463,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
             }}
             showFilterIcon
             onSettingsClick={() => {
-              setTempColumnKeys(orderedColumnKeys);
+              setTempColumnKeys(sanitizeColumnKeys(orderedColumnKeys));
               setShowColumnPopup(true);
             }}
             tabCounts={tabCounts}
@@ -439,7 +488,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
               </div>
               <span
                 onClick={() => {
-                  setTempColumnKeys(orderedColumnKeys);
+                  setTempColumnKeys(sanitizeColumnKeys(orderedColumnKeys));
                   setColumnSearchQuery("");
                   setShowColumnPopup(false);
                 }}
@@ -539,7 +588,7 @@ const Bids: React.FC<IBidsProps> = (props) => {
             <div className={styles.popupActions}>
               <button
                 onClick={() => {
-                  setOrderedColumnKeys(tempColumnKeys);
+                  setOrderedColumnKeys(sanitizeColumnKeys(tempColumnKeys));
                   setShowColumnPopup(false);
                 }}
               >

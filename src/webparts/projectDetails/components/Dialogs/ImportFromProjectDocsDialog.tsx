@@ -20,6 +20,7 @@ export interface IImportFromProjectDocsDialogProps {
   projectId: string | number;
   projectCode?: string;
   projectTitle?: string;
+  businessProjectId?: string;
   service?: any;
 }
 
@@ -49,6 +50,7 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
   const [bidDocumentsUrl, setBidDocumentsUrl] = useState<string>('');
   const [contractsDocumentsUrl, setContractsDocumentsUrl] = useState<string>('');
   const [existingFiles, setExistingFiles] = useState<Set<string>>(new Set());
+  const [hasAutoNavigated, setHasAutoNavigated] = useState<boolean>(false);
 
   const formatFileSize = (bytes?: number): string => {
     if (bytes === undefined || bytes === 0) return '0 KB';
@@ -62,8 +64,9 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
   useEffect(() => {
     const initializeModal = async (): Promise<void> => {
       try {
-        if (props.projectCode && props.projectTitle) {
-          const found = await findProjectLibraryByProject(props.projectCode, props.projectTitle);
+        const bizProjId = props.businessProjectId || "";
+        if (props.projectCode || bizProjId) {
+          const found = await findProjectLibraryByProject(bizProjId || props.projectCode, props.projectTitle);
           if (found) setLibraryName(found);
         }
 
@@ -153,8 +156,6 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
           const isImported =
             existingFiles.has(name) && item.FSObjType !== 1;
 
-
-          console.log('name=====================>>>>>>>>>>>>>>>>>>>>', item.Editor);
           return {
             ...item,
             FileLeafRef: name,
@@ -164,6 +165,56 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
           };
         })
       );
+
+      // Multi-level Auto-navigation (Double Jump) - Mirroring CustomDocumentsList.tsx
+      if (!hasAutoNavigated && (activeDocTab === "project" || activeDocTab === "bid")) {
+        const targetFolders = ["Projects", "Bids", "Lost", "Closed"];
+        
+        // Level 1: At Root, look for organizational folders
+        if (currentFolderPath === "") {
+          const orgFolder = (result.items || []).find(item => {
+            const name = item.FileLeafRef || item.name || "";
+            if (item.FSObjType !== 1) return false;
+            const folderName = name.toLowerCase();
+            return targetFolders.some(target => 
+              folderName === target.toLowerCase() || 
+              folderName === (target.toLowerCase() + "s") || 
+              folderName.includes(target.toLowerCase())
+            );
+          });
+          
+          if (orgFolder) {
+            const folderName = orgFolder.FileLeafRef || orgFolder.name;
+            console.log("IMPORT_MODAL_NAV: Entering Org Folder:", folderName);
+            setCurrentFolderPath(folderName);
+            return; 
+          }
+        } 
+        
+        // Level 2: Inside an organizational folder, look for specific project folder
+        else if (targetFolders.some(f => currentFolderPath.toLowerCase().includes(f.toLowerCase()))) {
+          const projectFolder = (result.items || []).find(item => {
+            const name = item.FileLeafRef || item.name || "";
+            return item.FSObjType === 1 && (
+              name === props.projectCode || 
+              name === props.businessProjectId || 
+              (props.projectTitle && name.includes(props.projectTitle))
+            );
+          });
+
+          if (projectFolder) {
+            const folderName = projectFolder.FileLeafRef || projectFolder.name;
+            console.log("IMPORT_MODAL_NAV: Entering Project Folder:", folderName);
+            setCurrentFolderPath(currentFolderPath + "/" + folderName);
+            setHasAutoNavigated(true);
+            return;
+          } else {
+            setHasAutoNavigated(true);
+          }
+        } else {
+          setHasAutoNavigated(true);
+        }
+      }
     } catch (err) {
 
     } finally {
@@ -189,7 +240,7 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
 
   const breadcrumbs = React.useMemo(() => {
     const parts = currentFolderPath.split('/').filter(Boolean);
-    const crumbs = [{ name: 'Root', path: '' }];
+    const crumbs = [{ name: 'Home', path: '' }];
     let currentPath = '';
     parts.forEach(part => {
       currentPath = currentPath ? `${currentPath}/${part}` : part;
@@ -259,7 +310,7 @@ const ImportFromProjectDocsDialog: React.FC<IImportFromProjectDocsDialogProps> =
               <React.Fragment key={index}>
                 <button className={`${styles.breadcrumb} ${index === breadcrumbs.length - 1 ? styles.active : ""}`}
                   onClick={() => handleBreadcrumbClick(crumb.path)} disabled={index === breadcrumbs.length - 1}>
-                  {crumb.name}
+                  {crumb.name === 'Home' ? <Icon iconName="Home" style={{ fontSize: '14px' }} /> : crumb.name}
                 </button>
                 {index < breadcrumbs.length - 1 && <span className={styles.breadcrumbSeparator}>›</span>}
               </React.Fragment>

@@ -7,10 +7,7 @@ import {
   ChevronRight,
   Download,
   Eye,
-  FileText,
   File as FileIcon,
-  Image as ImageIcon,
-  FileSpreadsheet,
   X,
   Upload,
   FolderPlus,
@@ -18,11 +15,10 @@ import {
   List,
   Plus
 } from 'lucide-react';
-import { BiSolidFilePdf } from "react-icons/bi";
-import { BsFiletypeDoc } from "react-icons/bs";
 import GlobalLoader from '../../../shared/component/GlobalLoader';
 import FilePreview from '../Common/FilePreview';
 import { usePermissionStore } from '../../../Permission/PermissionStore';
+import { getFileIcon } from '../../../shared/utils/iconHelper';
 
 interface BreadcrumbItem {
   name: string;
@@ -96,32 +92,6 @@ const PrivateComponent: React.FC<IPrivateProps> = (props) => {
     const newHistory = history.slice(0, index + 1);
     setHistory(newHistory);
     void loadData(item.path);
-  };
-
-  const getFileIcon = (fileName: string) => {
-    const ext = fileName.split('.').pop()?.toLowerCase();
-    const iconSize = 20;
-
-    switch (ext) {
-      case 'pdf':
-        return React.createElement(BiSolidFilePdf as any, { size: iconSize, color: "#ef4444" });
-      case 'doc':
-        return React.createElement(BsFiletypeDoc as any, { size: iconSize, color: "#2563eb" });
-      case 'docx':
-        return <FileText size={iconSize} color="#2563eb" />;
-      case 'xls':
-      case 'xlsx':
-      case 'csv':
-        return <FileSpreadsheet size={iconSize} color="#16a34a" />;
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
-      case 'svg':
-        return <ImageIcon size={iconSize} color="#9333ea" />;
-      default:
-        return <FileIcon size={iconSize} color="#64748b" />;
-    }
   };
 
   const formatDate = (dateStr: string) => {

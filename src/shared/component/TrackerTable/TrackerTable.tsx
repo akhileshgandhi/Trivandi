@@ -43,6 +43,9 @@ interface TrackerTableProps {
   searchTerm?: string;
   onSearch?: (value: string) => void;
   searchPlaceholder?: string;
+  secondaryTabs?: string[];
+  activeSecondaryTab?: string;
+  onSecondaryTabChange?: (tab: string) => void;
 }
 
 const TrackerTable: React.FC<TrackerTableProps> = ({
@@ -79,6 +82,9 @@ const TrackerTable: React.FC<TrackerTableProps> = ({
   searchTerm,
   onSearch,
   searchPlaceholder = "Search Projects...",
+  secondaryTabs,
+  activeSecondaryTab,
+  onSecondaryTabChange,
 }) => {
   return (
     <div className={styles.trackerWrapper}>
@@ -184,14 +190,14 @@ const TrackerTable: React.FC<TrackerTableProps> = ({
               <button type="button"
                 className={styles.createBtn}
                 onClick={onCreateClick}
-                aria-label="Add Non-CMAP Project"
+                aria-label="Add Uncategorised Project"
               >
-                Add Non-CMAP Project
+                Add Uncategorised Project
               </button>
             )}
 
             {/* SETTINGS ICON */}
-            {showFilterIcon && onSettingsClick && activeTab !== "Non-CMAP" && (
+            {showFilterIcon && onSettingsClick && activeTab !== "Uncategorised" && (
               <button type="button"
                 className={styles.filterBtn}
                 onClick={onSettingsClick}
@@ -205,6 +211,23 @@ const TrackerTable: React.FC<TrackerTableProps> = ({
 
         {/* FILTER ROW (CHILDREN) */}
         {children && <div className={styles.filtersRow}>{children}</div>}
+
+        {secondaryTabs && secondaryTabs.length > 0 && onSecondaryTabChange && (
+          <div className={styles.secondaryTabsRow}>
+            <div className={styles.tabs}>
+              {secondaryTabs.map((tab) => (
+                <button
+                  type="button"
+                  key={tab}
+                  className={`${styles.tab} ${activeSecondaryTab === tab ? styles.activeTab : ""}`}
+                  onClick={() => onSecondaryTabChange(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* TABLE */}
         <DataTable

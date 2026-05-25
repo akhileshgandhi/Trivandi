@@ -19,7 +19,7 @@ const MyWorkNew = ({ props }) => {
   React.useEffect(() => {
     const loadData = async () => {
       try {
-        
+
         setIsLoading(true);
 
         const ownerEmail = props?.context?.pageContext?.user?.email;
@@ -30,17 +30,17 @@ const MyWorkNew = ({ props }) => {
         }
 
         const [projects, bids] = await Promise.all([
-          getProjectsByOwnerAndStatus(ownerEmail, "Project"),
-          getProjectsByOwnerAndStatus(ownerEmail, ["Potential"]),
+          getProjectsByOwnerAndStatus("Project"),
+          getProjectsByOwnerAndStatus("Potential"),
         ]);
 
-        
-        
+
+
 
         setLiveProjects(projects);
         setLiveBids(bids);
       } catch (error) {
-        
+
       } finally {
         setIsLoading(false);
       }

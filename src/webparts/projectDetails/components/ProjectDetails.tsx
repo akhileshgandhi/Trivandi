@@ -24,9 +24,9 @@ import SharedFiles from "../components/SharedFiles/SharedFiles";
 import ActiveGuestsComponent from "./ActiveGuests/ActiveGuests";
 import InviteGuestDialog from "../components/Dialogs/InviteGuestDialog";
 import ShareDocumentDialog from "../components/Dialogs/ShareDocumentDialog";
-import ImportFromProjectDocsDialog from "../components/Dialogs/ImportFromProjectDocsDialog";
+import ImportFromProjectDocsDialog from './Dialogs/ImportFromProjectDocsDialog';
+import CustomManageAccess from '../../../shared/Common/CustomManageAccess';
 import NewDocumentDialog from "../components/Dialogs/NewDocumentDialog";
-import ShareAccessDialog from "../components/Dialogs/ShareAccessDialog";
 import { IBreadcrumb } from './IProjectExternalPortalState';
 import { ProjectExternalPortalService } from "../services/ProjectExternalPortalService";
 import { PrimaryButton } from "@fluentui/react/lib/Button";
@@ -54,6 +54,7 @@ type ProjectItem = {
   ProjectManager?: { Title?: string } | string;
   ProjectManagerEmail?: string;
   ProjectId?: string;
+  ProjectID?: string;
   EventName?: string;
   Location?: string;
   ContractedEntity?: string;
@@ -73,6 +74,7 @@ type ProjectItem = {
   Probability: number;
   TrivandiAcademyRevenuePercent?: number;
   NonCmap?: boolean;
+  UncategorisedDocumentsUrl?: string;
   ContractType?: string;
   Country?: string;
 };
@@ -182,7 +184,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
       try {
         if (!useMock && projectId) {
           const data = await getProjectById(Number(projectId));
-          
+          console.log("PROJECT_DATA_FROM_API:", data);
           setProject(data as ProjectItem);
 
           // Scope the External Portal to this project's subfolder
@@ -196,7 +198,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
             const libraryName = await getProjectLibraryName(data.Code, data.Title);
             // Note: The project library is for the Documents tab, not External Portal
             // External Portal uses 'ExternalShareDocument' library by default
-            
+
           }
 
           // Load team members
@@ -251,7 +253,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
           initPortalFolderPath(mock.Id || 25128);
 
           // Note: External Portal uses 'ExternalShareDocument' by default, not project library
-          
+
         }
       } finally {
         setLoading(false);
@@ -274,10 +276,10 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
     const params = new URLSearchParams(window.location.search);
     const urlProjectId = params.get("projectId");
     const id = urlProjectId || project?.Id || project?.ProjectId;
-    
+
     if (id && currentFolderPath === "") {
       const targetFolder = `Project-${id}`;
-      
+
       setCurrentFolderPath(targetFolder);
       setBreadcrumbs([
         { text: targetFolder, key: targetFolder, path: targetFolder }
@@ -298,10 +300,10 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
         setIsUserRestricted(isRestricted);
 
         if (isRestricted) {
-          
+
         }
       } catch (error) {
-        
+
         // Fail safely - if we cannot verify, don't restrict
         setIsUserRestricted(false);
       } finally {
@@ -319,7 +321,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
       const members = await getTeamMembersByProjectId(projectId);
       setTeamMembers(members);
     } catch (error) {
-      
+
       setTeamMembers([]);
     } finally {
       setIsLoadingMembers(false);
@@ -349,9 +351,9 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
       // Reload team members
       await loadTeamMembers(projectId);
 
-      
+
     } catch (error) {
-      
+
       toast.error(error instanceof Error ? error.message : "Failed to add team member", {
         position: "top-right",
         autoClose: 5000,
@@ -369,13 +371,13 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
     try {
       await deleteTeamMember(memberId);
       setTeamMembers(prevMembers => prevMembers.filter(m => m.Id !== memberId));
-      
+
       toast.success("Team member removed successfully!", {
         position: "top-right",
         autoClose: 3000,
       });
     } catch (error) {
-      
+
       toast.error("Failed to remove team member. Please try again.", {
         position: "top-right",
         autoClose: 5000,
@@ -391,7 +393,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
         setCopiedMemberId(memberId);
         setTimeout(() => setCopiedMemberId(null), 2000);
       } catch (err) {
-        
+
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
         textArea.value = mobileNumber;
@@ -404,7 +406,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
           setCopiedMemberId(memberId);
           setTimeout(() => setCopiedMemberId(null), 2000);
         } catch (e) {
-          
+
         }
         document.body.removeChild(textArea);
       }
@@ -430,7 +432,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
 
   const completion = Math.max(0, Math.min(100, project?.PercentComplete ?? 0));
 
-  if (loading) return <GlobalLoader variant="content" />;
+  if (loading && !project) return <GlobalLoader variant="content" />;
   if (!project) return <div className={styles.noData}>No project found</div>;
 
   const goBack = (): void => {
@@ -464,12 +466,12 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
 
   // Handler for refresh after document operations
   const handleRefreshDocuments = (): void => {
-    
+
     if (sharedFilesRef.current && sharedFilesRef.current.refreshDocuments) {
-      
+
       sharedFilesRef.current.refreshDocuments();
     } else {
-      
+
     }
   };
 
@@ -496,18 +498,18 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
 
   // Handler for successful guest invitation
   const handleGuestInvited = (): void => {
-    
+
 
     // Update refresh trigger to force ActiveGuests component to refresh
     setGuestRefreshTrigger(Date.now());
 
     // Also call the ref method as backup
-    
+
     if (activeGuestsRef.current) {
-      
+
       activeGuestsRef.current.refreshGuests();
     } else {
-      
+
     }
   };
 
@@ -515,6 +517,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
   // Then update the Team Members section:
   return (
     <div className={styles.wrapper}>
+      {loading && <GlobalLoader variant="bar" />}
       <ToastContainer />
       <div className={styles.header}>
         <button type="button" className={styles.backButton} onClick={() => { goBack() }}>
@@ -542,12 +545,12 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
               >
                 Documents
               </button>
-              <button
+              {/* <button
                 className={`${styles.tab} ${activeTab === "External Portal" ? styles.active : ""}`}
                 onClick={() => handleTabChange("External Portal")}
               >
                 External Portal
-              </button>
+              </button> */}
             </>
           ) : (
             <>
@@ -564,12 +567,12 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
               >
                 Documents
               </button>
-              <button
+              {/* <button
                 className={`${styles.tab} ${activeTab === "External Portal" ? styles.active : ""}`}
                 onClick={() => handleTabChange("External Portal")}
               >
                 External Portal
-              </button>
+              </button> */}
             </>
           )}
         </div>
@@ -876,8 +879,15 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
       {activeTab === "Documents" && (
         <CustomDocumentsList
           projectId={project.Id || Number(project.ProjectId) || 0}
+          businessProjectId={project.ProjectID}
           projectCode={project.Code || project.ProjectId || ""}
           projectTitle={project.Title}
+          context={props.context}
+          onShowShareAccess={handleShowShareAccess}
+          isUserRestricted={isUserRestricted}
+          isNonCmap={project?.NonCmap || false}
+          location={project?.Location || ""}
+          uncategorisedDocumentsUrl={project?.UncategorisedDocumentsUrl || ""}
         />
       )}
 
@@ -885,71 +895,9 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
         <div className={styles.comingSoon}>Activities - In-progress</div>
       )} */}
 
-      {activeTab === "External Portal" && (
+      {/* {activeTab === "External Portal" && (
         <div className={portalStyles.externalPortal}>
-          {/* Portal Content */}
           <div className={portalStyles.content}>
-            {/* Portal Header */}
-            <div className={portalStyles.portalHeaderContainer}>
-              <div className={portalStyles.portalHeader}>
-                <div className={portalStyles.portalHeaderLeft}>
-                  <Icon iconName="People" className={portalStyles.portalIcon} />
-                  <h3 className={portalStyles.portalTitle}>External Client Portal</h3>
-                </div>
-                {/* <PrimaryButton
-                  text="Invite Guest"
-                  iconProps={{ iconName: 'PeopleAdd' }}
-                  onClick={() => setShowInviteGuestDialog(true)}
-                  className={portalStyles.inviteButton}
-                  disabled={isUserRestricted || restrictionCheckLoading}
-                  title={isUserRestricted ? 'You do not have permission to invite guests' : 
-                         restrictionCheckLoading ? 'Checking permissions...' : ''}
-                         color="#fff"
-                /> */}
-                {canAdd && (
-                  <button
-                    onClick={() => setShowInviteGuestDialog(true)}
-                    className={portalStyles.inviteButton}
-                    disabled={isUserRestricted || restrictionCheckLoading}
-                    title={
-                      isUserRestricted
-                        ? 'You do not have permission to invite guests'
-                        : restrictionCheckLoading
-                          ? 'Checking permissions...'
-                          : ''
-                    }
-                  >
-                    <i className="ms-Icon ms-Icon--PeopleAdd" aria-hidden="true"></i>
-                    Invite Guest
-                  </button>
-                )}
-              </div>
-
-              <p className={portalStyles.portalDescription}>
-                Manage access and share documents securely with external partners.
-                All files placed here are visible to invited guests.
-              </p>
-
-              {isUserRestricted && (
-                <div style={{
-                  backgroundColor: '#fff4e6',
-                  border: '1px solid #ffa500',
-                  borderRadius: '4px',
-                  padding: '8px 12px',
-                  marginTop: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '14px',
-                  color: '#8c5800'
-                }}>
-                  <Icon iconName="Info" style={{ marginRight: '8px', color: '#ffa500' }} />
-                  <span>You have restricted access and cannot share documents or invite new guests.</span>
-                </div>
-              )}
-            </div>
-
-
-            {/* Shared Files Section */}
             <SharedFiles
               ref={sharedFilesRef}
               context={props.context}
@@ -967,18 +915,9 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
               isUserRestricted={isUserRestricted}
               onFolderChange={(path) => setCurrentFolderPath(path)}
             />
-
-            {/* Active Guests Section */}
-            <ActiveGuestsComponent
-              ref={activeGuestsRef}
-              context={props.context}
-              projectId={project?.Id || project?.ProjectId || null}
-              refreshTrigger={guestRefreshTrigger}
-              isUserRestricted={isUserRestricted}
-            />
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Add Team Member Modal */}
       <AddTeamMemberModal
@@ -1022,18 +961,17 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
         service={portalService}
       />
 
-      <ShareAccessDialog
+      <CustomManageAccess
         isOpen={showShareAccessDialog}
-        onClose={() => setShowShareAccessDialog(false)}
-        onSuccess={() => {
-          setShowShareAccessDialog(false);
-          handleOperationSuccess();
-          // Also refresh guests in case new guests were invited during sharing
-          setGuestRefreshTrigger(Date.now());
-        }}
+        onDismiss={() => setShowShareAccessDialog(false)}
+        item={selectedDocumentsForSharing.length > 0 ? {
+          ...selectedDocumentsForSharing[0],
+          Name: selectedDocumentsForSharing[0].name,
+          ServerRelativeUrl: selectedDocumentsForSharing[0].fileRef,
+          IsFolder: selectedDocumentsForSharing[0].isFolder
+        } : null}
         context={props.context}
-        selectedDocuments={selectedDocumentsForSharing}
-        service={portalService}
+        siteUrl={props.context.pageContext.web.absoluteUrl}
       />
 
       <ImportFromProjectDocsDialog
@@ -1048,6 +986,7 @@ const ProjectDetails: React.FC<IProjectDetailsProps> = (props) => {
         service={portalService}
         projectCode={project?.Code || project?.ProjectId || ""}
         projectId={project?.Id || Number(project?.ProjectId) || 0}
+        businessProjectId={project?.ProjectID}
         projectTitle={project?.Title}
       />
     </div>

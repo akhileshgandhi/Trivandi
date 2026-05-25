@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import styles from "./AddTeamMemberModal.module.scss";
+import { fetchAllBreatheHREmployees, IBreatheHREmployee } from "../../../../../shared/services/BreatheService/BreatheHRService";
 
 interface IAddTeamMemberModalProps {
     isOpen: boolean;
@@ -24,30 +25,45 @@ const AddTeamMemberModal: React.FC<IAddTeamMemberModalProps> = ({
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [mobileNumber, setMobileNumber] = useState("");
-    const [role, setRole] = useState("Contributor (Edit Files)");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [showCopied, setShowCopied] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
+    const [employees, setEmployees] = useState<IBreatheHREmployee[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isFetchingEmployees, setIsFetchingEmployees] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
-    const roleOptions = [
-        "Contributor",
-        "Reader",
-        "Administrator",
-        "Project Manager",
-        "Team Member"
-    ];
+    // Fetch employees in the background immediately when component mounts
+    useEffect(() => {
+        if (employees.length === 0 && !isFetchingEmployees) {
+            setIsFetchingEmployees(true);
+            fetchAllBreatheHREmployees().then((data) => {
+                if (data) setEmployees(data);
+                setIsFetchingEmployees(false);
+            }).catch(() => setIsFetchingEmployees(false));
+        }
+    }, []); // Run only once on mount
 
     useEffect(() => {
         if (isOpen) {
             // Reset form when modal opens
+            setSearchQuery("");
             setName("");
             setEmail("");
             setMobileNumber("");
-            setRole("Contributor (Edit Files)");
             setError("");
         }
     }, [isOpen]);
+
+    const handleSelectEmployee = (emp: IBreatheHREmployee) => {
+        const empName = `${emp.first_name} ${emp.last_name}`;
+        setSearchQuery(empName);
+        setName(empName);
+        setEmail(emp.email || "");
+        setMobileNumber(emp.work_mobile || emp.personal_mobile || "");
+        setShowSuggestions(false);
+    };
 
     const handleClose = (): void => {
         if (!isSubmitting) {
@@ -116,7 +132,7 @@ const AddTeamMemberModal: React.FC<IAddTeamMemberModalProps> = ({
         setIsSubmitting(true);
 
         try {
-            await onAddMember({ name: name.trim(), email: email.trim(), role, mobileNumber: mobileNumber.trim() });
+            await onAddMember({ name: name.trim(), email: email.trim(), role: "Contributor", mobileNumber: mobileNumber.trim() });
             toast.success("Team member added and invitation sent successfully!", {
                 position: "top-right",
                 autoClose: 3000,
@@ -157,6 +173,46 @@ const AddTeamMemberModal: React.FC<IAddTeamMemberModalProps> = ({
 
                 <form onSubmit={handleSubmit}>
                     <div className={styles.modalBody}>
+                        <div className={styles.formGroup} style={{ position: 'relative' }}>
+                            <label htmlFor="searchMember" className={styles.label}>
+                                Select Team Member
+                            </label>
+                            <input
+                                id="searchMember"
+                                type="text"
+                                className={styles.input}
+                                placeholder={isFetchingEmployees ? "Loading employees..." : "Search for a team member..."}
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setShowSuggestions(true);
+                                }}
+                                onFocus={() => setShowSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                disabled={isSubmitting || isFetchingEmployees}
+                                autoComplete="off"
+                            />
+                            {showSuggestions && (
+                                <ul className={styles.suggestionsList}>
+                                    {employees
+                                        .filter(emp => `${emp.first_name || ""} ${emp.last_name || ""}`.toLowerCase().includes(searchQuery.toLowerCase()))
+                                        .map(emp => (
+                                            <li
+                                                key={emp.id}
+                                                className={styles.suggestionItem}
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    handleSelectEmployee(emp);
+                                                }}
+                                            >
+                                                {emp.first_name} {emp.last_name} {emp.email ? `(${emp.email})` : ''}
+                                            </li>
+                                        ))
+                                    }
+                                </ul>
+                            )}
+                        </div>
+
                         <div className={styles.formGroup}>
                             <label htmlFor="memberName" className={styles.label}>
                                 Name
@@ -165,9 +221,9 @@ const AddTeamMemberModal: React.FC<IAddTeamMemberModalProps> = ({
                                 id="memberName"
                                 type="text"
                                 className={styles.input}
-                                placeholder="Enter name"
+                                placeholder="Auto-filled name"
                                 value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                readOnly
                                 disabled={isSubmitting}
                             />
                         </div>
@@ -180,9 +236,9 @@ const AddTeamMemberModal: React.FC<IAddTeamMemberModalProps> = ({
                                 id="memberEmail"
                                 type="email"
                                 className={styles.input}
-                                placeholder="Enter email"
+                                placeholder="Auto-filled email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                readOnly
                                 disabled={isSubmitting}
                             />
                         </div>
@@ -196,9 +252,9 @@ const AddTeamMemberModal: React.FC<IAddTeamMemberModalProps> = ({
                                     id="memberMobile"
                                     type="tel"
                                     className={styles.input}
-                                    placeholder="Enter mobile number"
+                                    placeholder="Auto-filled mobile number"
                                     value={mobileNumber}
-                                    onChange={(e) => setMobileNumber(e.target.value)}
+                                    readOnly
                                     disabled={isSubmitting}
                                 />
                                 {mobileNumber && (
@@ -236,47 +292,9 @@ const AddTeamMemberModal: React.FC<IAddTeamMemberModalProps> = ({
                             )}
                         </div>
 
-                        <div className={styles.formGroup}>
-                            <label htmlFor="memberRole" className={styles.label}>
-                                Role
-                            </label>
-                            <div className={styles.selectWrapper}>
-                                <select
-                                    id="memberRole"
-                                    className={styles.select}
-                                    value={role}
-                                    onChange={(e) => setRole(e.target.value)}
-                                    disabled={isSubmitting}
-                                >
-                                    {roleOptions.map((option) => (
-                                        <option key={option} value={option}>
-                                            {option}
-                                        </option>
-                                    ))}
-                                </select>
-                                <svg
-                                    className={styles.selectIcon}
-                                    width="12"
-                                    height="8"
-                                    viewBox="0 0 12 8"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M1 1.5L6 6.5L11 1.5"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </div>
-                        </div>
 
-                        <div className={styles.infoMessage}>
-                            This user will be added to {ProjectTitle} {projectCode}
-                        </div>
 
+    
                         {error && <div className={styles.errorMessage}>{error}</div>}
                     </div>
 
@@ -286,7 +304,7 @@ const AddTeamMemberModal: React.FC<IAddTeamMemberModalProps> = ({
                             className={styles.submitButton}
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? "Sending..." : "Send Invitation"}
+                            {isSubmitting ? "Submitting..." : "Submit"}
                         </button>
                     </div>
                 </form>

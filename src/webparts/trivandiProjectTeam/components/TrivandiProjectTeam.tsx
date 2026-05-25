@@ -13,7 +13,7 @@ import {
 import "../../../shared/globalcss/globalcss.scss";
 import RecentDocuments from "./RecentDocuments/RecentDocuments";
 
-const OWNER_EMAIL = "petergriffin@trivandi.com";
+
 
 const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
   const [isLoading, setIsLoading] = React.useState(true);
@@ -28,9 +28,11 @@ const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
 
         setIsLoading(true);
 
+
+
         const [projects, bids] = await Promise.all([
-          getProjectsByOwnerAndStatus(OWNER_EMAIL, "Project"),
-          getProjectsByOwnerAndStatus(OWNER_EMAIL, "Potential"),
+          getProjectsByOwnerAndStatus("Project"),
+          getProjectsByOwnerAndStatus("Potential"),
         ]);
 
 
@@ -38,8 +40,8 @@ const TrivandiProjectTeam: React.FC<ITrivandiProjectTeamProps> = (props) => {
 
         setLiveProjects(projects);
         setLiveBids(bids);
-      } catch (error) {
-
+      } catch (_error) {
+        console.error("Failed to load dashboard projects", _error);
       } finally {
         setIsLoading(false);
       }

@@ -95,7 +95,7 @@ export class ProjectExternalPortalService {
       }
     } catch (error) {
       
-      return { exists: false, hasAccess: false, error: error.message };
+      return { exists: false, hasAccess: false, error: (error as any)?.message };
     }
   }
 
@@ -162,10 +162,10 @@ export class ProjectExternalPortalService {
       return await fn();
     } catch (error) {
       // Check if it's a throttle error (429)
-      const isThrottle = error.status === 429 ||
-        error.message?.includes('429') ||
-        error.message?.includes('throttle') ||
-        error.message?.includes('Too Many Requests');
+      const isThrottle = (error as any)?.status === 429 ||
+        (error as any)?.message?.includes('429') ||
+        (error as any)?.message?.includes('throttle') ||
+        (error as any)?.message?.includes('Too Many Requests');
 
       if (isThrottle && retryCount < this.MAX_RETRIES) {
         const delay = this.RETRY_DELAY * Math.pow(2, retryCount); // Exponential backoff
@@ -332,7 +332,7 @@ export class ProjectExternalPortalService {
       return documents;
     } catch (error) {
       
-      throw new Error(`Failed to load documents: ${error.message}`);
+      throw new Error(`Failed to load documents: ${(error as any)?.message}`);
     }
   }
 
@@ -370,7 +370,7 @@ export class ProjectExternalPortalService {
         }));
       } catch (error) {
         
-        throw new Error(`Failed to load guests: ${error.message}`);
+        throw new Error(`Failed to load guests: ${(error as any)?.message}`);
       }
     }, skipCache);
   }
@@ -661,7 +661,7 @@ export class ProjectExternalPortalService {
       );
     } catch (error) {
       
-      throw new Error(`Failed to upload document: ${error.message}`);
+      throw new Error(`Failed to upload document: ${(error as any)?.message}`);
     }
   }
 
@@ -688,7 +688,7 @@ export class ProjectExternalPortalService {
       );
     } catch (error) {
       
-      throw new Error(`Failed to upload document: ${error.message}`);
+      throw new Error(`Failed to upload document: ${(error as any)?.message}`);
     }
   }
 
@@ -710,7 +710,7 @@ export class ProjectExternalPortalService {
       );
     } catch (error) {
       
-      throw new Error(`Failed to share access: ${error.message}`);
+      throw new Error(`Failed to share access: ${(error as any)?.message}`);
     }
   }
 
@@ -756,7 +756,7 @@ export class ProjectExternalPortalService {
       
     } catch (error) {
       
-      throw new Error(`Failed to share document: ${error.message}`);
+      throw new Error(`Failed to share document: ${(error as any)?.message}`);
     }
   }
 
@@ -808,7 +808,7 @@ export class ProjectExternalPortalService {
       
     } catch (error) {
       
-      throw new Error(`Failed to share folder: ${error.message}`);
+      throw new Error(`Failed to share folder: ${(error as any)?.message}`);
     }
   }
 
@@ -917,7 +917,7 @@ export class ProjectExternalPortalService {
       this.clearCache();
     } catch (error) {
       
-      throw new Error(`Failed to import documents: ${error.message}`);
+      throw new Error(`Failed to import documents: ${(error as any)?.message}`);
     }
   }
 
@@ -1070,7 +1070,7 @@ export class ProjectExternalPortalService {
       
     } catch (error) {
       
-      throw new Error(`Failed to invite guest: ${error.message}`);
+      throw new Error(`Failed to invite guest: ${(error as any)?.message}`);
     }
   }
 
@@ -1273,7 +1273,7 @@ export class ProjectExternalPortalService {
       return result.data?.Id;
     } catch (error) {
       
-      throw new Error(`Failed to log sharing activity: ${error.message}`);
+      throw new Error(`Failed to log sharing activity: ${(error as any)?.message}`);
     }
   }
 
@@ -1390,7 +1390,7 @@ export class ProjectExternalPortalService {
         
 
         // Check if it's a "list not found" error
-        if (error.message && error.message.includes('does not exist')) {
+        if ((error as any)?.message && (error as any).message.includes('does not exist')) {
           
           return { items: [], totalCount: 0 };
         }
@@ -1461,7 +1461,7 @@ export class ProjectExternalPortalService {
         await this.sp.web.getFolderByServerRelativePath(fullFolderPath)();
         
       } catch (error) {
-        if (error.status === 404) {
+        if ((error as any)?.status === 404) {
           // Folder doesn't exist, create it recursively
           
 
@@ -1476,7 +1476,7 @@ export class ProjectExternalPortalService {
               await this.sp.web.getFolderByServerRelativePath(currentPath)();
               
             } catch (innerError) {
-              if (innerError.status === 404) {
+              if ((innerError as any)?.status === 404) {
                 
                 const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
                 await this.sp.web.getFolderByServerRelativePath(parentPath).folders.addUsingPath(folderName);
@@ -1491,7 +1491,7 @@ export class ProjectExternalPortalService {
       }
     } catch (error) {
       
-      throw new Error(`Failed to create folder structure: ${error.message}`);
+      throw new Error(`Failed to create folder structure: ${(error as any)?.message}`);
     }
   }
 
@@ -1560,7 +1560,7 @@ export class ProjectExternalPortalService {
       }
     } catch (error) {
       
-      throw new Error(`Failed to upload document: ${error.message}`);
+      throw new Error(`Failed to upload document: ${(error as any)?.message}`);
     }
   }
 
@@ -1772,7 +1772,7 @@ export class ProjectExternalPortalService {
       }
     } catch (error) {
       
-      throw new Error(`Failed to copy documents: ${error.message}`);
+      throw new Error(`Failed to copy documents: ${(error as any)?.message}`);
     }
   }
 
@@ -2032,7 +2032,7 @@ export class ProjectExternalPortalService {
       }));
     } catch (error) {
       
-      throw new Error(`Failed to load access log: ${error.message}`);
+      throw new Error(`Failed to load access log: ${(error as any)?.message}`);
     }
   }
 
@@ -2121,7 +2121,7 @@ export class ProjectExternalPortalService {
           guestStatus: guest.status,
           fileName: '',
           filePath: '',
-          permission: 'No Access' as 'No Access',
+          permission: 'No Access' as const,
           sharedOn: undefined,
           guestLastAccess: guest.lastAccessDate
         }));
@@ -2141,7 +2141,7 @@ export class ProjectExternalPortalService {
    * Get the Role ('Viewer' | 'Editor') of the current user from ExternalGuestAccess.
    * Returns null if the user is not an external guest or not found.
    */
-  public async getCurrentGuestRole(): Promise<'Viewer' | 'Editor' | null> {
+  public async getCurrentGuestRole(): Promise<'Viewer' | 'Editor' | undefined> {
     try {
       const currentUserEmail = this.context.pageContext.user.loginName ||
         this.context.pageContext.user.email ||
@@ -2222,25 +2222,15 @@ export class ProjectExternalPortalService {
         if (currentDate > expiryDate) {
           
           return false; // Expired users should not be considered restricted (they get no access at all)
-        } else {
-          
         }
-      } else {
-        
       }
 
       const isRestricted = true;
 
-      if (isRestricted) {
-        
-      } else {
-        
-      }
 
       this._isRestrictedGuestCache = isRestricted;
       return isRestricted;
-    } catch (error) {
-      
+    } catch (_error) {
       // Fail safely - if we cannot check, allow access
       return false;
     }
@@ -2397,16 +2387,11 @@ export class ProjectExternalPortalService {
         if (hasAccess && isAccessValid) {
           doc.permission = docPermission;
           filteredDocuments.push(doc);
-        } else if (hasAccess && !isAccessValid) {
-          
-        } else {
-          
         }
       }
 
       return filteredDocuments;
-    } catch (error) {
-      
+    } catch (_error) {
       // Fail safely - return empty array if filtering fails
       return [];
     }

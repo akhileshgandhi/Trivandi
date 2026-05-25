@@ -340,7 +340,10 @@
   cursor: pointer;
   color: #484848;
   text-decoration: none;
-  
+  white-space: nowrap; 
+
+  overflow: hidden;
+  text-overflow: ellipsis; 
   &:hover {
     text-decoration: none !important;
     color: inherit !important;

@@ -895,7 +895,7 @@ const ExternalUserAccess: React.FC<IExternalUserAccessProps> = ({ context }) => 
         <div className={styles.content}>
 
           {/* Portal info card */}
-          <div className={styles.card}>
+          {/* <div className={styles.card}>
             <div className={styles.portalHeader}>
               <div className={styles.portalIconWrap}><UsersIcon /></div>
               <div>
@@ -911,7 +911,7 @@ const ExternalUserAccess: React.FC<IExternalUserAccessProps> = ({ context }) => 
                 )}
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Shared Files card */}
           <div className={styles.card}>
@@ -1042,6 +1042,8 @@ const ExternalUserAccess: React.FC<IExternalUserAccessProps> = ({ context }) => 
                 </table>
               </div>
             )}
+
+
 
             {!loading && sharedFiles.length > 0 && (
               <div className={styles.footerCount}>

@@ -1,8 +1,6 @@
 .documentsWrapper {
-  // border-radius: 0 0 12px 12px;
-  // padding: 20px 24px;
   margin: 0 24px 24px;
-  // box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .tabRow {
@@ -33,17 +31,17 @@
   border-radius: 6px 6px 0 0;
   transition: all 0.2s ease;
   position: relative;
-  
+
   &:hover {
     background: #f3f4f6;
     color: #374151;
   }
-  
+
   &.activeDocTab {
     color: #3b82f6;
     font-weight: 600;
     background: #eff6ff;
-    
+
     &::after {
       content: '';
       position: absolute;
@@ -245,11 +243,41 @@
   width: 150px;
 }
 
+.actionCol {
+  width: 80px;
+  text-align: center;
+}
+
 .sizeCol {
   width: 120px;
   color: #6b7280;
   font-size: 13px;
   white-space: nowrap;
+}
+
+.sortHeaderButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    color: #1f4ed8;
+  }
+}
+
+.sortIndicator {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.3px;
 }
 
 .tableRow {
@@ -265,7 +293,7 @@
     color: #1f2937;
   }
 
-  .nameCol {
+  .nameCell {
     display: flex;
     align-items: center;
     gap: 8px;
