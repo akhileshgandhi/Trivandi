@@ -1,0 +1,933 @@
+// ─────────────────────────────────────────────
+//  Trivandi Global Search — Search.module.scss
+// ─────────────────────────────────────────────
+
+// ── Tokens ───────────────────────────────────
+$font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+$c-primary:   #1B4AEF;
+$c-primary-light: #EEF2FD;
+$c-accent:    #FF4BCC;
+$c-text:      #1A1D23;
+$c-muted:     #6B7280;
+$c-border:    #E5E7EB;
+$c-bg:        #FFFFFF;
+$c-bg-hover:  #F8F9FB;
+$c-overlay:   rgba(0, 0, 0, 0.45);
+$radius-sm:   6px;
+$radius-md:   10px;
+$radius-lg:   16px;
+$shadow-card: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+$shadow-modal: 0 8px 40px rgba(0,0,0,.18);
+$transition:  0.18s ease;
+
+// ── Overlay ───────────────────────────────────
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: $c-overlay;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.15s ease;
+}
+
+// ── Modal Shell ───────────────────────────────
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: $font-sans;
+  background: $c-bg;
+  animation: slideUp 0.2s ease;
+
+  @media (min-width: 1024px) {
+    inset: 0;
+    border-radius: 0;
+  }
+}
+
+// ── Top Header Bar ────────────────────────────
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  height: 60px;
+  border-bottom: 1px solid $c-border;
+  background: $c-bg;
+  flex-shrink: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: $c-text;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  user-select: none;
+
+  .logoDot {
+    color: $c-accent;
+  }
+}
+
+.headerSearch {
+  flex: 1;
+  max-width: 660px;
+  position: relative;
+}
+
+.headerSearchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $c-muted;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.headerInput {
+  width: 100%;
+  height: 40px;
+  padding: 0 40px 0 42px;
+  border: 1.5px solid $c-border;
+  border-radius: 40px;
+  font-size: 14px;
+  font-family: $font-sans;
+  color: $c-text;
+  background: #F6F7F9;
+  outline: none;
+  transition: border-color $transition, background $transition;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: $c-primary;
+    background: $c-bg;
+  }
+
+  &::placeholder { color: $c-muted; }
+}
+
+.headerClear {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $c-muted;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  transition: color $transition;
+
+  &:hover { color: $c-text; }
+}
+
+.headerMeta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.resultCount {
+  font-size: 12px;
+  color: $c-muted;
+  text-align: right;
+
+  strong { color: $c-text; font-size: 14px; display: block; }
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: $c-muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background $transition, color $transition;
+
+  &:hover { background: $c-bg-hover; color: $c-text; }
+}
+
+// ── Body Layout ───────────────────────────────
+.body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+// ── Sidebar Filters ───────────────────────────
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid $c-border;
+  overflow-y: auto;
+  padding: 20px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filterGroupTitle {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $c-muted;
+  margin-bottom: 6px;
+}
+
+.filterOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition;
+
+  &:hover { background: $c-bg-hover; }
+
+  input[type='checkbox'] {
+    width: 15px;
+    height: 15px;
+    accent-color: $c-primary;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-size: 13px;
+    color: $c-text;
+    flex: 1;
+  }
+
+  .filterCount {
+    font-size: 11px;
+    color: $c-muted;
+    background: #F0F2F5;
+    border-radius: 10px;
+    padding: 1px 7px;
+  }
+}
+
+.filterDateBtn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  font-family: $font-sans;
+  color: $c-text;
+  cursor: pointer;
+  transition: background $transition, color $transition;
+
+  &:hover { background: $c-bg-hover; }
+  &.active {
+    background: $c-primary-light;
+    color: $c-primary;
+    font-weight: 600;
+  }
+}
+
+.authorInput {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1.5px solid $c-border;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  font-family: $font-sans;
+  color: $c-text;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color $transition;
+
+  &:focus { border-color: $c-primary; }
+  &::placeholder { color: $c-muted; }
+}
+
+.dateInput {
+  @extend .authorInput;
+  margin-top: 8px;
+}
+
+.applyBtn {
+  width: 100%;
+  height: 38px;
+  background: $c-primary;
+  color: #fff;
+  border: none;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: $font-sans;
+  cursor: pointer;
+  transition: opacity $transition;
+
+  &:hover { opacity: 0.88; }
+}
+
+.resetLink {
+  display: block;
+  text-align: center;
+  margin-top: 6px;
+  font-size: 12px;
+  color: $c-muted;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: $font-sans;
+
+  &:hover { color: $c-text; text-decoration: underline; }
+}
+
+// ── Main Content ──────────────────────────────
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tabBar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 24px;
+  border-bottom: 1px solid $c-border;
+  flex-shrink: 0;
+  height: 44px;
+}
+
+.tab {
+  height: 44px;
+  padding: 0 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  font-family: $font-sans;
+  color: $c-muted;
+  cursor: pointer;
+  transition: color $transition, border-color $transition;
+  margin-bottom: -1px;
+
+  &:hover { color: $c-text; }
+
+  &.tabActive {
+    color: $c-primary;
+    border-bottom-color: $c-primary;
+    font-weight: 600;
+  }
+}
+
+.tabSpacer { flex: 1; }
+
+.historyBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1.5px solid $c-border;
+  border-radius: $radius-sm;
+  background: #fff;
+  font-size: 12px;
+  font-family: $font-sans;
+  color: $c-text;
+  cursor: pointer;
+  transition: background $transition;
+
+  &:hover { background: $c-bg-hover; }
+  &.historyBtnActive {
+    background: $c-primary-light;
+    border-color: $c-primary;
+    color: $c-primary;
+  }
+}
+
+// ── Results Area ──────────────────────────────
+.resultsWrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 24px 24px;
+}
+
+.resultsHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 8px;
+
+  span {
+    font-size: 13px;
+    color: $c-muted;
+  }
+}
+
+// ── Result Card ───────────────────────────────
+.resultCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: $radius-md;
+  border: 1px solid $c-border;
+  margin-bottom: 10px;
+  cursor: pointer;
+  position: relative;
+  background: $c-bg;
+  transition: box-shadow $transition, background $transition;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    border-radius: $radius-md 0 0 $radius-md;
+    background: var(--card-color, #999);
+  }
+
+  &:hover {
+    box-shadow: $shadow-card;
+    background: $c-bg-hover;
+  }
+
+  &.cardSelected {
+    background: $c-primary-light;
+    border-color: $c-primary;
+  }
+}
+
+.cardIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: $radius-sm;
+  background: #F0F2F5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 8px;
+
+  svg { width: 20px; height: 20px; }
+}
+
+.cardBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: $c-text;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardMeta {
+  font-size: 12px;
+  color: $c-muted;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+
+  .dot { color: #D1D5DB; }
+}
+
+.cardSummary {
+  font-size: 12px;
+  color: #4B5563;
+  line-height: 1.5;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardHub {
+  font-size: 11px;
+  color: $c-primary;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  span { font-weight: 500; color: $c-muted; flex-shrink: 0; }
+}
+
+.cardRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.typeBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #fff;
+  background: var(--badge-color, #888);
+}
+
+.starBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #D1D5DB;
+  padding: 2px;
+  transition: color $transition;
+
+  &:hover, &.starred { color: #FBBF24; }
+}
+
+.moreBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $c-muted;
+  padding: 4px;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background $transition;
+
+  &:hover { background: $c-bg-hover; color: $c-text; }
+}
+
+// ── Pagination ────────────────────────────────
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid $c-border;
+  flex-shrink: 0;
+}
+
+.pageInfo {
+  font-size: 12px;
+  color: $c-muted;
+  margin: 0 8px;
+}
+
+.pageBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid $c-border;
+  background: $c-bg;
+  font-size: 13px;
+  font-family: $font-sans;
+  color: $c-text;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background $transition, border-color $transition;
+
+  &:hover:not(:disabled) {
+    background: $c-primary-light;
+    border-color: $c-primary;
+  }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  &.pageBtnActive {
+    background: $c-primary;
+    border-color: $c-primary;
+    color: #fff;
+    font-weight: 700;
+  }
+}
+
+.jumpLabel {
+  font-size: 12px;
+  color: $c-muted;
+  margin-left: 12px;
+}
+
+.jumpInput {
+  width: 48px;
+  height: 28px;
+  text-align: center;
+  border: 1.5px solid $c-border;
+  border-radius: $radius-sm;
+  font-size: 12px;
+  font-family: $font-sans;
+  color: $c-text;
+  outline: none;
+  margin-left: 6px;
+
+  &:focus { border-color: $c-primary; }
+}
+
+// ── Right Panel ───────────────────────────────
+.rightPanel {
+  width: 280px;
+  flex-shrink: 0;
+  border-left: 1px solid $c-border;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideInRight 0.2s ease;
+}
+
+.rightPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid $c-border;
+  flex-shrink: 0;
+
+  h3 {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $c-muted;
+    margin: 0;
+  }
+}
+
+.panelCloseBtn {
+  @extend .closeBtn;
+  width: 28px;
+  height: 28px;
+}
+
+.rightPanelBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.docPreviewPlaceholder {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: linear-gradient(135deg, #F0F2F5 0%, #E5E7EB 100%);
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $c-muted;
+  flex-direction: column;
+  gap: 8px;
+
+  svg { width: 40px; height: 40px; opacity: 0.4; }
+  span { font-size: 12px; }
+}
+
+.docTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: $c-text;
+  margin: 0;
+}
+
+.docUrl {
+  font-size: 11px;
+  color: $c-primary;
+  word-break: break-all;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .metaLabel {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: $c-muted;
+  }
+
+  .metaValue {
+    font-size: 12px;
+    color: $c-text;
+  }
+}
+
+.authorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .authorAvatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: $c-primary;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  span { font-size: 13px; color: $c-text; }
+}
+
+.docContent {
+  background: #F8F9FB;
+  border-radius: $radius-sm;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #374151;
+  font-style: italic;
+}
+
+.panelDivider {
+  height: 1px;
+  background: $c-border;
+  margin: 0 -16px;
+}
+
+.panelSectionTitle {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $c-muted;
+}
+
+.previewBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 38px;
+  background: $c-primary;
+  color: #fff;
+  border: none;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: $font-sans;
+  cursor: pointer;
+  transition: opacity $transition;
+  text-decoration: none;
+
+  &:hover { opacity: 0.88; }
+}
+
+.downloadBtn {
+  width: 38px;
+  height: 38px;
+  border: 1.5px solid $c-border;
+  background: $c-bg;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: $c-muted;
+  transition: background $transition;
+  flex-shrink: 0;
+
+  &:hover { background: $c-bg-hover; color: $c-text; }
+}
+
+.previewRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+// ── Search History Panel ──────────────────────
+.historyItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid #F3F4F6;
+  cursor: pointer;
+  transition: background $transition;
+  border-radius: $radius-sm;
+
+  &:hover { background: $c-bg-hover; }
+
+  .historyIcon { color: $c-muted; flex-shrink: 0; }
+
+  .historyText {
+    flex: 1;
+    font-size: 13px;
+    color: $c-text;
+  }
+
+  .historyAge {
+    font-size: 10px;
+    color: $c-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+
+.clearHistoryBtn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: $c-primary;
+  cursor: pointer;
+  font-family: $font-sans;
+  padding: 4px 0;
+
+  &:hover { text-decoration: underline; }
+}
+
+// ── Tab bar at bottom ─────────────────────────
+.bottomTabs {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid $c-border;
+  flex-shrink: 0;
+  padding: 0 24px;
+  height: 40px;
+}
+
+.bottomTab {
+  height: 40px;
+  padding: 0 16px;
+  background: none;
+  border: none;
+  border-top: 2px solid transparent;
+  margin-top: -1px;
+  font-size: 12px;
+  font-family: $font-sans;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: $c-muted;
+  cursor: pointer;
+  transition: color $transition, border-color $transition;
+
+  &:hover { color: $c-text; }
+  &.bottomTabActive {
+    color: $c-primary;
+    border-top-color: $c-primary;
+  }
+}
+
+// ── States ────────────────────────────────────
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  color: $c-muted;
+  gap: 12px;
+  text-align: center;
+
+  svg { width: 48px; height: 48px; opacity: 0.35; }
+  h3 { font-size: 16px; color: $c-text; margin: 0; }
+  p { font-size: 13px; margin: 0; max-width: 280px; line-height: 1.5; }
+}
+
+.loadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: $c-muted;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid $c-border;
+  border-top-color: $c-primary;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  color: #B91C1C;
+  margin-bottom: 14px;
+}
+
+// ── Animations ────────────────────────────────
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

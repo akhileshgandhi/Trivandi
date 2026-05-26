@@ -1,21 +1,22 @@
 {
   "@microsoft/generator-sharepoint": {
     "plusBeta": false,
-    "isCreatingSolution": false,
+    "isCreatingSolution": true,
     "nodeVersion": "18.20.0",
     "sdksVersions": {
       "@microsoft/microsoft-graph-client": "3.0.2",
-      "@microsoft/teams-js": "2.24.0"
+      "@microsoft/teams-js": "2.12.0"
     },
-    "version": "1.20.0",
-    "libraryName": "trivandi-project-team",
-    "libraryId": "55815c7c-03d7-459b-a954-bdb390734060",
+    "version": "1.18.2",
+    "libraryName": "global-search-extension",
+    "libraryId": "5250d9e1-d72f-4f8d-b118-e70c0e691387",
     "environment": "spo",
     "packageManager": "npm",
-    "solutionName": "trivandi-project-team",
-    "solutionShortDescription": "trivandi-project-team description",
+    "solutionName": "GlobalSearchExtension",
+    "solutionShortDescription": "GlobalSearchExtension description",
     "skipFeatureDeployment": true,
     "isDomainIsolated": false,
-    "componentType": "webpart"
+    "componentType": "extension",
+    "extensionType": "ApplicationCustomizer"
   }
 }

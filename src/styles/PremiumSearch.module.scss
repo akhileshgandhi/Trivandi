@@ -1,0 +1,2089 @@
+// ────────────────────────────────────────────────────────
+//  Trivandi Custom Premium Search UI Tokens & Styles
+// ────────────────────────────────────────────────────────
+
+$font-sans: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+$trivandi-blue: #1a73e8;
+$trivandi-blue-light: rgba(26, 115, 232, 0.05);
+$trivandi-pink: #F22797;
+$slate-50: #f8fafc;
+$slate-100: #f1f5f9;
+$slate-200: #e2e8f0;
+$slate-300: #cbd5e1;
+$slate-400: #94a3b8;
+$slate-500: #64748b;
+$slate-600: #475569;
+$slate-700: #334155;
+$slate-800: #1e293b;
+$slate-900: #0f172a;
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+$shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+$radius-xl: 12px;
+$radius-2xl: 16px;
+$transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+// ────────────────────────────────────────────────────────
+//  General Modal Overlay & Shell Setup
+// ────────────────────────────────────────────────────────
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(15, 23, 42, 0.25);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+  font-family: $font-sans;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: $slate-50;
+}
+
+.mainLayout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+// ────────────────────────────────────────────────────────
+//  Header Component
+// ────────────────────────────────────────────────────────
+.header {
+  height: 64px;
+  border-bottom: 1px solid $slate-200;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 50;
+  box-shadow: $shadow-sm;
+  position: relative;
+}
+
+.logoWrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoSvg {
+  height: 32px;
+  width: auto;
+}
+
+.logoText {
+  fill: #1a73e8;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  font-weight: bold;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: $slate-500;
+  padding: 8px;
+  border-radius: 9999px;
+  cursor: pointer;
+  display: flex;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $slate-100;
+    color: $slate-800;
+  }
+}
+
+.searchBarContainer {
+  flex: 1;
+  max-width: 672px;
+  padding: 0 48px;
+  position: relative;
+}
+
+.searchBarWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $slate-400;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.searchInput {
+  width: 100%;
+  height: 40px;
+  padding-left: 48px;
+  padding-right: 16px;
+  border: 2px solid transparent;
+  background: rgba(241, 245, 249, 0.6);
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: $slate-800;
+  outline: none;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+  transition: all $transition-fast;
+
+  &::placeholder {
+    color: rgba(100, 116, 139, 0.8);
+  }
+
+  &:focus {
+    background: #ffffff;
+    border-color: rgba(26, 115, 232, 0.3);
+    box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.05);
+  }
+}
+
+.searchSuggestionBox {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid $slate-200;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-lg;
+  z-index: 50;
+  overflow: hidden;
+}
+
+.suggestionHeader {
+  padding: 8px 16px;
+  background: $slate-50;
+  border-bottom: 1px solid $slate-100;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: $slate-400;
+  letter-spacing: 0.1em;
+}
+
+.suggestionItem {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: $slate-600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $slate-50;
+    color: $slate-900;
+  }
+}
+
+.suggestionIcon {
+  color: $slate-300;
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.metaTextContainer {
+  text-align: right;
+  
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.metaResultsCount {
+  font-size: 12px;
+  font-weight: 600;
+  color: $slate-800;
+}
+
+.metaSubTitle {
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: $slate-400;
+  margin-top: 4px;
+}
+
+.metaDivider {
+  height: 32px;
+  width: 1px;
+  background: $slate-200;
+  margin: 0 4px;
+}
+
+// ────────────────────────────────────────────────────────
+//  Sidebar (FiltersPanel) Component
+// ────────────────────────────────────────────────────────
+.sidebar {
+  border-right: 1px solid $slate-200;
+  background: #ffffff;
+  overflow-y: auto;
+  flex-shrink: 0;
+  user-select: none;
+  box-sizing: border-box;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.sidebarInner {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebarTitle {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: $slate-800;
+  margin-bottom: 16px;
+  border-b: 1px solid $slate-100;
+  padding-bottom: 8px;
+}
+
+.sidebarOptionList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  color: $slate-600;
+  cursor: pointer;
+  
+  &:hover {
+    color: $slate-900;
+  }
+}
+
+.checkboxActive {
+  color: $trivandi-blue;
+  font-weight: 600;
+}
+
+.checkboxInput {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid $slate-300;
+  color: $trivandi-blue;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+  }
+}
+
+.checkboxBadge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  color: $slate-400;
+  background: $slate-100;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.sidebarSectionHeader {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: $slate-800;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid $slate-100;
+  padding-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.countLabel {
+  color: $slate-400;
+  font-weight: 500;
+  text-transform: lowercase;
+  letter-spacing: normal;
+}
+
+.authorInputWrapper {
+  position: relative;
+}
+
+.authorIcon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $slate-400;
+  transition: color $transition-fast;
+}
+
+.authorInput {
+  width: 100%;
+  height: 36px;
+  background: $slate-50;
+  border: 1px solid $slate-200;
+  border-radius: $radius-xl;
+  padding-left: 44px;
+  padding-right: 16px;
+  font-size: 14px;
+  color: $slate-700;
+  outline: none;
+  font-weight: 600;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all $transition-fast;
+
+  &:focus {
+    background: #ffffff;
+    border-color: rgba(26, 115, 232, 0.2);
+  }
+}
+
+.authorDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 8px;
+  background: #ffffff;
+  border: 1px solid $slate-200;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-2xl;
+  z-index: 50;
+  max-height: 256px;
+  overflow-y: auto;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.authorDropdownItem {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: $slate-600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $slate-50;
+    color: $trivandi-blue;
+  }
+}
+
+.authorInitialsAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: $slate-100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: $slate-800;
+}
+
+.authorDropdownItem:hover .authorInitialsAvatar {
+  background: rgba(26, 115, 232, 0.1);
+  color: $trivandi-blue;
+}
+
+.dateFilterButton {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: $slate-600;
+  padding: 8px 12px;
+  border-radius: $radius-xl;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $slate-100;
+  }
+}
+
+.dateFilterActive {
+  background: $trivandi-blue;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: $shadow-sm;
+
+  &:hover {
+    background: $trivandi-blue;
+  }
+}
+
+.datePickerLabel {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: $slate-800;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.datePickerBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: $slate-50;
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  border-radius: 16px;
+  transition: all $transition-fast;
+  cursor: pointer;
+  position: relative;
+
+  &:hover {
+    background: #ffffff;
+    border-color: rgba(26, 115, 232, 0.3);
+  }
+}
+
+.datePickerIcon {
+  color: $trivandi-blue;
+  padding: 6px;
+  display: flex;
+}
+
+.dateInput {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: $slate-700;
+  cursor: pointer;
+
+  &::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+  }
+}
+
+.sidebarActionWrapper {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid $slate-100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.applyButton {
+  width: 100%;
+  height: 40px;
+  background: $trivandi-blue;
+  color: #ffffff;
+  border: none;
+  border-radius: $radius-xl;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: $shadow-sm;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba(26, 115, 232, 0.9);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.resetButton {
+  width: 100%;
+  height: 40px;
+  background: transparent;
+  border: none;
+  color: $slate-400;
+  border-radius: $radius-xl;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #f1f5f9;
+    color: $slate-600;
+  }
+}
+
+.resizeHandle {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 10;
+  flex-shrink: 0;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: rgba(26, 115, 232, 0.2);
+  }
+}
+
+.resizeHandleActive {
+  background: rgba(26, 115, 232, 0.5) !important;
+}
+
+// ────────────────────────────────────────────────────────
+//  SearchResultsList (Main Results List) Component
+// ────────────────────────────────────────────────────────
+.mainContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.topTabBar {
+  background: #ffffff;
+  border-bottom: 1px solid $slate-100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 0 24px;
+}
+
+.tabButtonsWrapper {
+  display: flex;
+  gap: 32px;
+}
+
+.topTabItem {
+  background: transparent;
+  border: none;
+  padding: 12px 4px;
+  font-size: 14px;
+  font-weight: 900;
+  color: $slate-500;
+  cursor: pointer;
+  position: relative;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $slate-800;
+  }
+}
+
+.topTabItemActive {
+  color: $trivandi-blue;
+
+  &:hover {
+    color: $trivandi-blue;
+  }
+}
+
+.activeTabLine {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: $trivandi-blue;
+}
+
+.clearAllBtn {
+  background: $slate-100;
+  color: $slate-500;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $slate-200;
+    color: $slate-700;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.statsBar {
+  height: 40px;
+  border-bottom: 1px solid $slate-100;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: rgba(248, 250, 252, 0.1);
+}
+
+.statsLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: $slate-700;
+  white-space: nowrap;
+}
+
+.filterBadgeWrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-left: 1px solid $slate-200;
+  padding-left: 12px;
+  overflow-x: auto;
+}
+
+.filterBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background: rgba(26, 115, 232, 0.05);
+  border: 1px solid rgba(26, 115, 232, 0.1);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: $trivandi-blue;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.filterBadgeClose {
+  background: transparent;
+  border: none;
+  color: $trivandi-blue;
+  display: flex;
+  padding: 0;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.historyNavButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: $trivandi-blue;
+  color: #ffffff;
+  box-shadow: 0 4px 6px rgba(26, 115, 232, 0.2);
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba(26, 115, 232, 0.9);
+  }
+}
+
+.resultsListWrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: rgba(241, 245, 249, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// ────────────────────────────────────────────────────────
+//  ResultCard Styling
+// ────────────────────────────────────────────────────────
+.resultCard {
+  position: relative;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: $radius-xl;
+  border-top: 1px solid $slate-200;
+  border-right: 1px solid $slate-200;
+  border-bottom: 1px solid $slate-200;
+  border-left-width: 4px;
+  border-left-style: solid;
+  transition: all $transition-normal;
+  cursor: pointer;
+  display: flex;
+  gap: 16px;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px -5px rgba(100, 116, 139, 0.15);
+  }
+}
+
+.resultCardSelected {
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+  transform: scale(1.01);
+}
+
+.actionMenuAnchor {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+
+.cardLeftBlock {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+
+  @media (max-width: 640px) {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+.cardIconBox {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-sm;
+  transition: transform $transition-fast;
+}
+
+.resultCard:hover .cardIconBox {
+  transform: scale(1.05);
+}
+
+.starIconButton {
+  border: none;
+  background: transparent;
+  padding: 6px;
+  border-radius: 9999px;
+  cursor: pointer;
+  color: $slate-300;
+  display: flex;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: $slate-50;
+    color: $slate-400;
+  }
+}
+
+.cardBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardHeaderRow {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+  margin-top: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 32px;
+  color: $slate-900;
+  transition: color $transition-fast;
+}
+
+.resultCard:hover .cardTitle {
+  color: $slate-700;
+}
+
+.scoreContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  gap: 4px;
+  margin-right: 28px;
+}
+
+.scoreRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.scoreBadge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.scoreBM25 {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.scoreTFIDF {
+  background: #EEF2FD;
+  color: #4F46E5;
+}
+
+.fileTypeBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid transparent;
+}
+
+.cardMetadataRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  color: $slate-500;
+}
+
+.metaBoldLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+
+.metaValueDark {
+  color: $slate-700;
+  font-weight: 600;
+}
+
+.metaDot {
+  width: 4px;
+  height: 4px;
+  background: $slate-300;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cardDescription {
+  font-size: 12px;
+  color: $slate-500;
+  line-height: 1.6;
+  font-weight: 500;
+  margin: 0 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardProjectHubRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $slate-500;
+}
+
+.projectHubValue {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ────────────────────────────────────────────────────────
+//  Pagination Controls
+// ────────────────────────────────────────────────────────
+.pagination {
+  height: 56px;
+  border-top: 1px solid $slate-100;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.paginationInfo {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $slate-400;
+}
+
+.infoDivider {
+  color: $slate-300;
+  margin: 0 8px;
+}
+
+.infoHighlight {
+  color: $slate-600;
+}
+
+.pageNumberControls {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pageArrowBtn {
+  border: none;
+  background: transparent;
+  padding: 8px;
+  border-radius: $radius-xl;
+  color: $slate-400;
+  cursor: pointer;
+  display: flex;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $slate-50;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.pageNumBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-xl;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  background: transparent;
+  color: $slate-500;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $slate-50;
+    border-color: $slate-100;
+  }
+}
+
+.pageNumActive {
+  background: $trivandi-blue;
+  color: #ffffff;
+  box-shadow: $shadow-sm;
+
+  &:hover {
+    background: $trivandi-blue;
+  }
+}
+
+.paginationEllipsis {
+  padding: 0 8px;
+  color: $slate-300;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+}
+
+.jumpToWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jumpToLabel {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $slate-400;
+}
+
+.jumpToInput {
+  width: 40px;
+  height: 32px;
+  background: $slate-50;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 12px;
+  outline: none;
+  font-weight: 900;
+  color: $slate-800;
+  transition: all $transition-fast;
+
+  &:focus {
+    background: #ffffff;
+    border-color: rgba(26, 115, 232, 0.3);
+  }
+}
+
+// ────────────────────────────────────────────────────────
+//  Bottom Sub-Footer Tab Navigation
+// ────────────────────────────────────────────────────────
+.bottomTabNav {
+  height: 40px;
+  background: $slate-100;
+  border-top: 1px solid $slate-200;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.bottomTabWrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+}
+
+.bottomTabItem {
+  height: 40px;
+  border: none;
+  background: transparent;
+  padding: 0 16px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: $slate-600;
+  cursor: pointer;
+  position: relative;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $slate-900;
+  }
+}
+
+.bottomTabActive {
+  color: $trivandi-blue;
+
+  &:hover {
+    color: $trivandi-blue;
+  }
+}
+
+.bottomActiveLine {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: $trivandi-blue;
+}
+
+// ────────────────────────────────────────────────────────
+//  DocumentAnalysis (PreviewPane) Component
+// ────────────────────────────────────────────────────────
+.previewPane {
+  background: $slate-50;
+  border-left: 1px solid $slate-200;
+  flex-shrink: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  box-shadow: $shadow-xl;
+  height: 100%;
+}
+
+.previewHeader {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid $slate-200;
+  flex-shrink: 0;
+  background: #ffffff;
+}
+
+.previewTitleLabel {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: $slate-900;
+}
+
+.previewCloseBtn {
+  border: none;
+  background: transparent;
+  padding: 8px;
+  border-radius: 9999px;
+  color: $slate-400;
+  cursor: pointer;
+  display: flex;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #fee2e2;
+    color: #ef4444;
+  }
+}
+
+.previewContentScroll {
+  padding: 32px;
+  overflow-y: auto;
+  flex: 1;
+  background: $slate-50;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.previewDocVisualCard {
+  aspect-ratio: 3/4;
+  background: #ffffff;
+  border: 1px solid $slate-200;
+  box-shadow: $shadow-lg;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin-bottom: 32px;
+}
+
+.visualCardTop {
+  padding: 40px;
+  background: $slate-100;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.visualPulseLine1 {
+  height: 20px;
+  width: 75%;
+  background: $slate-200;
+  border-radius: 4px;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.visualPulseLine2 {
+  height: 20px;
+  width: 50%;
+  background: $slate-200;
+  border-radius: 4px;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  opacity: 0.6;
+}
+
+.visualInnerFrame {
+  height: 160px;
+  background: #ffffff;
+  border: 1px solid $slate-200;
+  border-radius: 12px;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.frameGripBackground {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: radial-gradient($trivandi-blue 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.frameIcon {
+  color: $trivandi-blue;
+  opacity: 0.2;
+}
+
+.visualPulseList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.pulseRow {
+  height: 12px;
+  width: 100%;
+  background: $slate-200;
+  border-radius: 4px;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.pulseRowMid {
+  width: 83.333%;
+  opacity: 0.7;
+}
+
+.pulseRowShort {
+  width: 66.666%;
+  opacity: 0.4;
+}
+
+.visualCardBottom {
+  height: 48px;
+  background: #ffffff;
+  border-top: 1px solid $slate-100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.visualRestrictedLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: $slate-400;
+}
+
+.previewMetaGrid {
+  display: grid;
+  grid-template-cols: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin: 32px 0;
+}
+
+.previewMetaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.previewMetaLabel {
+  font-size: 9px;
+  color: $slate-500;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.previewMetaValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: $slate-700;
+}
+
+.primaryAuthorCard {
+  grid-column: span 2 / span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid $slate-200;
+  border-radius: $radius-xl;
+}
+
+.authorCardRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.authorAvatarSphere {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: $trivandi-blue;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: $shadow-sm;
+}
+
+.extractedSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.extractedContentBlock {
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid $slate-100;
+  border-radius: $radius-xl;
+  font-size: 12px;
+  color: $slate-600;
+  line-height: 1.6;
+  max-height: 192px;
+  overflow-y: auto;
+  font-style: italic;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.previewActionsWrapper {
+  display: flex;
+  gap: 12px;
+  padding-top: 8px;
+  padding-bottom: 32px;
+}
+
+.previewFullBtn {
+  flex: 1;
+  background: $trivandi-blue;
+  color: #ffffff;
+  height: 44px;
+  border: none;
+  border-radius: $radius-xl;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: $shadow-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba(26, 115, 232, 0.9);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.previewDownloadBtn {
+  width: 44px;
+  height: 44px;
+  background: #ffffff;
+  border: 1px solid $slate-200;
+  color: $slate-700;
+  border-radius: $radius-xl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: $shadow-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+}
+
+// ────────────────────────────────────────────────────────
+//  SearchHistory (HistoryPane) Component
+// ────────────────────────────────────────────────────────
+.historyPane {
+  background: $slate-50;
+  border-left: 1px solid $slate-200;
+  flex-shrink: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  box-shadow: $shadow-xl;
+  height: 100%;
+}
+
+.historyHeader {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid $slate-200;
+  flex-shrink: 0;
+  background: #ffffff;
+}
+
+.historyTitleBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.historyTitleLabel {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: $slate-900;
+}
+
+.historyCloseBtn {
+  border: none;
+  background: transparent;
+  padding: 8px;
+  border-radius: 9999px;
+  color: $slate-400;
+  cursor: pointer;
+  display: flex;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #fee2e2;
+    color: #ef4444;
+  }
+}
+
+.historyScrollContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.historyListGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.historyItemCard {
+  position: relative;
+  border-radius: $radius-xl;
+  border: 2px solid transparent;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #ffffff;
+    box-shadow: $shadow-md;
+    border-color: rgba(26, 115, 232, 0.1);
+  }
+}
+
+.historyItemTrigger {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.historyItemIconBox {
+  padding: 10px;
+  background: $slate-100;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  transition: all $transition-fast;
+}
+
+.historyItemCard:hover .historyItemIconBox {
+  background: $trivandi-blue;
+  color: #ffffff;
+}
+
+.historyItemInfo {
+  flex: 1;
+  min-width: 0;
+  padding-right: 24px;
+}
+
+.historyItemQueryText {
+  font-size: 14px;
+  font-weight: 600;
+  color: $slate-700;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color $transition-fast;
+}
+
+.historyItemCard:hover .historyItemQueryText {
+  color: $trivandi-blue;
+}
+
+.historyItemTimeLabel {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $slate-400;
+  margin: 2px 0 0;
+}
+
+.historyItemRemoveBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  padding: 8px;
+  border-radius: 9999px;
+  color: $slate-300;
+  cursor: pointer;
+  opacity: 0;
+  display: flex;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #fee2e2;
+    color: #ef4444;
+  }
+}
+
+.historyItemCard:hover .historyItemRemoveBtn {
+  opacity: 1;
+}
+
+.historyEmptyState {
+  text-align: center;
+  padding: 80px 24px;
+}
+
+.historyEmptyIconFrame {
+  width: 64px;
+  height: 64px;
+  background: #ffffff;
+  border: 2px solid $slate-100;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  box-shadow: $shadow-sm;
+}
+
+.historyEmptyTitle {
+  font-size: 14px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: $slate-400;
+  margin-bottom: 8px;
+}
+
+.historyEmptyDesc {
+  font-size: 12px;
+  color: $slate-400;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.historyFooter {
+  padding: 24px;
+  border-top: 1px solid $slate-200;
+  background: #ffffff;
+}
+
+.clearHistoryButton {
+  width: 100%;
+  height: 44px;
+  background: $slate-50;
+  border: none;
+  color: $slate-500;
+  border-radius: $radius-xl;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #fee2e2;
+    color: #ef4444;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// ────────────────────────────────────────────────────────
+//  FileActionMenu Component
+// ────────────────────────────────────────────────────────
+.actionMenuWrapper {
+  position: relative;
+}
+
+.actionTriggerBtn {
+  border: none;
+  background: transparent;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: $slate-400;
+  display: flex;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $slate-50;
+    color: $slate-600;
+  }
+}
+
+.actionTriggerBtnActive {
+  background: $slate-100 !important;
+  color: $slate-900 !important;
+  box-shadow: $shadow-sm;
+}
+
+.actionDropdownList {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  z-index: 100;
+  width: 208px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: $shadow-xl;
+  border: 1px solid $slate-200;
+  padding: 6px 0;
+}
+
+.actionDropdownItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: $slate-700;
+  cursor: pointer;
+  text-align: left;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: $slate-50;
+    color: $slate-900;
+  }
+}
+
+.actionItemIcon {
+  color: $slate-400;
+  flex-shrink: 0;
+  transition: color $transition-fast;
+}
+
+.actionDropdownItem:hover .actionItemIcon {
+  color: $slate-600;
+}
+
+.actionItemCopied {
+  color: #16a34a !important;
+}
+
+.actionIconCopied {
+  color: #16a34a !important;
+}
+
+// ────────────────────────────────────────────────────────
+//  DetailPanel Component
+// ────────────────────────────────────────────────────────
+.detailBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+}
+
+.detailDrawer {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  max-width: 576px;
+  background: #ffffff;
+  box-shadow: $shadow-2xl;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.detailHeader {
+  padding: 24px;
+  border-bottom: 1px solid $slate-100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.detailHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detailIconBox {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(0, 71, 171, 0.05);
+  color: #0047AB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detailHeadingBox {
+  min-width: 0;
+}
+
+.detailDocTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: $slate-900;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detailDocSub {
+  font-size: 12px;
+  font-weight: 500;
+  color: $slate-500;
+  margin: 2px 0 0;
+}
+
+.detailCloseBtn {
+  border: none;
+  background: transparent;
+  padding: 8px;
+  border-radius: 9999px;
+  color: $slate-400;
+  cursor: pointer;
+  display: flex;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $slate-100;
+    color: $slate-600;
+  }
+}
+
+.detailScrollContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+}
+
+.detailSection {
+  margin-bottom: 32px;
+}
+
+.detailSectionHeader {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #0047AB;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detailContentBlock {
+  font-size: 14px;
+  color: $slate-700;
+  line-height: 1.6;
+  background: $slate-50;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid $slate-100;
+}
+
+.timelineGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 16px;
+}
+
+.timelineLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timelineNode {
+  width: 8px;
+  height: 8px;
+  background: $slate-300;
+  border-radius: 50%;
+  margin-top: 6px;
+}
+
+.timelineLine {
+  flex: 1;
+  width: 1px;
+  background: $slate-200;
+  margin: 4px 0;
+}
+
+.timelineRight {
+  padding-bottom: 16px;
+}
+
+.timelineDate {
+  font-size: 10px;
+  font-weight: 700;
+  color: $slate-400;
+  margin-bottom: 2px;
+}
+
+.timelineAuthor {
+  font-size: 12px;
+  font-weight: 700;
+  color: $slate-800;
+}
+
+.timelineAction {
+  font-size: 12px;
+  color: $slate-500;
+  margin-top: 2px;
+}
+
+.detailFooter {
+  padding: 24px;
+  border-top: 1px solid $slate-100;
+  background: $slate-50;
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.footerPrimaryBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  background: #0047AB;
+  color: #ffffff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: #003682;
+  }
+}
+
+.footerSecondaryBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  background: #ffffff;
+  border: 1px solid $slate-200;
+  color: $slate-700;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $slate-50;
+  }
+}
+
+// ────────────────────────────────────────────────────────
+//  Simulated Loading Row & Empty States
+// ────────────────────────────────────────────────────────
+.loadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  color: $slate-500;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid $slate-200;
+  border-top-color: $trivandi-blue;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  color: $slate-400;
+
+  svg {
+    opacity: 0.15;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: $slate-700;
+    margin: 0 0 8px;
+  }
+
+  p {
+    font-size: 14px;
+    color: $slate-500;
+    margin: 0;
+  }
+}
+
+// ────────────────────────────────────────────────────────
+//  CSS Keyframe Animations
+// ────────────────────────────────────────────────────────
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}

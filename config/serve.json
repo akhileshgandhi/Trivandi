@@ -2,5 +2,28 @@
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/spfx-serve.schema.json",
   "port": 4321,
   "https": true,
-  "initialPage": "https://trivandildn.sharepoint.com/sites/projects/_layouts/workbench.aspx"
+  "serveConfigurations": {
+    "default": {
+      "pageUrl": "https://trivandildn.sharepoint.com/sites/TrivandiHub",
+      "customActions": {
+        "a886704a-9718-4402-8f93-bf183172c188": {
+          "location": "ClientSideExtension.ApplicationCustomizer",
+          "properties": {
+            "testMessage": "Test message"
+          }
+        }
+      }
+    },
+    "globalSearchCustomizer": {
+      "pageUrl": "https://trivandildn.sharepoint.com/sites/TrivandiHub",
+      "customActions": {
+        "a886704a-9718-4402-8f93-bf183172c188": {
+          "location": "ClientSideExtension.ApplicationCustomizer",
+          "properties": {
+            "testMessage": "Test message"
+          }
+        }
+      }
+    }
+  }
 }
