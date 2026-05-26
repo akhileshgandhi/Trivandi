@@ -2,11 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { GraphSearchService } from '../services/GraphSearchService';
 import { ISearchResult } from '../../../models/ISearchResult';
 
-export interface IUseSearchOptions {
-  service: GraphSearchService | null;
-  initialQuery?: string;
-  pageSize?: number;
-}
+import { IUseSearchOptions } from '../interface/IUseSearchOptions';
 
 export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSearchOptions) {
   const [query, setQuery] = useState(initialQuery);
@@ -22,6 +18,16 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
       setError('Search service is not initialized.');
       return;
     }
+
+    // Prevent empty queries to avoid MS Graph FanoutExternalTimeoutException (500)
+    if (!query.trim()) {
+      setResults([]);
+      setTotalCount(0);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -30,7 +36,11 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
       setTotalCount(res.totalCount);
     } catch (err: any) {
       console.error('Error executing Graph Search in hook:', err);
-      setError(err?.message || 'Failed to fetch search results from Microsoft Graph API.');
+      if (err?.statusCode === 429 || (err?.message && err.message.includes('429'))) {
+        setError('Too many requests. Please wait a moment before searching again.');
+      } else {
+        setError(err?.message || 'Failed to fetch search results from Microsoft Graph API.');
+      }
     } finally {
       setLoading(false);
     }

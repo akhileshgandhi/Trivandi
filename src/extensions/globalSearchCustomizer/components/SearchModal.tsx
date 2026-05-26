@@ -33,6 +33,7 @@ import { ResultCard, SearchTabs } from './ResultCard';
 import { FileActionMenu } from './FileActionMenu';
 import { PaginationComponent } from '../Common/PaginationComponent';
 import { SkeletonLoader } from '../Common/SkeletonLoader';
+import { useDebounce } from '../Common/useDebounce';
 
 import { ISearchModalProps } from '../interface/ISearchModalProps';
 
@@ -58,6 +59,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
 
   // --- Search Query & Filter states ---
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 1000);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [filters, setFilters] = useState({
     fileTypes: ['All'],
@@ -134,13 +136,10 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     pageSize: 10
   });
 
-  // Track search query changes to synchronize hook with debounce
+  // Track search query changes to synchronize hook using use-debounce library
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setQuery(searchQuery);
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, setQuery]);
+    setQuery(debouncedSearchQuery);
+  }, [debouncedSearchQuery, setQuery]);
 
   // Track fileTypes filter changes to synchronize hook
   useEffect(() => {
@@ -418,11 +417,17 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
               <div className={styles.resultsListWrapper}>
                 {isLoading ? (
                   <SkeletonLoader count={4} />
+                ) : liveError ? (
+                  <div className={styles.emptyState}>
+                    <SlidersHorizontal size={40} color="#ef4444" />
+                    <h3 style={{ color: '#ef4444' }}>API Error</h3>
+                    <p>{liveError}</p>
+                  </div>
                 ) : resultsToRender.length === 0 ? (
                   <div className={styles.emptyState}>
                     <SlidersHorizontal size={40} />
-                    <h3>No results found</h3>
-                    <p>Try broadening your terms or resetting filters.</p>
+                    <h3>{searchQuery.trim() === '' ? 'Ready to Search' : 'No results found'}</h3>
+                    <p>{searchQuery.trim() === '' ? 'Start typing above to search across all files and documents.' : 'Try broadening your terms or resetting filters.'}</p>
                   </div>
                 ) : (
                   resultsToRender.map((result, idx) => {

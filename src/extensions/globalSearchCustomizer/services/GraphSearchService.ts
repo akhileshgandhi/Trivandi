@@ -35,21 +35,13 @@ export class GraphSearchService {
             queryString: queryString
           },
           from: from,
-          size: pageSize,
-          fields: [
-            'id',
-            'name',
-            'webUrl',
-            'lastModifiedDateTime',
-            'createdBy',
-            'size',
-            'summary',
-            'file',
-            'parentReference'
-          ]
+          size: pageSize
         }
       ]
     };
+
+    console.log('--- Sending MS Graph Search Payload ---');
+    console.log(JSON.stringify(searchPayload, null, 2));
 
     const response = await client
       .api('/search/query')
