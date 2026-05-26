@@ -32,6 +32,7 @@ import { SearchHistory } from './SearchHistory';
 import { ResultCard, SearchTabs } from './ResultCard';
 import { FileActionMenu } from './FileActionMenu';
 import { PaginationComponent } from '../Common/PaginationComponent';
+import { SkeletonLoader } from '../Common/SkeletonLoader';
 
 import { ISearchModalProps } from '../interface/ISearchModalProps';
 
@@ -210,12 +211,15 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   } = useSearch({
     service: searchService,
     initialQuery: '',
-    pageSize: 20
+    pageSize: 10
   });
 
-  // Track search query changes to synchronize hook
+  // Track search query changes to synchronize hook with debounce
   useEffect(() => {
-    setQuery(searchQuery);
+    const timeoutId = setTimeout(() => {
+      setQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(timeoutId);
   }, [searchQuery, setQuery]);
 
   // Track fileTypes filter changes to synchronize hook
@@ -544,10 +548,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
               {/* Results cards panel */}
               <div className={styles.resultsListWrapper}>
                 {isLoading ? (
-                  <div className={styles.loadingRow}>
-                    <div className={styles.spinner} />
-                    <span>Searching SharePoint documents...</span>
-                  </div>
+                  <SkeletonLoader count={4} />
                 ) : resultsToRender.length === 0 ? (
                   <div className={styles.emptyState}>
                     <SlidersHorizontal size={40} />
@@ -644,15 +645,15 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
               </div>
 
               {/* Pagination controls footer */}
-              {resultsToRender.length > 0 && (
+              {!isLoading && resultsToRender.length > 0 && (
                 <footer className={styles.pagination}>
                   <span className={styles.paginationInfo}>
-                    PAGE {Math.floor(from / 20) + 1} <span className={styles.infoDivider}>|</span> SHOWING <span className={styles.infoHighlight}>{from + 1}-{from + resultsToRender.length}</span> OF <span className={styles.infoHighlight}>{totalCountToRender}</span>
+                    PAGE {Math.floor(from / 10) + 1} <span className={styles.infoDivider}>|</span> SHOWING <span className={styles.infoHighlight}>{from + 1}-{from + resultsToRender.length}</span> OF <span className={styles.infoHighlight}>{totalCountToRender}</span>
                   </span>
 
                   <PaginationComponent
                     totalCount={totalCountToRender}
-                    pageSize={20}
+                    pageSize={10}
                     from={from}
                     onPageChange={(newFrom) => {
                       if (isLiveMode) setFrom(newFrom);
@@ -663,7 +664,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                     <span className={styles.jumpToLabel}>Jump to</span>
                     <input 
                       type="text" 
-                      placeholder={(Math.floor(from / 20) + 1).toString()}
+                      placeholder={(Math.floor(from / 10) + 1).toString()}
                       className={styles.jumpToInput}
                       disabled
                     />
