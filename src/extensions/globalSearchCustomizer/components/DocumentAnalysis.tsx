@@ -2,14 +2,7 @@ import * as React from 'react';
 import { X, FileText, ExternalLink, Download } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 
-export interface IDocumentAnalysisProps {
-  selectedFile: any;
-  setSelectedFile: (file: any) => void;
-  previewWidth: number;
-  searchQuery: string;
-  isResizingPreview: boolean;
-  startResizingPreview: (e: React.MouseEvent) => void;
-}
+import { IDocumentAnalysisProps } from '../interface/IDocumentAnalysisProps';
 
 export const DocumentAnalysis: React.FC<IDocumentAnalysisProps> = ({
   selectedFile,

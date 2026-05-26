@@ -2,17 +2,7 @@ import * as React from 'react';
 import { History as HistoryIcon, X, Search } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 
-export interface ISearchHistoryProps {
-  isHistoryOpen: boolean;
-  setIsHistoryOpen: (open: boolean) => void;
-  previewWidth: number;
-  searchHistory: string[];
-  handleSearch: (query: string) => void;
-  setSearchHistory: React.Dispatch<React.SetStateAction<string[]>>;
-  removeHistoryItem: (item: string) => void;
-  isResizingPreview: boolean;
-  startResizingPreview: (e: React.MouseEvent) => void;
-}
+import { ISearchHistoryProps } from '../interface/ISearchHistoryProps';
 
 export const SearchHistory: React.FC<ISearchHistoryProps> = ({
   isHistoryOpen,

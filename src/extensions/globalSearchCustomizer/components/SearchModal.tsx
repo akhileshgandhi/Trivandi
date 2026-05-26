@@ -31,12 +31,9 @@ import { DocumentAnalysis } from './DocumentAnalysis';
 import { SearchHistory } from './SearchHistory';
 import { ResultCard, SearchTabs } from './ResultCard';
 import { FileActionMenu } from './FileActionMenu';
+import { PaginationComponent } from '../Common/PaginationComponent';
 
-export interface ISearchModalProps {
-  context: any;
-  isOpen: boolean;
-  onDismiss: () => void;
-}
+import { ISearchModalProps } from '../interface/ISearchModalProps';
 
 // File type design mapping helper
 const getFileColor = (fileType: string) => {
@@ -653,27 +650,14 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                     PAGE {Math.floor(from / 20) + 1} <span className={styles.infoDivider}>|</span> SHOWING <span className={styles.infoHighlight}>{from + 1}-{from + resultsToRender.length}</span> OF <span className={styles.infoHighlight}>{totalCountToRender}</span>
                   </span>
 
-                  <div className={styles.pageNumberControls}>
-                    <button 
-                      disabled={from === 0}
-                      onClick={() => isLiveMode && setFrom(Math.max(0, from - 20))}
-                      className={styles.pageArrowBtn}
-                    >
-                      <ChevronLeft size={16} strokeWidth={2.5} />
-                    </button>
-                    
-                    <button className={`${styles.pageNumBtn} ${styles.pageNumActive}`}>
-                      {Math.floor(from / 20) + 1}
-                    </button>
-                    
-                    <button 
-                      disabled={from + 20 >= totalCountToRender}
-                      onClick={() => isLiveMode && setFrom(from + 20)}
-                      className={styles.pageArrowBtn}
-                    >
-                      <ChevronRight size={16} strokeWidth={2.5} />
-                    </button>
-                  </div>
+                  <PaginationComponent
+                    totalCount={totalCountToRender}
+                    pageSize={20}
+                    from={from}
+                    onPageChange={(newFrom) => {
+                      if (isLiveMode) setFrom(newFrom);
+                    }}
+                  />
 
                   <div className={styles.jumpToWrapper}>
                     <span className={styles.jumpToLabel}>Jump to</span>

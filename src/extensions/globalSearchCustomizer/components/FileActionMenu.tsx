@@ -12,12 +12,9 @@ import {
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
 
-interface FileActionMenuProps {
-  file: ISearchResult;
-  onOpenChange?: (isOpen: boolean) => void;
-}
+import { IFileActionMenuProps } from '../interface/IFileActionMenuProps';
 
-export const FileActionMenu: React.FC<FileActionMenuProps> = ({ file, onOpenChange }) => {
+export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

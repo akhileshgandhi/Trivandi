@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ExternalLink, FileText, Image as ImageIcon, FileSpreadsheet, FileBox } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
+import { ISearchTabsProps } from '../interface/ISearchTabsProps';
 
 // CARD ACCENT COLOR ASSIGNMENTS
 const CARD_COLORS = [
@@ -68,7 +69,15 @@ export const ResultCard: React.FC<{ result: ISearchResult; idx: number; onClick:
           <span>{formattedSize}</span>
         </div>
 
-        <p className={styles.cardDescription}>{result.summary}</p>
+        <p 
+          className={styles.cardDescription} 
+          dangerouslySetInnerHTML={{ 
+            __html: (result.summary || '')
+              .replace(/<c0>/g, '<strong>')
+              .replace(/<\/c0>/g, '</strong>')
+              .replace(/<ddd\/>/g, '&#8230;') 
+          }} 
+        />
         
         <div className={styles.cardProjectHubRow}>
           <span>PROJECT HUB: </span>
@@ -80,10 +89,6 @@ export const ResultCard: React.FC<{ result: ISearchResult; idx: number; onClick:
 };
 
 // SearchTabs Component implementation
-export interface ISearchTabsProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-}
 
 const TABS = ['All', 'Files', 'Images'];
 
