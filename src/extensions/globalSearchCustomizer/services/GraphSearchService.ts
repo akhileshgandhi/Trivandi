@@ -16,8 +16,8 @@ export class GraphSearchService {
   ): Promise<{ results: ISearchResult[]; totalCount: number }> {
     const client: any = await this._msGraphClientFactory.getClient('3');
 
-    // Build the query string
-    let queryString = query.trim() || '*';
+    // Build the query string using a safer KQL fallback
+    let queryString = query.trim() || 'IsDocument:1';
     
     // Add file type filters if present and not "All"
     const actualTypes = fileTypes.filter(t => t !== 'All');

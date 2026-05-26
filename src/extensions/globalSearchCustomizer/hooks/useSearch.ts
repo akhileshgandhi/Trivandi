@@ -19,15 +19,6 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
       return;
     }
 
-    // Prevent empty queries to avoid MS Graph FanoutExternalTimeoutException (500)
-    if (!query.trim()) {
-      setResults([]);
-      setTotalCount(0);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
