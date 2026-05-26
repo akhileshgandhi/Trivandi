@@ -79,87 +79,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     'HR employee handbook v3'
   ]);
 
-  // --- Search Results Mock Data (Fallback) ---
-  const initialMockResults: ISearchResult[] = useMemo(() => [
-    {
-      id: 'm1',
-      title: 'Marketing Strategy Q3 2024',
-      author: 'Sarah Chen',
-      lastModified: '2026-05-24T12:00:00Z',
-      size: 1258291,
-      summary: 'Comprehensive analysis of market trends and competitor performance in the APAC region.',
-      webUrl: 'https://sharepoint.intel/marketing/strategies',
-      fileType: 'docx',
-      siteName: 'Marketing Hub',
-      siteUrl: 'https://sharepoint.intel/marketing',
-      isStarred: true
-    },
-    {
-      id: 'm2',
-      title: 'Annual Financial Report FY23',
-      author: 'Robert Wilson',
-      lastModified: '2026-05-21T09:15:00Z',
-      size: 5033164,
-      summary: 'Consolidated financial statements, auditor reports, and performance metrics for the fiscal year.',
-      webUrl: 'https://sharepoint.intel/finance/reports',
-      fileType: 'xlsx',
-      siteName: 'Finance Portal',
-      siteUrl: 'https://sharepoint.intel/finance',
-      isStarred: false
-    },
-    {
-      id: 'm3',
-      title: 'Brand Guidelines V2.1',
-      author: 'Elena Rodriguez',
-      lastModified: '2026-05-16T16:45:00Z',
-      size: 5033164,
-      summary: 'Visual identity standards, logo usage, and typography rules for all corporate communications.',
-      webUrl: 'https://sharepoint.intel/brand/assets',
-      fileType: 'pdf',
-      siteName: 'Brand Center',
-      siteUrl: 'https://sharepoint.intel/brand',
-      isStarred: false
-    },
-    {
-      id: 'm4',
-      title: 'Employee Onboarding Handbook',
-      author: 'HR Department',
-      lastModified: '2026-05-25T14:20:00Z',
-      size: 1258291,
-      summary: 'Essential information for new hires including benefits, culture, and operational procedures.',
-      webUrl: 'https://sharepoint.intel/hr/portal',
-      fileType: 'docx',
-      siteName: 'HR Hub',
-      siteUrl: 'https://sharepoint.intel/hr',
-      isStarred: true
-    },
-    {
-      id: 'm5',
-      title: 'Product Roadmap 2024-2025',
-      author: 'James T. Kirk',
-      lastModified: '2026-05-22T10:00:00Z',
-      size: 5033164,
-      summary: 'Strategic product milestones, feature releases, and timeline planning for next-generation platform.',
-      webUrl: 'https://sharepoint.intel/product/roadmap',
-      fileType: 'pptx',
-      siteName: 'Product Portal',
-      siteUrl: 'https://sharepoint.intel/product',
-      isStarred: false
-    },
-    {
-      id: 'm6',
-      title: 'IT Security Policy & Guidelines',
-      author: 'Security Operations',
-      lastModified: '2026-05-18T08:00:00Z',
-      size: 2202009,
-      summary: 'Information security standards, password requirements, and compliance guidelines for employees.',
-      webUrl: 'https://sharepoint.intel/it/security',
-      fileType: 'pdf',
-      siteName: 'IT Operations',
-      siteUrl: 'https://sharepoint.intel/it',
-      isStarred: false
-    }
-  ], []);
+
 
   // --- Graph Service Setup ---
   const searchService = useMemo(() => {
@@ -227,8 +147,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     setFileTypes(filters.fileTypes);
   }, [filters.fileTypes, setFileTypes]);
 
-  // Determine if we should use Live Mode or Fallback Mock Mode
-  const isLiveMode = !!searchService && !liveError;
+
 
   // Convert raw Graph Search results into our formatted UI result cards
   const mappedLiveResults = useMemo(() => {
@@ -250,51 +169,10 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     });
   }, [liveResults, starredIds]);
 
-  // --- Filtering Mock Data (Offline Fallback Logic) ---
-  const filteredMockResults = useMemo(() => {
-    let list = initialMockResults.map(item => ({
-      ...item,
-      isStarred: starredIds.has(item.id)
-    }));
-
-    if (bottomTab === 'Starred Assets') {
-      list = list.filter(item => item.isStarred);
-    }
-
-    if (activeTopTab === 'Files') {
-      list = list.filter(item => ['docx', 'xlsx', 'pdf', 'pptx'].includes(item.fileType.toLowerCase()));
-    } else if (activeTopTab === 'Images') {
-      list = list.filter(item => ['png', 'jpg', 'jpeg', 'pdf'].includes(item.fileType.toLowerCase())); 
-    }
-
-    if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(item => 
-        item.title.toLowerCase().includes(q) || 
-        (item.summary && item.summary.toLowerCase().includes(q)) ||
-        item.author.toLowerCase().includes(q)
-      );
-    }
-
-    if (filters.fileTypes.length > 0 && !filters.fileTypes.includes('All')) {
-      list = list.filter(item => {
-        const typeMatch = filters.fileTypes.map(t => t.toLowerCase());
-        return typeMatch.some(tm => item.fileType.toLowerCase().includes(tm));
-      });
-    }
-
-    if (filters.author.trim() !== '') {
-      const auth = filters.author.toLowerCase();
-      list = list.filter(item => item.author.toLowerCase().includes(auth));
-    }
-
-    return list;
-  }, [searchQuery, filters, activeTopTab, bottomTab, starredIds, initialMockResults]);
-
-  // Set the final target results and states based on current Mode (Live vs Mock)
-  const resultsToRender: ISearchResult[] = isLiveMode ? mappedLiveResults : filteredMockResults;
-  const totalCountToRender: number = isLiveMode ? liveTotalCount : filteredMockResults.length;
-  const isLoading: boolean = isLiveMode ? liveLoading : false;
+  // Set the final target results and states based on Live Data
+  const resultsToRender: ISearchResult[] = mappedLiveResults;
+  const totalCountToRender: number = liveTotalCount;
+  const isLoading: boolean = liveLoading;
 
   // Selected File Object derivation
   const selectedFile = useMemo(() => {
@@ -439,18 +317,9 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           </div>
 
           {/* Connection status badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '20px', background: isLiveMode ? '#ECFDF5' : '#FFF7ED', border: `1px solid ${isLiveMode ? '#10B981' : '#F97316'}`, marginLeft: '12px' }}>
-            {isLiveMode ? (
-              <>
-                <Wifi size={14} style={{ color: '#10B981' }} />
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#065F46' }}>Live Mode</span>
-              </>
-            ) : (
-              <>
-                <WifiOff size={14} style={{ color: '#F97316' }} />
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#9A3412' }}>Offline Mode</span>
-              </>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '20px', background: '#ECFDF5', border: `1px solid #10B981`, marginLeft: '12px' }}>
+            <Wifi size={14} style={{ color: '#10B981' }} />
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#065F46' }}>Live Mode</span>
           </div>
 
           <div className={styles.headerMeta}>
@@ -656,7 +525,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                     pageSize={10}
                     from={from}
                     onPageChange={(newFrom) => {
-                      if (isLiveMode) setFrom(newFrom);
+                      setFrom(newFrom);
                     }}
                   />
 
