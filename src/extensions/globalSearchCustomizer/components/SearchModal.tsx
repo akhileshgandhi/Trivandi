@@ -410,14 +410,16 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
             {/* Main Center Panel (Tabs & Listing Pane) */}
             <div className={styles.centerContainer}>
               {/* Category Filter Tabs */}
-              <SearchTabs 
-                activeTab={activeTopTab}
-                onTabChange={(tab) => {
-                  setActiveTopTab(tab);
-                  setFrom(0);
-                }}
-                onClearAll={handleClearAllFilters}
-              />
+              {bottomTab === 'Search Results' && (
+                <SearchTabs 
+                  activeTab={activeTopTab}
+                  onTabChange={(tab) => {
+                    setActiveTopTab(tab);
+                    setFrom(0);
+                  }}
+                  onClearAll={handleClearAllFilters}
+                />
+              )}
 
               {/* Main Results Listing Pane */}
               <SearchResultsList 
