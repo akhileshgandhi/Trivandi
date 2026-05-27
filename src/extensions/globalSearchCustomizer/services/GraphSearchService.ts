@@ -13,7 +13,8 @@ export class GraphSearchService {
     pageSize: number = 20, 
     from: number = 0,
     fileTypes: string[] = [],
-    activeTopTab: string = 'All'
+    activeTopTab: string = 'All',
+    date: string = ''
   ): Promise<{ results: ISearchResult[]; totalCount: number }> {
     const client: any = await this._msGraphClientFactory.getClient('3');
 
@@ -37,6 +38,43 @@ export class GraphSearchService {
     if (actualTypes.length > 0 && activeTopTab !== 'Folders') {
       const typeQueries = actualTypes.map(t => `filetype:${t.toLowerCase()}`);
       queryString += ` AND (${typeQueries.join(' OR ')})`;
+    }
+
+    // Add native SharePoint KQL date filters using standard KQL colon syntax
+    if (date) {
+      const now = new Date();
+      const formatKQLDate = (d: Date): string => {
+        return d.toISOString().split('T')[0];
+      };
+
+      if (date === 'Today') {
+        queryString += ` AND LastModifiedTime:>=${formatKQLDate(now)}`;
+      } else if (date === 'Yesterday') {
+        const dYesterday = new Date(now);
+        dYesterday.setDate(dYesterday.getDate() - 1);
+        queryString += ` AND LastModifiedTime:${formatKQLDate(dYesterday)}`;
+      } else if (date === 'This Week') {
+        const dWeek = new Date(now);
+        dWeek.setDate(dWeek.getDate() - 7);
+        queryString += ` AND LastModifiedTime:>=${formatKQLDate(dWeek)}`;
+      } else if (date === 'This Month') {
+        const dMonth = new Date(now);
+        dMonth.setDate(dMonth.getDate() - 30);
+        queryString += ` AND LastModifiedTime:>=${formatKQLDate(dMonth)}`;
+      } else if (date === 'This Year') {
+        const dYear = new Date(now);
+        dYear.setDate(dYear.getDate() - 365);
+        queryString += ` AND LastModifiedTime:>=${formatKQLDate(dYear)}`;
+      } else if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        queryString += ` AND LastModifiedTime:${date}`;
+      } else {
+        try {
+          const formattedDate = new Date(date).toISOString().split('T')[0];
+          queryString += ` AND LastModifiedTime:${formattedDate}`;
+        } catch (e) {
+          // ignore invalid date formats
+        }
+      }
     }
 
     // Build Graph Search POST payload according to Microsoft Graph Search API guidelines

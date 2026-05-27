@@ -128,6 +128,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     setQuery,
     setFileTypes,
     setActiveTopTab: hookSetActiveTopTab,
+    setDate,
     from,
     setFrom
   } = useSearch({
@@ -150,6 +151,11 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   useEffect(() => {
     hookSetActiveTopTab(activeTopTab);
   }, [activeTopTab, hookSetActiveTopTab]);
+
+  // Track date filter changes to synchronize hook
+  useEffect(() => {
+    setDate(filters.date);
+  }, [filters.date, setDate]);
 
 
   // Convert raw Graph Search results into our formatted UI result cards
@@ -217,7 +223,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     return Array.from(collected).sort((a, b) => a.localeCompare(b));
   }, [mappedLiveResults]);
 
-  // Robust live results filtering by Selected Authors and Dates
+  // Robust live results filtering by Selected Authors
   const filteredLiveResults = useMemo(() => {
     let list = mappedLiveResults;
     
@@ -226,52 +232,8 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
       list = list.filter(item => filters.selectedAuthors.includes(item.author));
     }
     
-    // 2. Date Filter
-    if (filters.date) {
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
-      list = list.filter(item => {
-        if (!item.lastModified) return false;
-        const itemDate = new Date(item.lastModified);
-        
-        if (filters.date === 'Today') {
-          return itemDate >= startOfToday;
-        }
-        if (filters.date === 'Yesterday') {
-          const yesterday = new Date(startOfToday);
-          yesterday.setDate(yesterday.getDate() - 1);
-          return itemDate >= yesterday && itemDate < startOfToday;
-        }
-        if (filters.date === 'This Week') {
-          const weekAgo = new Date(startOfToday);
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          return itemDate >= weekAgo;
-        }
-        if (filters.date === 'This Month') {
-          const monthAgo = new Date(startOfToday);
-          monthAgo.setMonth(monthAgo.getMonth() - 1);
-          return itemDate >= monthAgo;
-        }
-        if (filters.date === 'This Year') {
-          const yearAgo = new Date(startOfToday);
-          yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-          return itemDate >= yearAgo;
-        }
-        // Custom Pick Date (YYYY-MM-DD timezone-safe comparison)
-        if (filters.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          const [year, month, day] = filters.date.split('-').map(Number);
-          return itemDate.getFullYear() === year && 
-                 (itemDate.getMonth() + 1) === month && 
-                 itemDate.getDate() === day;
-        }
-        const pickDateStr = new Date(filters.date).toDateString();
-        return itemDate.toDateString() === pickDateStr;
-      });
-    }
-    
     return list;
-  }, [mappedLiveResults, filters.selectedAuthors, filters.date]);
+  }, [mappedLiveResults, filters.selectedAuthors]);
 
   // Set the final target results and states based on current Mode (Live vs Mock)
   const resultsToRender = useMemo(() => {
@@ -291,7 +253,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   }, [bottomTab, recentlyViewedFiles, starredFiles, filteredLiveResults, starredIds]);
 
   const totalCountToRender: number = bottomTab === 'Search Results' 
-    ? ((filters.selectedAuthors.length > 0 || filters.date) ? filteredLiveResults.length : liveTotalCount)
+    ? (filters.selectedAuthors.length > 0 ? filteredLiveResults.length : liveTotalCount)
     : resultsToRender.length;
   const isLoading: boolean = liveLoading;
 
@@ -512,61 +474,35 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
          ======================================================== */}
       {copyFileDialogFile && (
         <div 
-          style={{ 
-            position: 'fixed', 
-            inset: 0, 
-            backgroundColor: 'rgba(15, 23, 42, 0.4)', 
-            backdropFilter: 'blur(4px)',
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            zIndex: 999999 
-          }}
+          className={styles.copyDialogOverlay}
           onClick={(e) => {
             e.stopPropagation();
             setCopyFileDialogFile(null);
           }}
         >
           <div 
-            style={{ 
-              width: '450px', 
-              background: '#ffffff', 
-              borderRadius: '16px', 
-              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
-              padding: '24px',
-              boxSizing: 'border-box',
-              position: 'relative'
-            }}
+            className={styles.copyDialogContent}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button top right */}
             <button 
               onClick={() => setCopyFileDialogFile(null)}
-              style={{ 
-                position: 'absolute', 
-                top: '16px', 
-                right: '16px', 
-                background: 'none', 
-                border: 'none', 
-                color: '#94a3b8', 
-                cursor: 'pointer',
-                fontSize: '18px'
-              }}
+              className={styles.copyDialogClose}
             >
               ✕
             </button>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#4caf50', color: '#ffffff', fontSize: '12px', fontWeight: 'bold' }}>
+            <div className={styles.copyDialogHeader}>
+              <div className={styles.copyDialogCheckCircle}>
                 ✓
               </div>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#202124', margin: 0, fontFamily: 'Segoe UI, sans-serif' }}>
+              <h3 className={styles.copyDialogTitle}>
                 Link created
               </h3>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #dadce0', borderRadius: '8px', padding: '6px 12px', background: '#f8f9fa', marginBottom: '12px' }}>
-              <span style={{ fontSize: '13px', color: '#3c4043', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: 'Segoe UI, sans-serif' }}>
+            <div className={styles.copyDialogInputRow}>
+              <span className={styles.copyDialogUrlText}>
                 {copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`}
               </span>
               <button 
@@ -583,26 +519,15 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                     console.error('Failed to copy', err);
                   }
                 }}
-                style={{
-                  padding: '6px 16px',
-                  borderRadius: '20px',
-                  border: '1px solid #dadce0',
-                  background: appCopyCopied ? '#e8f5e9' : '#ffffff',
-                  color: appCopyCopied ? '#2e7d32' : '#1a73e8',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  fontFamily: 'Segoe UI, sans-serif'
-                }}
+                className={`${styles.copyDialogCopyButton} ${appCopyCopied ? styles.copyDialogCopyButtonCopied : ''}`}
               >
                 {appCopyCopied ? 'Copied!' : 'Copy'}
               </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#5f6368', fontFamily: 'Segoe UI, sans-serif' }}>
+            <div className={styles.copyDialogFooter}>
               <span>People in your organization with the link can view</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#1a73e8', fontWeight: 600 }}>
+              <span className={styles.copyDialogSettingsLink}>
                 ⚙ Settings
               </span>
             </div>

@@ -8,18 +8,6 @@ import { PaginationComponent } from '../Common/PaginationComponent';
 
 import { ISearchResultsListProps } from '../interface/ISearchResultsListProps';
 
-// File type design mapping helper
-const getFileColor = (fileType: string) => {
-  const ft = fileType ? fileType.toLowerCase() : '';
-  if (ft === 'pdf') return { color: '#00acc1', bg: '#e0f7fa' };
-  if (['xls', 'xlsx'].includes(ft)) return { color: '#00796b', bg: '#e0f2f1' };
-  if (['ppt', 'pptx'].includes(ft)) return { color: '#e52592', bg: '#fce4ec' };
-  if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) return { color: '#9334e6', bg: '#f3e5f5' };
-  if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ft)) return { color: '#ea4335', bg: '#fce8e6' };
-  if (ft === 'folder') return { color: '#f5b041', bg: '#fef5e7' };
-  return { color: '#1a73e8', bg: '#e8f0fe' };
-};
-
 export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
   resultsToRender,
   totalCountToRender,
@@ -48,7 +36,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
     <main className={styles.mainContainer}>
       {/* Statistics & Filter Flags Bar */}
       <div className={styles.statsBar}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+        <div className={styles.statsLeft}>
           <span className={styles.statsLabel}>
             Showing {resultsToRender.length} of {totalCountToRender.toLocaleString()} results
           </span>
@@ -117,7 +105,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
           className={styles.historyNavButton}
         >
           <HistoryIcon size={12} strokeWidth={2.5} />
-          <span style={{ fontWeight: 900 }}>History</span>
+          <span>History</span>
         </button>
       </div>
 
@@ -134,7 +122,6 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
         ) : (
           resultsToRender.map((result, idx) => {
             const isSelected = selectedFileId === result.id;
-            const colors = getFileColor(result.fileType);
             const isStarred = starredIds.has(result.id);
             
             const formatBytes = (bytes: number): string => {
@@ -149,15 +136,20 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
 
             const isMenuOpen = openMenuId === result.id;
 
+            const ft = result.fileType ? result.fileType.toLowerCase() : '';
+            let typeClass = styles.type_default;
+            if (ft === 'pdf') typeClass = styles.type_pdf;
+            else if (['xls', 'xlsx'].includes(ft)) typeClass = styles.type_xlsx;
+            else if (['ppt', 'pptx'].includes(ft)) typeClass = styles.type_pptx;
+            else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) typeClass = styles.type_image;
+            else if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ft)) typeClass = styles.type_video;
+            else if (ft === 'folder') typeClass = styles.type_folder;
+
             return (
               <div
                 key={result.id}
-                className={`${styles.resultCard} ${isSelected ? styles.resultCardSelected : ''}`}
+                className={`${styles.resultCard} ${typeClass} ${isSelected ? styles.resultCardSelected : ''} ${isMenuOpen ? styles.resultCardMenuOpen : ''}`}
                 onClick={() => setSelectedFileId(isSelected ? null : result.id)}
-                style={{ 
-                  borderLeftColor: colors.color,
-                  zIndex: isMenuOpen ? 50 : undefined
-                } as React.CSSProperties}
               >
                 {/* File action dot menu */}
                 <div className={styles.actionMenuAnchor}>
@@ -168,10 +160,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                 </div>
 
                 <div className={styles.cardLeftBlock}>
-                  <div 
-                    className={styles.cardIconBox}
-                    style={{ backgroundColor: colors.color + '15', color: colors.color }}
-                  >
+                  <div className={styles.cardIconBox}>
                     {['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase()) ? <ImageIcon size={22} strokeWidth={2} /> : 
                      ['xls', 'xlsx'].includes(result.fileType?.toLowerCase()) ? <FileSpreadsheet size={22} strokeWidth={2} /> :
                      ['pdf'].includes(result.fileType?.toLowerCase()) ? <FileText size={22} strokeWidth={2} /> :
@@ -182,8 +171,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                   
                   <button 
                     onClick={(e) => toggleStar(e, result.id)}
-                    className={styles.starIconButton}
-                    style={{ color: isStarred ? '#FBBF24' : undefined }}
+                    className={`${styles.starIconButton} ${isStarred ? styles.starIconButtonStarred : ''}`}
                   >
                     <Star size={16} fill={isStarred ? '#FBBF24' : 'transparent'} />
                   </button>
@@ -191,10 +179,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                 
                 <div className={styles.cardBody}>
                   <div className={styles.cardHeaderRow}>
-                    <h4 
-                      className={styles.cardTitle}
-                      style={{ color: isSelected ? colors.color : undefined }}
-                    >
+                    <h4 className={`${styles.cardTitle} ${isSelected ? styles.cardTitleSelected : ''}`}>
                       {result.title}
                     </h4>
                   </div>
@@ -211,7 +196,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                   
                   <div className={styles.cardProjectHubRow}>
                     <span>PROJECT HUB: </span>
-                    <span className={styles.projectHubValue} style={{ color: colors.color }}>{result.siteName}</span>
+                    <span className={styles.projectHubValue}>{result.siteName}</span>
                   </div>
                 </div>
               </div>

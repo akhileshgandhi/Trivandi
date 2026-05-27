@@ -8,6 +8,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
   const [query, setQuery] = useState(initialQuery);
   const [fileTypes, setFileTypes] = useState<string[]>(['All']);
   const [activeTopTab, setActiveTopTab] = useState<string>('All');
+  const [date, setDate] = useState<string>('');
   const [results, setResults] = useState<ISearchResult[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
     setLoading(true);
     setError(null);
     try {
-      const res = await service.search(query, pageSize, from, fileTypes, activeTopTab);
+      const res = await service.search(query, pageSize, from, fileTypes, activeTopTab, date);
       setResults(res.results);
       setTotalCount(res.totalCount);
     } catch (err: any) {
@@ -36,12 +37,12 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
     } finally {
       setLoading(false);
     }
-  }, [service, query, pageSize, from, fileTypes, activeTopTab]);
+  }, [service, query, pageSize, from, fileTypes, activeTopTab, date]);
 
   // Reset pagination offset to 0 whenever the query, activeTopTab, or filters change
   useEffect(() => {
     setFrom(0);
-  }, [query, fileTypes, activeTopTab]);
+  }, [query, fileTypes, activeTopTab, date]);
 
   useEffect(() => {
     if (service) {
@@ -56,6 +57,8 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
     setFileTypes,
     activeTopTab,
     setActiveTopTab,
+    date,
+    setDate,
     results,
     totalCount,
     loading,
