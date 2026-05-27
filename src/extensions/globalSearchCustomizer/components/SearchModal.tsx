@@ -4,7 +4,7 @@ import styles from '../../../styles/PremiumSearch.module.scss';
 import { GraphSearchService } from '../services/GraphSearchService';
 import { useSearch } from '../hooks/useSearch';
 import { ISearchResult } from '../../../models/ISearchResult';
-import { useSearchStore } from '../store/useSearchStore';
+
 
 // Import modular subcomponents
 import { Sidebar } from './Sidebar';
@@ -51,13 +51,54 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const [bottomTab, setBottomTab] = useState<'Search Results' | 'Recent Activities' | 'Starred Assets'>('Search Results');
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const {
-    recentlyViewedFiles,
-    starredFiles,
-    starredIds,
-    addRecentFile,
-    toggleStar
-  } = useSearchStore();
+
+  // --- Inline state replacing zustand store ---
+  const [recentlyViewedFiles, setRecentlyViewedFiles] = useState<ISearchResult[]>(() => {
+    try {
+      const saved = sessionStorage.getItem('trivandi_recent_files_data');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+  const [starredFiles, setStarredFiles] = useState<ISearchResult[]>(() => {
+    try {
+      const saved = localStorage.getItem('trivandi_starred_files_data');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+  const [starredIds, setStarredIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('trivandi_starred_files_data');
+      const arr: ISearchResult[] = saved ? JSON.parse(saved) : [];
+      return new Set(arr.map(f => f.id));
+    } catch (e) { return new Set(); }
+  });
+
+  const addRecentFile = (file: ISearchResult): void => {
+    setRecentlyViewedFiles(prev => {
+      const filtered = prev.filter(f => f.id !== file.id);
+      const updated = [file, ...filtered];
+      try { sessionStorage.setItem('trivandi_recent_files_data', JSON.stringify(updated)); } catch (e) { /* ignored */ }
+      return updated;
+    });
+  };
+
+  const toggleStar = (file: ISearchResult): void => {
+    setStarredIds(prev => {
+      const hasStar = prev.has(file.id);
+      const next = new Set(prev);
+      if (hasStar) { next.delete(file.id); } else { next.add(file.id); }
+      return next;
+    });
+    setStarredFiles(prev => {
+      const hasStar = prev.some(f => f.id === file.id);
+      const next = hasStar ? prev.filter(f => f.id !== file.id) : [...prev, { ...file, isStarred: true }];
+      try { localStorage.setItem('trivandi_starred_files_data', JSON.stringify(next)); } catch (e) { /* ignored */ }
+      return next;
+    });
+    setRecentlyViewedFiles(prev =>
+      prev.map(f => f.id === file.id ? { ...f, isStarred: !starredIds.has(file.id) } : f)
+    );
+  };
 
   // Top-level modal states for loose-coupling Copy link sharing dialog
   const [copyFileDialogFile, setCopyFileDialogFile] = useState<ISearchResult | null>(null);
