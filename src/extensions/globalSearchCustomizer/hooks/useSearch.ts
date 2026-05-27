@@ -37,6 +37,11 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
     }
   }, [service, query, pageSize, from, fileTypes]);
 
+  // Reset pagination offset to 0 whenever the query or filters change
+  useEffect(() => {
+    setFrom(0);
+  }, [query, fileTypes]);
+
   useEffect(() => {
     if (service) {
       executeSearch();

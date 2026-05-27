@@ -13,11 +13,7 @@ import { HistoryPane } from './HistoryPane';
 import { Header } from './Header';
 import { SearchResultsList } from './SearchResultsList';
 
-export interface ISearchModalProps {
-  context: any;
-  isOpen: boolean;
-  onDismiss: () => void;
-}
+import { ISearchModalProps } from '../interface/ISearchModalProps';
 
 // File type design mapping helper
 const getFileColor = (fileType: string) => {
@@ -77,113 +73,6 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     'HR employee handbook v3'
   ]);
 
-  // --- Search Results Mock Data (Fallback) ---
-  const initialMockResults: ISearchResult[] = useMemo(() => [
-    {
-      id: 'm1',
-      title: 'Marketing Strategy Q3 2024',
-      author: 'Sarah Chen',
-      lastModified: '2026-05-24T12:00:00Z',
-      size: 1258291,
-      summary: 'Comprehensive analysis of market trends and competitor performance in the APAC region.',
-      webUrl: 'https://sharepoint.intel/marketing/strategies',
-      fileType: 'docx',
-      siteName: 'Marketing Hub',
-      siteUrl: 'https://sharepoint.intel/marketing',
-      isStarred: true
-    },
-    {
-      id: 'm2',
-      title: 'Annual Financial Report FY23',
-      author: 'Robert Wilson',
-      lastModified: '2026-05-21T09:15:00Z',
-      size: 5033164,
-      summary: 'Consolidated financial statements, auditor reports, and performance metrics for the fiscal year.',
-      webUrl: 'https://sharepoint.intel/finance/reports',
-      fileType: 'xlsx',
-      siteName: 'Finance Portal',
-      siteUrl: 'https://sharepoint.intel/finance',
-      isStarred: false
-    },
-    {
-      id: 'm3',
-      title: 'Brand Guidelines V2.1',
-      author: 'Elena Rodriguez',
-      lastModified: '2026-05-16T16:45:00Z',
-      size: 5033164,
-      summary: 'Visual identity standards, logo usage, and typography rules for all corporate communications.',
-      webUrl: 'https://sharepoint.intel/brand/assets',
-      fileType: 'pdf',
-      siteName: 'Brand Center',
-      siteUrl: 'https://sharepoint.intel/brand',
-      isStarred: false
-    },
-    {
-      id: 'm4',
-      title: 'Employee Onboarding Handbook',
-      author: 'HR Department',
-      lastModified: '2026-05-25T14:20:00Z',
-      size: 1258291,
-      summary: 'Essential information for new hires including benefits, culture, and operational procedures.',
-      webUrl: 'https://sharepoint.intel/hr/portal',
-      fileType: 'docx',
-      siteName: 'HR Hub',
-      siteUrl: 'https://sharepoint.intel/hr',
-      isStarred: true
-    },
-    {
-      id: 'm5',
-      title: 'Product Roadmap 2024-2025',
-      author: 'James T. Kirk',
-      lastModified: '2026-05-22T10:00:00Z',
-      size: 5033164,
-      summary: 'Strategic product milestones, feature releases, and timeline planning for next-generation platform.',
-      webUrl: 'https://sharepoint.intel/product/roadmap',
-      fileType: 'pptx',
-      siteName: 'Product Portal',
-      siteUrl: 'https://sharepoint.intel/product',
-      isStarred: false
-    },
-    {
-      id: 'm6',
-      title: 'IT Security Policy & Guidelines',
-      author: 'Security Operations',
-      lastModified: '2026-05-18T08:00:00Z',
-      size: 2202009,
-      summary: 'Information security standards, password requirements, and compliance guidelines for employees.',
-      webUrl: 'https://sharepoint.intel/it/security',
-      fileType: 'pdf',
-      siteName: 'IT Operations',
-      siteUrl: 'https://sharepoint.intel/it',
-      isStarred: false
-    },
-    {
-      id: 'm7',
-      title: 'Trivandi Corporate Brand Video.mp4',
-      author: 'Media Team',
-      lastModified: '2026-05-24T10:00:00Z',
-      size: 45097152,
-      summary: 'Brand intro video, corporate milestones, and team introduction for marketing campaigns.',
-      webUrl: 'https://sharepoint.intel/media/brandvideo',
-      fileType: 'mp4',
-      siteName: 'Media Portal',
-      siteUrl: 'https://sharepoint.intel/media',
-      isStarred: false
-    },
-    {
-      id: 'm8',
-      title: 'Global Townhall Meeting May 2026.mov',
-      author: 'Internal Communications',
-      lastModified: '2026-05-26T09:00:00Z',
-      size: 209715200,
-      summary: 'Full recording of the May 2026 company hub Townhall meeting with CEO strategy review.',
-      webUrl: 'https://sharepoint.intel/media/townhall',
-      fileType: 'mov',
-      siteName: 'Media Portal',
-      siteUrl: 'https://sharepoint.intel/media',
-      isStarred: false
-    }
-  ], []);
 
   // --- Graph Service Setup ---
   const searchService = useMemo(() => {
@@ -227,7 +116,6 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     results: liveResults,
     totalCount: liveTotalCount,
     loading: liveLoading,
-    error: liveError,
     setQuery,
     setFileTypes,
     from,
@@ -235,7 +123,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   } = useSearch({
     service: searchService,
     initialQuery: '',
-    pageSize: 20
+    pageSize: 10
   });
 
   // Track search query changes to synchronize hook
@@ -248,8 +136,6 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     setFileTypes(filters.fileTypes);
   }, [filters.fileTypes, setFileTypes]);
 
-  // Determine if we should use Live Mode or Fallback Mock Mode
-  const isLiveMode = !!searchService && !liveError;
 
   // Convert raw Graph Search results into our formatted UI result cards
   const mappedLiveResults = useMemo(() => {
@@ -274,8 +160,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   // Track selectedFileId change to push clicked files into recentlyViewedFiles
   useEffect(() => {
     if (selectedFileId) {
-      const allPossibleFiles = isLiveMode ? mappedLiveResults : initialMockResults;
-      const fileObj = allPossibleFiles.find(f => f.id === selectedFileId);
+      const fileObj = mappedLiveResults.find(f => f.id === selectedFileId);
       
       if (fileObj) {
         setRecentlyViewedFiles(prev => {
@@ -290,7 +175,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         });
       }
     }
-  }, [selectedFileId, isLiveMode, mappedLiveResults, initialMockResults, starredIds]);
+  }, [selectedFileId, mappedLiveResults, starredIds]);
 
   // Listen to the custom copy-link event from any card's Action Menu to display the top-level overlay
   useEffect(() => {
@@ -315,49 +200,6 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     return list;
   }, [mappedLiveResults, activeTopTab]);
 
-  // --- Filtering Mock Data (Offline Fallback Logic) ---
-  const filteredMockResults = useMemo(() => {
-    let list = initialMockResults.map(item => ({
-      ...item,
-      isStarred: starredIds.has(item.id)
-    }));
-
-    if (bottomTab === 'Starred Assets') {
-      list = list.filter(item => item.isStarred);
-    }
-
-    if (activeTopTab === 'Files') {
-      list = list.filter(item => ['doc', 'docx', 'xls', 'xlsx', 'pdf', 'ppt', 'pptx'].includes(item.fileType.toLowerCase()));
-    } else if (activeTopTab === 'Images') {
-      list = list.filter(item => ['png', 'jpg', 'jpeg', 'gif', 'svg', 'tiff'].includes(item.fileType.toLowerCase())); 
-    } else if (activeTopTab === 'Videos') {
-      list = list.filter(item => ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(item.fileType.toLowerCase()));
-    }
-
-    if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(item => 
-        item.title.toLowerCase().includes(q) || 
-        (item.summary && item.summary.toLowerCase().includes(q)) ||
-        item.author.toLowerCase().includes(q)
-      );
-    }
-
-    if (filters.fileTypes.length > 0 && !filters.fileTypes.includes('All')) {
-      list = list.filter(item => {
-        const typeMatch = filters.fileTypes.map(t => t.toLowerCase());
-        return typeMatch.some(tm => item.fileType.toLowerCase().includes(tm));
-      });
-    }
-
-    if (filters.author.trim() !== '') {
-      const auth = filters.author.toLowerCase();
-      list = list.filter(item => item.author.toLowerCase().includes(auth));
-    }
-
-    return list;
-  }, [searchQuery, filters, activeTopTab, bottomTab, starredIds, initialMockResults]);
-
   // Set the final target results and states based on current Mode (Live vs Mock)
   const resultsToRender = useMemo(() => {
     if (bottomTab === 'Recent Activities') {
@@ -366,11 +208,15 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         isStarred: starredIds.has(f.id)
       }));
     }
-    return isLiveMode ? filteredLiveResults : filteredMockResults;
-  }, [bottomTab, recentlyViewedFiles, isLiveMode, filteredLiveResults, filteredMockResults, starredIds]);
+    let list = filteredLiveResults;
+    if (bottomTab === 'Starred Assets') {
+      list = list.filter(item => starredIds.has(item.id));
+    }
+    return list;
+  }, [bottomTab, recentlyViewedFiles, filteredLiveResults, starredIds]);
 
-  const totalCountToRender: number = resultsToRender.length;
-  const isLoading: boolean = isLiveMode ? liveLoading : false;
+  const totalCountToRender: number = bottomTab === 'Search Results' ? liveTotalCount : resultsToRender.length;
+  const isLoading: boolean = liveLoading;
 
   // Selected File Object derivation
   const selectedFile = useMemo(() => {
@@ -529,7 +375,6 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                 toggleStar={toggleStar}
                 from={from}
                 setFrom={setFrom}
-                isLiveMode={isLiveMode}
                 bottomTab={bottomTab}
                 setBottomTab={setBottomTab}
                 setIsHistoryOpen={setIsHistoryOpen}

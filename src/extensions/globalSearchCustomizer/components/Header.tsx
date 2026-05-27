@@ -2,16 +2,7 @@ import * as React from 'react';
 import { Search, X } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 
-export interface IHeaderProps {
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  handleSearch: (query: string) => void;
-  isSearchFocused: boolean;
-  setIsSearchFocused: (focused: boolean) => void;
-  searchHistory: string[];
-  totalCountToRender: number;
-  onDismiss: () => void;
-}
+import { IHeaderProps } from '../interface/IHeaderProps';
 
 export const Header: React.FC<IHeaderProps> = ({
   searchQuery,

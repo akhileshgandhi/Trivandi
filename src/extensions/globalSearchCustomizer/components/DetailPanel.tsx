@@ -2,27 +2,7 @@ import * as React from 'react';
 import { FileText, ExternalLink, Download } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 
-export interface IDetailPanelProps {
-  selectedFile: {
-    id: string;
-    title: string;
-    author: string;
-    date: string;
-    size: string;
-    description: string;
-    url: string;
-    type: string;
-    starred: boolean;
-    color: string;
-    badgeColor: string;
-    summary: string;
-    siteName: string;
-    siteUrl: string;
-    webUrl: string;
-    lastModified: string;
-  };
-  searchQuery: string;
-}
+import { IDetailPanelProps } from '../interface/IDetailPanelProps';
 
 export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQuery }) => {
   const [imageError, setImageError] = React.useState(false);

@@ -3,34 +3,10 @@ import { SlidersHorizontal, History as HistoryIcon, Star, ChevronLeft, ChevronRi
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { FileActionMenu } from './FileActionMenu';
+import { SkeletonLoader } from '../Common/SkeletonLoader';
+import { PaginationComponent } from '../Common/PaginationComponent';
 
-export interface ISearchResultsListProps {
-  resultsToRender: ISearchResult[];
-  totalCountToRender: number;
-  isLoading: boolean;
-  selectedFileId: string | null;
-  setSelectedFileId: (id: string | null) => void;
-  starredIds: Set<string>;
-  toggleStar: (e: React.MouseEvent, id: string) => void;
-  from: number;
-  setFrom: (from: number) => void;
-  isLiveMode: boolean;
-  bottomTab: 'Search Results' | 'Recent Activities' | 'Starred Assets';
-  setBottomTab: (tab: 'Search Results' | 'Recent Activities' | 'Starred Assets') => void;
-  setIsHistoryOpen: (open: boolean) => void;
-  isHistoryOpen: boolean;
-  handleClearAllFilters: () => void;
-  activeTopTab: string;
-  setActiveTopTab: (tab: string) => void;
-  filters: {
-    fileTypes: string[];
-    author: string;
-    date: string;
-  };
-  setFilters: (filters: { fileTypes: string[]; author: string; date: string }) => void;
-  setOpenMenuId: (id: string | null) => void;
-  openMenuId: string | null;
-}
+import { ISearchResultsListProps } from '../interface/ISearchResultsListProps';
 
 // File type design mapping helper
 const getFileColor = (fileType: string) => {
@@ -53,7 +29,6 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
   toggleStar,
   from,
   setFrom,
-  isLiveMode,
   bottomTab,
   setBottomTab,
   setIsHistoryOpen,
@@ -66,6 +41,8 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
   setOpenMenuId,
   openMenuId
 }) => {
+  const [jumpPage, setJumpPage] = React.useState('');
+
   return (
     <main className={styles.mainContainer}>
       {/* Statistics & Filter Flags Bar */}
@@ -121,10 +98,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
       {/* Results cards panel */}
       <div className={styles.resultsListWrapper}>
         {isLoading ? (
-          <div className={styles.loadingRow}>
-            <div className={styles.spinner} />
-            <span>Searching SharePoint documents...</span>
-          </div>
+          <SkeletonLoader count={4} />
         ) : resultsToRender.length === 0 ? (
           <div className={styles.emptyState}>
             <SlidersHorizontal size={40} />
@@ -221,41 +195,39 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
       </div>
 
       {/* Pagination controls footer */}
-      {resultsToRender.length > 0 && (
+      {!isLoading && resultsToRender.length > 0 && (
         <footer className={styles.pagination}>
           <span className={styles.paginationInfo}>
-            PAGE {Math.floor(from / 20) + 1} <span className={styles.infoDivider}>|</span> SHOWING <span className={styles.infoHighlight}>{from + 1}-{from + resultsToRender.length}</span> OF <span className={styles.infoHighlight}>{totalCountToRender}</span>
+            PAGE {Math.floor(from / 10) + 1} <span className={styles.infoDivider}>|</span> SHOWING <span className={styles.infoHighlight}>{from + 1}-{from + resultsToRender.length}</span> OF <span className={styles.infoHighlight}>{totalCountToRender}</span>
           </span>
 
-          <div className={styles.pageNumberControls}>
-            <button 
-              disabled={from === 0}
-              onClick={() => isLiveMode && setFrom(Math.max(0, from - 20))}
-              className={styles.pageArrowBtn}
-            >
-              <ChevronLeft size={16} strokeWidth={2.5} />
-            </button>
-            
-            <button className={`${styles.pageNumBtn} ${styles.pageNumActive}`}>
-              {Math.floor(from / 20) + 1}
-            </button>
-            
-            <button 
-              disabled={from + 20 >= totalCountToRender}
-              onClick={() => isLiveMode && setFrom(from + 20)}
-              className={styles.pageArrowBtn}
-            >
-              <ChevronRight size={16} strokeWidth={2.5} />
-            </button>
-          </div>
+          <PaginationComponent
+            totalCount={totalCountToRender}
+            pageSize={10}
+            from={from}
+            onPageChange={(newFrom) => {
+              setFrom(newFrom);
+            }}
+          />
 
           <div className={styles.jumpToWrapper}>
             <span className={styles.jumpToLabel}>Jump to</span>
             <input 
               type="text" 
-              placeholder={(Math.floor(from / 20) + 1).toString()}
+              placeholder={(Math.floor(from / 10) + 1).toString()}
+              value={jumpPage}
+              onChange={(e) => setJumpPage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const pageNum = parseInt(jumpPage, 10);
+                  const pageCount = Math.ceil(totalCountToRender / 10);
+                  if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= pageCount) {
+                    setFrom((pageNum - 1) * 10);
+                    setJumpPage('');
+                  }
+                }
+              }}
               className={styles.jumpToInput}
-              disabled
             />
           </div>
         </footer>

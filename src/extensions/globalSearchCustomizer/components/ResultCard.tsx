@@ -15,7 +15,9 @@ const CARD_COLORS = [
   { accent: '#188038', bg: '#e6f4ea', shadow: 'rgba(24, 128, 56, 0.2)' },
 ];
 
-export const ResultCard: React.FC<{ result: ISearchResult; idx: number; onClick: (id: string) => void }> = ({ result, idx, onClick }) => {
+import { IResultCardProps } from '../interface/IResultCardProps';
+
+export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick }) => {
   const color = CARD_COLORS[idx % CARD_COLORS.length];
   
   // Format sizes cleanly
