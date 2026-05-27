@@ -90,10 +90,27 @@ export class GraphSearchService {
         }
       }
 
+      const getCleanSharePointUrl = (webUrl: string, title: string): string => {
+        if (!webUrl) return '';
+        try {
+          let cleaned = webUrl;
+          if (cleaned.includes('/Forms/DispForm.aspx')) {
+            cleaned = cleaned.replace(/\/Forms\/DispForm\.aspx.*/i, `/${title}`);
+          }
+          cleaned = cleaned.replace(/\/:[a-z]:\/[a-z]\//i, '/');
+          cleaned = cleaned.replace(/\/:[a-z]:\/r\//i, '/');
+          cleaned = cleaned.replace(/\/:[a-z]:\/g\//i, '/');
+          cleaned = cleaned.split('?')[0]; // Strip query parameters
+          return cleaned;
+        } catch (e) {
+          return webUrl;
+        }
+      };
+
       return {
         id: resource.id || hit.hitId || Math.random().toString(),
         title: resource.name || 'Untitled Document',
-        webUrl: resource.webUrl || '',
+        webUrl: getCleanSharePointUrl(resource.webUrl || '', resource.name || ''),
         fileType: fileType,
         lastModified: resource.lastModifiedDateTime || new Date().toISOString(),
         author: resource.createdBy?.user?.displayName || 'SharePoint User',
