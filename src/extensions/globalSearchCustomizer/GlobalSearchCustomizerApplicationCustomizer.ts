@@ -18,6 +18,12 @@ export default class GlobalSearchCustomizerApplicationCustomizer
   public onInit(): Promise<void> {
     this._createModalContainer();
     this._interceptSearchBar();
+
+    const wasOpen = sessionStorage.getItem('trivandi_search_modal_open') === 'true';
+    if (wasOpen) {
+      this._openModal();
+    }
+
     return Promise.resolve();
   }
 
@@ -65,6 +71,7 @@ export default class GlobalSearchCustomizerApplicationCustomizer
   private _openModal(): void {
     if (!this._modalContainer) return;
     this._isModalOpen = true;
+    sessionStorage.setItem('trivandi_search_modal_open', 'true');
     const element = React.createElement(SearchModal, {
       context: this.context,
       isOpen: true,
@@ -76,6 +83,7 @@ export default class GlobalSearchCustomizerApplicationCustomizer
   private _closeModal(): void {
     if (!this._modalContainer) return;
     this._isModalOpen = false;
+    sessionStorage.removeItem('trivandi_search_modal_open');
     ReactDOM.unmountComponentAtNode(this._modalContainer);
   }
 

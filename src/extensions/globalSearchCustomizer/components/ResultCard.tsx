@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { ExternalLink, FileText, Image as ImageIcon, FileSpreadsheet, FileBox } from 'lucide-react';
+import { Image as ImageIcon, FileSpreadsheet, FileText, FileBox } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
-import { ISearchTabsProps } from '../interface/ISearchTabsProps';
 
 // CARD ACCENT COLOR ASSIGNMENTS
 const CARD_COLORS = [
@@ -52,12 +51,6 @@ export const ResultCard: React.FC<{ result: ISearchResult; idx: number; onClick:
       <div className={styles.cardBody}>
         <div className={styles.cardHeaderRow}>
           <h4 className={styles.cardTitle}>{result.title}</h4>
-          <div className={styles.scoreContainer}>
-            <div className={styles.scoreRow}>
-              <span className={`${styles.scoreBadge} ${styles.scoreBM25}`}>BM25: 4.80</span>
-              <span className={`${styles.scoreBadge} ${styles.scoreTFIDF}`}>TF-IDF: 2.12</span>
-            </div>
-          </div>
         </div>
 
         <div className={styles.cardMetadataRow}>
@@ -69,45 +62,12 @@ export const ResultCard: React.FC<{ result: ISearchResult; idx: number; onClick:
           <span>{formattedSize}</span>
         </div>
 
-        <p 
-          className={styles.cardDescription} 
-          dangerouslySetInnerHTML={{ 
-            __html: (result.summary || '')
-              .replace(/<c0>/g, '<strong>')
-              .replace(/<\/c0>/g, '</strong>')
-              .replace(/<ddd\/>/g, '&#8230;') 
-          }} 
-        />
+        <p className={styles.cardDescription}>{result.summary}</p>
         
         <div className={styles.cardProjectHubRow}>
           <span>PROJECT HUB: </span>
           <span className={styles.projectHubValue} style={{ color: color.accent }}>{result.siteName || 'SharePoint Site'}</span>
         </div>
-      </div>
-    </div>
-  );
-};
-
-// SearchTabs Component implementation
-
-const TABS = ['All', 'Files', 'Images'];
-
-export const SearchTabs: React.FC<ISearchTabsProps> = ({ activeTab, onTabChange }) => {
-  return (
-    <div className={styles.topTabBar} style={{ borderBottom: '1px solid #e2e8f0', display: 'flex', width: '100%' }}>
-      <div className={styles.tabButtonsWrapper}>
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => onTabChange(tab)}
-            className={`${styles.topTabItem} ${activeTab === tab ? styles.topTabItemActive : ''}`}
-          >
-            {tab}
-            {activeTab === tab && (
-              <div className={styles.activeTabLine} />
-            )}
-          </button>
-        ))}
       </div>
     </div>
   );

@@ -1,13 +1,12 @@
 import * as React from 'react';
 import { User, Calendar } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
-
 import { IFiltersPanelProps } from '../interface/IFiltersPanelProps';
 
 const FILE_TYPE_OPTIONS = ['All', 'PDF', 'DOC', 'XLS', 'PPT'];
 const DATE_OPTIONS = ['Today', 'Yesterday', 'This Week', 'This Month', 'This Year'];
 
-export const FiltersPanel: React.FC<IFiltersPanelProps> = ({
+export const Sidebar: React.FC<IFiltersPanelProps> = ({
   sidebarWidth,
   fileTypes,
   author,

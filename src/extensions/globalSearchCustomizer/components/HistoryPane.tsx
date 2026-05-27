@@ -1,10 +1,9 @@
 import * as React from 'react';
 import { History as HistoryIcon, X, Search } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
-
 import { ISearchHistoryProps } from '../interface/ISearchHistoryProps';
 
-export const SearchHistory: React.FC<ISearchHistoryProps> = ({
+export const HistoryPane: React.FC<ISearchHistoryProps> = ({
   isHistoryOpen,
   setIsHistoryOpen,
   previewWidth,

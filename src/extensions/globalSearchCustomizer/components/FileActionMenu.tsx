@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
-import { 
-  MoreVertical, 
-  ExternalLink, 
-  Monitor, 
-  Download, 
-  FolderOpen, 
+import {
+  MoreVertical,
+  ExternalLink,
+  Monitor,
+  Download,
+  FolderOpen,
   Copy,
   Check
 } from 'lucide-react';
@@ -60,9 +60,9 @@ export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenCha
   };
 
   const menuItems = [
-    { 
-      label: 'Open in browser', 
-      icon: ExternalLink, 
+    {
+      label: 'Open in browser',
+      icon: ExternalLink,
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
         window.open(file.webUrl, '_blank');
@@ -70,9 +70,9 @@ export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenCha
         onOpenChange?.(false);
       }
     },
-    { 
-      label: 'Open in app', 
-      icon: Monitor, 
+    {
+      label: 'Open in app',
+      icon: Monitor,
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
         window.open(`ms-word:ofe|u|${file.webUrl}`, '_blank');
@@ -80,9 +80,9 @@ export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenCha
         onOpenChange?.(false);
       }
     },
-    { 
-      label: 'Download', 
-      icon: Download, 
+    {
+      label: 'Download',
+      icon: Download,
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
         window.open(file.webUrl + '?web=0', '_blank');
@@ -90,9 +90,9 @@ export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenCha
         onOpenChange?.(false);
       }
     },
-    { 
-      label: 'Open file location', 
-      icon: FolderOpen, 
+    {
+      label: 'Open file location',
+      icon: FolderOpen,
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
         window.open(file.siteUrl || '#', '_blank');
@@ -100,9 +100,9 @@ export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenCha
         onOpenChange?.(false);
       }
     },
-    { 
-      label: copied ? 'Link copied!' : 'Copy link', 
-      icon: copied ? Check : Copy, 
+    {
+      label: copied ? 'Link copied!' : 'Copy link',
+      icon: copied ? Check : Copy,
       onClick: handleCopyLink,
       className: copied ? styles.actionItemCopied : ''
     },
@@ -129,10 +129,10 @@ export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenCha
               onClick={item.onClick}
               className={`${styles.actionDropdownItem} ${item.className || ''}`}
             >
-              <item.icon 
-                size={16} 
-                className={`${styles.actionItemIcon} ${copied && item.label === 'Link copied!' ? styles.actionIconCopied : ''}`} 
-                strokeWidth={2} 
+              <item.icon
+                size={16}
+                className={`${styles.actionItemIcon} ${copied && item.label === 'Link copied!' ? styles.actionIconCopied : ''}`}
+                strokeWidth={2}
               />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {item.label}

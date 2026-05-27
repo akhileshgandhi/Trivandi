@@ -1,41 +1,23 @@
 import * as React from 'react';
 import { useState, useMemo, useEffect } from 'react';
 import styles from '../../../styles/PremiumSearch.module.scss';
-import { 
-  Search, 
-  X, 
-  Clock, 
-  Star, 
-  User, 
-  Calendar, 
-  MoreVertical, 
-  ChevronLeft, 
-  ChevronRight, 
-  FileText, 
-  Download, 
-  ExternalLink,
-  SlidersHorizontal,
-  Wifi,
-  WifiOff,
-  History as HistoryIcon,
-  Image as ImageIcon,
-  FileSpreadsheet
-} from 'lucide-react';
 import { GraphSearchService } from '../services/GraphSearchService';
 import { useSearch } from '../hooks/useSearch';
 import { ISearchResult } from '../../../models/ISearchResult';
 
-// Import subcomponents
-import { FiltersPanel } from './FiltersPanel';
-import { DocumentAnalysis } from './DocumentAnalysis';
-import { SearchHistory } from './SearchHistory';
-import { ResultCard, SearchTabs } from './ResultCard';
-import { FileActionMenu } from './FileActionMenu';
-import { PaginationComponent } from '../Common/PaginationComponent';
-import { SkeletonLoader } from '../Common/SkeletonLoader';
-import { useDebounce } from '../Common/useDebounce';
+// Import modular subcomponents
+import { Sidebar } from './Sidebar';
+import { SearchTabs } from './SearchTabs';
+import { PreviewPane } from './PreviewPane';
+import { HistoryPane } from './HistoryPane';
+import { Header } from './Header';
+import { SearchResultsList } from './SearchResultsList';
 
-import { ISearchModalProps } from '../interface/ISearchModalProps';
+export interface ISearchModalProps {
+  context: any;
+  isOpen: boolean;
+  onDismiss: () => void;
+}
 
 // File type design mapping helper
 const getFileColor = (fileType: string) => {
@@ -59,7 +41,6 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
 
   // --- Search Query & Filter states ---
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery] = useDebounce(searchQuery, 1000);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [filters, setFilters] = useState({
     fileTypes: ['All'],
@@ -72,7 +53,18 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [starredIds, setStarredIds] = useState<Set<string>>(new Set(['m1', 'm4']));
-  
+  const [isAuthorDropdownOpen, setIsAuthorDropdownOpen] = useState(false);
+
+  // --- Recently Viewed Files state ---
+  const [recentlyViewedFiles, setRecentlyViewedFiles] = useState<ISearchResult[]>(() => {
+    try {
+      const saved = sessionStorage.getItem('trivandi_recent_files_data');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
   // Simulated Search History
   const [searchHistory, setSearchHistory] = useState<string[]>([
     'Quarterly Strategy plans',
@@ -81,7 +73,113 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     'HR employee handbook v3'
   ]);
 
-
+  // --- Search Results Mock Data (Fallback) ---
+  const initialMockResults: ISearchResult[] = useMemo(() => [
+    {
+      id: 'm1',
+      title: 'Marketing Strategy Q3 2024',
+      author: 'Sarah Chen',
+      lastModified: '2026-05-24T12:00:00Z',
+      size: 1258291,
+      summary: 'Comprehensive analysis of market trends and competitor performance in the APAC region.',
+      webUrl: 'https://sharepoint.intel/marketing/strategies',
+      fileType: 'docx',
+      siteName: 'Marketing Hub',
+      siteUrl: 'https://sharepoint.intel/marketing',
+      isStarred: true
+    },
+    {
+      id: 'm2',
+      title: 'Annual Financial Report FY23',
+      author: 'Robert Wilson',
+      lastModified: '2026-05-21T09:15:00Z',
+      size: 5033164,
+      summary: 'Consolidated financial statements, auditor reports, and performance metrics for the fiscal year.',
+      webUrl: 'https://sharepoint.intel/finance/reports',
+      fileType: 'xlsx',
+      siteName: 'Finance Portal',
+      siteUrl: 'https://sharepoint.intel/finance',
+      isStarred: false
+    },
+    {
+      id: 'm3',
+      title: 'Brand Guidelines V2.1',
+      author: 'Elena Rodriguez',
+      lastModified: '2026-05-16T16:45:00Z',
+      size: 5033164,
+      summary: 'Visual identity standards, logo usage, and typography rules for all corporate communications.',
+      webUrl: 'https://sharepoint.intel/brand/assets',
+      fileType: 'pdf',
+      siteName: 'Brand Center',
+      siteUrl: 'https://sharepoint.intel/brand',
+      isStarred: false
+    },
+    {
+      id: 'm4',
+      title: 'Employee Onboarding Handbook',
+      author: 'HR Department',
+      lastModified: '2026-05-25T14:20:00Z',
+      size: 1258291,
+      summary: 'Essential information for new hires including benefits, culture, and operational procedures.',
+      webUrl: 'https://sharepoint.intel/hr/portal',
+      fileType: 'docx',
+      siteName: 'HR Hub',
+      siteUrl: 'https://sharepoint.intel/hr',
+      isStarred: true
+    },
+    {
+      id: 'm5',
+      title: 'Product Roadmap 2024-2025',
+      author: 'James T. Kirk',
+      lastModified: '2026-05-22T10:00:00Z',
+      size: 5033164,
+      summary: 'Strategic product milestones, feature releases, and timeline planning for next-generation platform.',
+      webUrl: 'https://sharepoint.intel/product/roadmap',
+      fileType: 'pptx',
+      siteName: 'Product Portal',
+      siteUrl: 'https://sharepoint.intel/product',
+      isStarred: false
+    },
+    {
+      id: 'm6',
+      title: 'IT Security Policy & Guidelines',
+      author: 'Security Operations',
+      lastModified: '2026-05-18T08:00:00Z',
+      size: 2202009,
+      summary: 'Information security standards, password requirements, and compliance guidelines for employees.',
+      webUrl: 'https://sharepoint.intel/it/security',
+      fileType: 'pdf',
+      siteName: 'IT Operations',
+      siteUrl: 'https://sharepoint.intel/it',
+      isStarred: false
+    },
+    {
+      id: 'm7',
+      title: 'Trivandi Corporate Brand Video.mp4',
+      author: 'Media Team',
+      lastModified: '2026-05-24T10:00:00Z',
+      size: 45097152,
+      summary: 'Brand intro video, corporate milestones, and team introduction for marketing campaigns.',
+      webUrl: 'https://sharepoint.intel/media/brandvideo',
+      fileType: 'mp4',
+      siteName: 'Media Portal',
+      siteUrl: 'https://sharepoint.intel/media',
+      isStarred: false
+    },
+    {
+      id: 'm8',
+      title: 'Global Townhall Meeting May 2026.mov',
+      author: 'Internal Communications',
+      lastModified: '2026-05-26T09:00:00Z',
+      size: 209715200,
+      summary: 'Full recording of the May 2026 company hub Townhall meeting with CEO strategy review.',
+      webUrl: 'https://sharepoint.intel/media/townhall',
+      fileType: 'mov',
+      siteName: 'Media Portal',
+      siteUrl: 'https://sharepoint.intel/media',
+      isStarred: false
+    }
+  ], []);
 
   // --- Graph Service Setup ---
   const searchService = useMemo(() => {
@@ -133,20 +231,21 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   } = useSearch({
     service: searchService,
     initialQuery: '',
-    pageSize: 10
+    pageSize: 20
   });
 
-  // Track search query changes to synchronize hook using use-debounce library
+  // Track search query changes to synchronize hook
   useEffect(() => {
-    setQuery(debouncedSearchQuery);
-  }, [debouncedSearchQuery, setQuery]);
+    setQuery(searchQuery);
+  }, [searchQuery, setQuery]);
 
   // Track fileTypes filter changes to synchronize hook
   useEffect(() => {
     setFileTypes(filters.fileTypes);
   }, [filters.fileTypes, setFileTypes]);
 
-
+  // Determine if we should use Live Mode or Fallback Mock Mode
+  const isLiveMode = !!searchService && !liveError;
 
   // Convert raw Graph Search results into our formatted UI result cards
   const mappedLiveResults = useMemo(() => {
@@ -168,10 +267,95 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     });
   }, [liveResults, starredIds]);
 
-  // Set the final target results and states based on Live Data
-  const resultsToRender: ISearchResult[] = mappedLiveResults;
-  const totalCountToRender: number = liveTotalCount;
-  const isLoading: boolean = liveLoading;
+  // Track selectedFileId change to push clicked files into recentlyViewedFiles
+  useEffect(() => {
+    if (selectedFileId) {
+      const allPossibleFiles = isLiveMode ? mappedLiveResults : initialMockResults;
+      const fileObj = allPossibleFiles.find(f => f.id === selectedFileId);
+      
+      if (fileObj) {
+        setRecentlyViewedFiles(prev => {
+          const filtered = prev.filter(f => f.id !== selectedFileId);
+          const updated = [{ ...fileObj, isStarred: starredIds.has(fileObj.id) }, ...filtered];
+          try {
+            sessionStorage.setItem('trivandi_recent_files_data', JSON.stringify(updated));
+          } catch (e) {
+            // ignored
+          }
+          return updated;
+        });
+      }
+    }
+  }, [selectedFileId, isLiveMode, mappedLiveResults, initialMockResults, starredIds]);
+
+  const filteredLiveResults = useMemo(() => {
+    let list = mappedLiveResults;
+    if (activeTopTab === 'Files') {
+      list = list.filter(item => ['doc', 'docx', 'xls', 'xlsx', 'pdf', 'ppt', 'pptx'].includes(item.fileType.toLowerCase()));
+    } else if (activeTopTab === 'Images') {
+      list = list.filter(item => ['png', 'jpg', 'jpeg', 'gif', 'svg', 'tiff'].includes(item.fileType.toLowerCase()));
+    } else if (activeTopTab === 'Videos') {
+      list = list.filter(item => ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(item.fileType.toLowerCase()));
+    }
+    return list;
+  }, [mappedLiveResults, activeTopTab]);
+
+  // --- Filtering Mock Data (Offline Fallback Logic) ---
+  const filteredMockResults = useMemo(() => {
+    let list = initialMockResults.map(item => ({
+      ...item,
+      isStarred: starredIds.has(item.id)
+    }));
+
+    if (bottomTab === 'Starred Assets') {
+      list = list.filter(item => item.isStarred);
+    }
+
+    if (activeTopTab === 'Files') {
+      list = list.filter(item => ['doc', 'docx', 'xls', 'xlsx', 'pdf', 'ppt', 'pptx'].includes(item.fileType.toLowerCase()));
+    } else if (activeTopTab === 'Images') {
+      list = list.filter(item => ['png', 'jpg', 'jpeg', 'gif', 'svg', 'tiff'].includes(item.fileType.toLowerCase())); 
+    } else if (activeTopTab === 'Videos') {
+      list = list.filter(item => ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(item.fileType.toLowerCase()));
+    }
+
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(item => 
+        item.title.toLowerCase().includes(q) || 
+        (item.summary && item.summary.toLowerCase().includes(q)) ||
+        item.author.toLowerCase().includes(q)
+      );
+    }
+
+    if (filters.fileTypes.length > 0 && !filters.fileTypes.includes('All')) {
+      list = list.filter(item => {
+        const typeMatch = filters.fileTypes.map(t => t.toLowerCase());
+        return typeMatch.some(tm => item.fileType.toLowerCase().includes(tm));
+      });
+    }
+
+    if (filters.author.trim() !== '') {
+      const auth = filters.author.toLowerCase();
+      list = list.filter(item => item.author.toLowerCase().includes(auth));
+    }
+
+    return list;
+  }, [searchQuery, filters, activeTopTab, bottomTab, starredIds, initialMockResults]);
+
+  // Set the final target results and states based on current Mode (Live vs Mock)
+  const resultsToRender = useMemo(() => {
+    if (bottomTab === 'Recent Activities') {
+      return recentlyViewedFiles.map(f => ({
+        ...f,
+        isStarred: starredIds.has(f.id)
+      }));
+    }
+    return isLiveMode ? filteredLiveResults : filteredMockResults;
+  }, [bottomTab, recentlyViewedFiles, isLiveMode, filteredLiveResults, filteredMockResults, starredIds]);
+
+  const totalCountToRender: number = resultsToRender.length;
+  const isLoading: boolean = isLiveMode ? liveLoading : false;
 
   // Selected File Object derivation
   const selectedFile = useMemo(() => {
@@ -258,82 +442,35 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     setIsHistoryOpen(false);
   };
 
+  // --- Clear all applied filters ---
+  const handleClearAllFilters = (): void => {
+    setFilters({
+      fileTypes: ['All'],
+      author: '',
+      date: ''
+    });
+    setActiveTopTab('All');
+    setFrom(0);
+  };
+
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const _dummyIgnored = openMenuId; // Prevent lint warning for unused state
 
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
         
         {/* ================= HEADER BAR ================= */}
-        <header className={styles.header}>
-          <div className={styles.logoWrapper}>
-            <svg width="120" height="32" viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.logoSvg}>
-              <text x="5" y="24" className={styles.logoText}>
-                trivandi
-              </text>
-              <circle cx="43.5" cy="8" r="2.5" fill="#F22797" />
-              <circle cx="114.5" cy="8" r="2.5" fill="#F22797" />
-              <path d="M6 10.5C9 8.5 14 8.5 17 10.5" stroke="#F22797" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-          </div>
-
-          <div className={styles.searchBarContainer}>
-            <div className={styles.searchBarWrapper}>
-              <span className={styles.searchIcon}>
-                <Search size={18} strokeWidth={2.5} />
-              </span>
-              <input 
-                type="text"
-                placeholder="Search documents, pages, files..."
-                value={searchQuery}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-                className={styles.searchInput}
-              />
-              
-              {isSearchFocused && searchHistory.length > 0 && (
-                <div className={styles.searchSuggestionBox}>
-                  <div className={styles.suggestionHeader}>
-                    <span>Recent Searches</span>
-                  </div>
-                  <div>
-                    {searchHistory.map((historyItem, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleSearch(historyItem)}
-                        className={styles.suggestionItem}
-                      >
-                        <Search size={14} className={styles.suggestionIcon} />
-                        {historyItem}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Connection status badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '20px', background: '#ECFDF5', border: `1px solid #10B981`, marginLeft: '12px' }}>
-            <Wifi size={14} style={{ color: '#10B981' }} />
-            <span style={{ fontSize: '11px', fontWeight: 600, color: '#065F46' }}>Live Mode</span>
-          </div>
-
-          <div className={styles.headerMeta}>
-            <div className={styles.metaTextContainer}>
-              <div className={styles.metaResultsCount}>{totalCountToRender.toLocaleString()} results</div>
-              <div className={styles.metaSubTitle}>SHOWING TOP 10,000</div>
-            </div>
-            
-            <div className={styles.metaDivider} />
-            
-            <button className={styles.closeBtn} onClick={onDismiss} aria-label="Close search">
-              <X size={20} />
-            </button>
-          </div>
-        </header>
+        <Header 
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          handleSearch={handleSearch}
+          isSearchFocused={isSearchFocused}
+          setIsSearchFocused={setIsSearchFocused}
+          searchHistory={searchHistory}
+          totalCountToRender={totalCountToRender}
+          onDismiss={onDismiss}
+        />
 
         {/* ================= BODY WRAPPER ================= */}
         <div className={styles.body}>
@@ -341,239 +478,59 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           <div className={styles.mainLayout}>
             
             {/* Sidebar Filters */}
-            <FiltersPanel 
+            <Sidebar 
               sidebarWidth={sidebarWidth}
               fileTypes={filters.fileTypes}
               author={filters.author}
               date={filters.date}
               setFilters={setFilters}
               toggleFileType={toggleFileType}
-              isAuthorDropdownOpen={false}
-              setIsAuthorDropdownOpen={() => {}}
+              isAuthorDropdownOpen={isAuthorDropdownOpen}
+              setIsAuthorDropdownOpen={setIsAuthorDropdownOpen}
               startResizingSidebar={startResizingSidebar}
               isResizingSidebar={isResizingSidebar}
             />
 
-            {/* Main Listing Panel */}
-            <main className={styles.mainContainer}>
-              
-              {/* Search Tabs */}
+            {/* Main Center Panel (Tabs & Listing Pane) */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              {/* Category Filter Tabs */}
               <SearchTabs 
                 activeTab={activeTopTab}
                 onTabChange={(tab) => {
                   setActiveTopTab(tab);
                   setFrom(0);
                 }}
+                onClearAll={handleClearAllFilters}
               />
 
-              {/* Statistics & Filter Flags Bar */}
-              <div className={styles.statsBar}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span className={styles.statsLabel}>
-                    Showing {resultsToRender.length} of {totalCountToRender.toLocaleString()} results
-                  </span>
-                  
-                  <div className={styles.filterBadgeWrapper}>
-                    {activeTopTab !== 'All' && (
-                      <div className={styles.filterBadge}>
-                        Tab: {activeTopTab}
-                        <button onClick={() => setActiveTopTab('All')} className={styles.filterBadgeClose}><X size={10} /></button>
-                      </div>
-                    )}
-                    {filters.fileTypes.length > 0 && !filters.fileTypes.includes('All') && (
-                      <div className={styles.filterBadge}>
-                        Types: {filters.fileTypes.join(', ')}
-                        <button onClick={() => setFilters({ ...filters, fileTypes: ['All'] })} className={styles.filterBadgeClose}><X size={10} /></button>
-                      </div>
-                    )}
-                    {filters.date && (
-                      <div className={styles.filterBadge}>
-                        Date: {filters.date}
-                        <button onClick={() => setFilters({ ...filters, date: '' })} className={styles.filterBadgeClose}><X size={10} /></button>
-                      </div>
-                    )}
-                    {filters.author && (
-                      <div className={styles.filterBadge}>
-                        Author: {filters.author}
-                        <button onClick={() => setFilters({ ...filters, author: '' })} className={styles.filterBadgeClose}><X size={10} /></button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => {
-                    setIsHistoryOpen(!isHistoryOpen);
-                    setSelectedFileId(null);
-                  }}
-                  className={styles.historyNavButton}
-                >
-                  <HistoryIcon size={14} strokeWidth={2.5} />
-                  <span style={{ fontWeight: 900 }}>History</span>
-                </button>
-              </div>
-
-              {/* Results cards panel */}
-              <div className={styles.resultsListWrapper}>
-                {isLoading ? (
-                  <SkeletonLoader count={4} />
-                ) : liveError ? (
-                  <div className={styles.emptyState}>
-                    <SlidersHorizontal size={40} color="#ef4444" />
-                    <h3 style={{ color: '#ef4444' }}>API Error</h3>
-                    <p>{liveError}</p>
-                  </div>
-                ) : resultsToRender.length === 0 ? (
-                  <div className={styles.emptyState}>
-                    <SlidersHorizontal size={40} />
-                    <h3>{searchQuery.trim() === '' ? 'Ready to Search' : 'No results found'}</h3>
-                    <p>{searchQuery.trim() === '' ? 'Start typing above to search across all files and documents.' : 'Try broadening your terms or resetting filters.'}</p>
-                  </div>
-                ) : (
-                  resultsToRender.map((result, idx) => {
-                    const isSelected = selectedFileId === result.id;
-                    const colors = getFileColor(result.fileType);
-                    const isStarred = starredIds.has(result.id);
-                    
-                    const formatBytes = (bytes: number): string => {
-                      if (!bytes) return '4.2 MB';
-                      const k = 1024;
-                      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                      const i = Math.floor(Math.log(bytes) / Math.log(k));
-                      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-                    };
-                    const sizeLabel = result.size ? formatBytes(result.size) : '4.2 MB';
-                    const dateLabel = result.lastModified ? new Date(result.lastModified).toLocaleDateString() : 'Today';
-
-                    return (
-                      <div
-                        key={result.id}
-                        className={`${styles.resultCard} ${isSelected ? styles.resultCardSelected : ''}`}
-                        onClick={() => setSelectedFileId(isSelected ? null : result.id)}
-                        style={{ borderLeftColor: colors.color } as React.CSSProperties}
-                      >
-                        {/* File action dot menu */}
-                        <div className={styles.actionMenuAnchor}>
-                          <FileActionMenu 
-                            file={result} 
-                            onOpenChange={(open) => setOpenMenuId(open ? result.id : null)} 
-                          />
-                        </div>
-
-                        <div className={styles.cardLeftBlock}>
-                          <div 
-                            className={styles.cardIconBox}
-                            style={{ backgroundColor: colors.color + '15', color: colors.color }}
-                          >
-                            {result.fileType?.toLowerCase() === 'png' ? <ImageIcon size={22} strokeWidth={2} /> : 
-                             ['xls', 'xlsx'].includes(result.fileType?.toLowerCase()) ? <FileSpreadsheet size={22} strokeWidth={2} /> :
-                             ['pdf'].includes(result.fileType?.toLowerCase()) ? <FileText size={22} strokeWidth={2} /> :
-                             ['doc', 'docx'].includes(result.fileType?.toLowerCase()) ? <FileText size={22} strokeWidth={2} /> :
-                             <FileText size={22} strokeWidth={2} />}
-                          </div>
-                          
-                          <button 
-                            onClick={(e) => toggleStar(e, result.id)}
-                            className={styles.starIconButton}
-                            style={{ color: isStarred ? '#FBBF24' : undefined }}
-                          >
-                            <Star size={16} fill={isStarred ? '#FBBF24' : 'transparent'} />
-                          </button>
-                        </div>
-                        
-                        <div className={styles.cardBody}>
-                          <div className={styles.cardHeaderRow}>
-                            <h4 
-                              className={styles.cardTitle}
-                              style={{ color: isSelected ? colors.color : undefined }}
-                            >
-                              {result.title}
-                            </h4>
-                            <div className={styles.scoreContainer}>
-                              <div className={styles.scoreRow}>
-                                <span className={`${styles.scoreBadge} ${styles.scoreBM25}`}>BM25: 4.80</span>
-                                <span className={`${styles.scoreBadge} ${styles.scoreTFIDF}`}>TF-IDF: 2.12</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className={styles.cardMetadataRow}>
-                            <span className={styles.metaBoldLabel}>BY: <span className={styles.metaValueDark}>{result.author}</span></span>
-                            <span className={styles.metaDot} />
-                            <span>{dateLabel}</span>
-                            <span className={styles.metaDot} />
-                            <span>{sizeLabel}</span>
-                          </div>
-
-                          <p className={styles.cardDescription}>{result.summary}</p>
-                          
-                          <div className={styles.cardProjectHubRow}>
-                            <span>PROJECT HUB: </span>
-                            <span className={styles.projectHubValue} style={{ color: colors.color }}>{result.siteName}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              {/* Pagination controls footer */}
-              {!isLoading && resultsToRender.length > 0 && (
-                <footer className={styles.pagination}>
-                  <span className={styles.paginationInfo}>
-                    PAGE {Math.floor(from / 10) + 1} <span className={styles.infoDivider}>|</span> SHOWING <span className={styles.infoHighlight}>{from + 1}-{from + resultsToRender.length}</span> OF <span className={styles.infoHighlight}>{totalCountToRender}</span>
-                  </span>
-
-                  <PaginationComponent
-                    totalCount={totalCountToRender}
-                    pageSize={10}
-                    from={from}
-                    onPageChange={(newFrom) => {
-                      setFrom(newFrom);
-                    }}
-                  />
-
-                  <div className={styles.jumpToWrapper}>
-                    <span className={styles.jumpToLabel}>Jump to</span>
-                    <input 
-                      type="text" 
-                      placeholder={(Math.floor(from / 10) + 1).toString()}
-                      className={styles.jumpToInput}
-                      disabled
-                    />
-                  </div>
-                </footer>
-              )}
-
-              {/* Bottom tabs for sub-navigation */}
-              <nav className={styles.bottomTabNav}>
-                <div className={styles.bottomTabWrapper}>
-                  {(['Search Results', 'Recent Activities', 'Starred Assets'] as const).map((tab) => {
-                    const isActive = bottomTab === tab;
-                    return (
-                      <button 
-                        key={tab}
-                        onClick={() => {
-                          setBottomTab(tab);
-                          setIsHistoryOpen(tab === 'Recent Activities');
-                        }}
-                        className={`${styles.bottomTabItem} ${isActive ? styles.bottomTabActive : ''}`}
-                      >
-                        {tab}
-                        {isActive && (
-                          <div className={styles.bottomActiveLine} />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </nav>
-
-            </main>
+              {/* Main Results Listing Pane */}
+              <SearchResultsList 
+                resultsToRender={resultsToRender}
+                totalCountToRender={totalCountToRender}
+                isLoading={isLoading}
+                selectedFileId={selectedFileId}
+                setSelectedFileId={setSelectedFileId}
+                starredIds={starredIds}
+                toggleStar={toggleStar}
+                from={from}
+                setFrom={setFrom}
+                isLiveMode={isLiveMode}
+                bottomTab={bottomTab}
+                setBottomTab={setBottomTab}
+                setIsHistoryOpen={setIsHistoryOpen}
+                isHistoryOpen={isHistoryOpen}
+                handleClearAllFilters={handleClearAllFilters}
+                activeTopTab={activeTopTab}
+                setActiveTopTab={setActiveTopTab}
+                filters={filters}
+                setFilters={setFilters}
+                setOpenMenuId={setOpenMenuId}
+                openMenuId={openMenuId}
+              />
+            </div>
 
             {/* Document preview analysis panel */}
-            <DocumentAnalysis 
+            <PreviewPane 
               selectedFile={selectedFile}
               setSelectedFile={(file) => setSelectedFileId(file ? file.id : null)}
               previewWidth={previewWidth}
@@ -583,7 +540,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
             />
 
             {/* Recent Searches history panel */}
-            <SearchHistory 
+            <HistoryPane 
               isHistoryOpen={isHistoryOpen}
               setIsHistoryOpen={setIsHistoryOpen}
               previewWidth={previewWidth}
