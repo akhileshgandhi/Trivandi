@@ -4,6 +4,7 @@ import styles from '../../../styles/PremiumSearch.module.scss';
 import { GraphSearchService } from '../services/GraphSearchService';
 import { useSearch } from '../hooks/useSearch';
 import { ISearchResult } from '../../../models/ISearchResult';
+import { useSearchStore } from '../store/useSearchStore';
 
 // Import modular subcomponents
 import { Sidebar } from './Sidebar';
@@ -50,25 +51,13 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const [bottomTab, setBottomTab] = useState<'Search Results' | 'Recent Activities' | 'Starred Assets'>('Search Results');
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [starredFiles, setStarredFiles] = useState<ISearchResult[]>(() => {
-    try {
-      const saved = localStorage.getItem('trivandi_starred_files_data');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-  const starredIds = useMemo(() => new Set(starredFiles.map(f => f.id)), [starredFiles]);
-
-  // --- Recently Viewed Files state ---
-  const [recentlyViewedFiles, setRecentlyViewedFiles] = useState<ISearchResult[]>(() => {
-    try {
-      const saved = sessionStorage.getItem('trivandi_recent_files_data');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const {
+    recentlyViewedFiles,
+    starredFiles,
+    starredIds,
+    addRecentFile,
+    toggleStar
+  } = useSearchStore();
 
   // Top-level modal states for loose-coupling Copy link sharing dialog
   const [copyFileDialogFile, setCopyFileDialogFile] = useState<ISearchResult | null>(null);
@@ -178,25 +167,15 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     });
   }, [liveResults, starredIds]);
 
-  // Track selectedFileId change to push clicked files into recentlyViewedFiles
+  // Track selectedFileId change to push clicked files into recentlyViewedFiles via store action
   useEffect(() => {
     if (selectedFileId) {
       const fileObj = mappedLiveResults.find(f => f.id === selectedFileId);
-      
       if (fileObj) {
-        setRecentlyViewedFiles(prev => {
-          const filtered = prev.filter(f => f.id !== selectedFileId);
-          const updated = [{ ...fileObj, isStarred: starredIds.has(fileObj.id) }, ...filtered];
-          try {
-            sessionStorage.setItem('trivandi_recent_files_data', JSON.stringify(updated));
-          } catch (e) {
-            // ignored
-          }
-          return updated;
-        });
+        addRecentFile(fileObj);
       }
     }
-  }, [selectedFileId, mappedLiveResults, starredIds]);
+  }, [selectedFileId, mappedLiveResults, addRecentFile]);
 
   // Listen to the custom copy-link event from any card's Action Menu to display the top-level overlay
   useEffect(() => {
@@ -299,31 +278,12 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   };
 
   // --- File Starring Handler ---
-  const toggleStar = (e: React.MouseEvent, id: string): void => {
+  const handleToggleStar = (e: React.MouseEvent, id: string): void => {
     e.stopPropagation();
-    
-    // Find file details to store full object
     const fileObj = mappedLiveResults.find(f => f.id === id) || recentlyViewedFiles.find(f => f.id === id) || starredFiles.find(f => f.id === id);
-    
-    setStarredFiles(prev => {
-      const exists = prev.some(f => f.id === id);
-      let updated: ISearchResult[];
-      if (exists) {
-        updated = prev.filter(f => f.id !== id);
-      } else {
-        if (fileObj) {
-          updated = [...prev, { ...fileObj, isStarred: true }];
-        } else {
-          updated = prev;
-        }
-      }
-      try {
-        localStorage.setItem('trivandi_starred_files_data', JSON.stringify(updated));
-      } catch (err) {
-        // ignored
-      }
-      return updated;
-    });
+    if (fileObj) {
+      toggleStar(fileObj);
+    }
   };
 
   // --- Sidebar Type Filter checkbox handler ---
@@ -392,20 +352,22 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           <div className={styles.mainLayout}>
             
             {/* Sidebar Filters */}
-            <Sidebar 
-              sidebarWidth={sidebarWidth}
-              fileTypes={filters.fileTypes}
-              selectedAuthors={filters.selectedAuthors}
-              date={filters.date}
-              setFilters={setFilters}
-              toggleFileType={toggleFileType}
-              startResizingSidebar={startResizingSidebar}
-              isResizingSidebar={isResizingSidebar}
-              authorsList={authorsList}
-            />
+            {bottomTab === 'Search Results' && (
+              <Sidebar 
+                sidebarWidth={sidebarWidth}
+                fileTypes={filters.fileTypes}
+                selectedAuthors={filters.selectedAuthors}
+                date={filters.date}
+                setFilters={setFilters}
+                toggleFileType={toggleFileType}
+                startResizingSidebar={startResizingSidebar}
+                isResizingSidebar={isResizingSidebar}
+                authorsList={authorsList}
+              />
+            )}
 
             {/* Main Center Panel (Tabs & Listing Pane) */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className={styles.centerContainer}>
               {/* Category Filter Tabs */}
               <SearchTabs 
                 activeTab={activeTopTab}
@@ -424,7 +386,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                 selectedFileId={selectedFileId}
                 setSelectedFileId={setSelectedFileId}
                 starredIds={starredIds}
-                toggleStar={toggleStar}
+                toggleStar={handleToggleStar}
                 from={from}
                 setFrom={setFrom}
                 bottomTab={bottomTab}

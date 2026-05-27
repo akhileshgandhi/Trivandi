@@ -72,7 +72,8 @@
     "uuid": "^11.1.0",
     "viewerjs-react": "^1.0.2",
     "xlsx": "^0.18.5",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@microsoft/eslint-config-spfx": "1.20.1",
