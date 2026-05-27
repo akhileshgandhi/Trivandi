@@ -16,6 +16,7 @@ const getFileColor = (fileType: string) => {
   if (['ppt', 'pptx'].includes(ft)) return { color: '#e52592', bg: '#fce4ec' };
   if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) return { color: '#9334e6', bg: '#f3e5f5' };
   if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ft)) return { color: '#ea4335', bg: '#fce8e6' };
+  if (ft === 'folder') return { color: '#f5b041', bg: '#fef5e7' };
   return { color: '#1a73e8', bg: '#e8f0fe' };
 };
 

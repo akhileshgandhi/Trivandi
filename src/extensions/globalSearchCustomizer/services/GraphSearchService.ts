@@ -12,16 +12,29 @@ export class GraphSearchService {
     query: string, 
     pageSize: number = 20, 
     from: number = 0,
-    fileTypes: string[] = []
+    fileTypes: string[] = [],
+    activeTopTab: string = 'All'
   ): Promise<{ results: ISearchResult[]; totalCount: number }> {
     const client: any = await this._msGraphClientFactory.getClient('3');
 
     // Build the query string using a safer KQL fallback
     let queryString = query.trim() || 'IsDocument:1';
+
+    if (activeTopTab === 'Folders') {
+      queryString = query.trim() ? `(${query.trim()}) AND IsContainer:true` : 'IsContainer:true';
+    } else if (activeTopTab === 'Files') {
+      queryString = query.trim() ? `(${query.trim()}) AND IsContainer:false` : 'IsContainer:false';
+    } else if (activeTopTab === 'Images') {
+      const imgFilter = '(filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg) AND IsContainer:false';
+      queryString = query.trim() ? `(${query.trim()}) AND (${imgFilter})` : imgFilter;
+    } else if (activeTopTab === 'Videos') {
+      const vidFilter = '(filetype:mp4 OR filetype:mov OR filetype:avi) AND IsContainer:false';
+      queryString = query.trim() ? `(${query.trim()}) AND (${vidFilter})` : vidFilter;
+    }
     
-    // Add file type filters if present and not "All"
+    // Add file type filters if present and not "All" (Only if not in Folders tab)
     const actualTypes = fileTypes.filter(t => t !== 'All');
-    if (actualTypes.length > 0) {
+    if (actualTypes.length > 0 && activeTopTab !== 'Folders') {
       const typeQueries = actualTypes.map(t => `filetype:${t.toLowerCase()}`);
       queryString += ` AND (${typeQueries.join(' OR ')})`;
     }
@@ -59,15 +72,22 @@ export class GraphSearchService {
       
       // Determine file extension cleanly
       let fileType = 'doc';
-      if (resource.file?.mimeType) {
+      const name = resource.name || '';
+      if (resource.folder || (!resource.file && !name.includes('.'))) {
+        fileType = 'folder';
+      } else if (resource.file?.mimeType) {
         const mime = resource.file.mimeType.toLowerCase();
         if (mime.includes('pdf')) fileType = 'pdf';
         else if (mime.includes('excel') || mime.includes('spreadsheet')) fileType = 'xlsx';
         else if (mime.includes('presentation') || mime.includes('powerpoint')) fileType = 'pptx';
         else if (mime.includes('image')) fileType = 'png';
       } else {
-        const ext = resource.name?.split('.').pop()?.toLowerCase();
-        if (ext) fileType = ext;
+        const ext = name.split('.').pop()?.toLowerCase();
+        if (ext && ext !== name.toLowerCase()) {
+          fileType = ext;
+        } else {
+          fileType = 'folder'; // Fallback if no valid extension found
+        }
       }
 
       return {

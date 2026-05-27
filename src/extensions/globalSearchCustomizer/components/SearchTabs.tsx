@@ -2,7 +2,7 @@ import * as React from 'react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchTabsProps } from '../interface/ISearchTabsProps';
 
-const TABS = ['All', 'Files', 'Images', 'Videos'];
+const TABS = ['All',  'Folders','Files', 'Images', 'Videos'];
 
 export const SearchTabs: React.FC<ISearchTabsProps> = ({ activeTab, onTabChange, onClearAll }) => {
   return (

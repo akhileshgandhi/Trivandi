@@ -21,7 +21,9 @@ const getFileColor = (fileType: string) => {
   if (ft === 'pdf') return { color: '#00acc1', bg: '#e0f7fa' };
   if (['xls', 'xlsx'].includes(ft)) return { color: '#00796b', bg: '#e0f2f1' };
   if (['ppt', 'pptx'].includes(ft)) return { color: '#e52592', bg: '#fce4ec' };
-  if (['png', 'jpg', 'jpeg'].includes(ft)) return { color: '#9334e6', bg: '#f3e5f5' };
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) return { color: '#9334e6', bg: '#f3e5f5' };
+  if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ft)) return { color: '#ea4335', bg: '#fce8e6' };
+  if (ft === 'folder') return { color: '#f5b041', bg: '#fef5e7' };
   return { color: '#1a73e8', bg: '#e8f0fe' };
 };
 
@@ -118,6 +120,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     loading: liveLoading,
     setQuery,
     setFileTypes,
+    setActiveTopTab: hookSetActiveTopTab,
     from,
     setFrom
   } = useSearch({
@@ -135,6 +138,11 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   useEffect(() => {
     setFileTypes(filters.fileTypes);
   }, [filters.fileTypes, setFileTypes]);
+
+  // Track activeTopTab changes to synchronize hook
+  useEffect(() => {
+    hookSetActiveTopTab(activeTopTab);
+  }, [activeTopTab, hookSetActiveTopTab]);
 
 
   // Convert raw Graph Search results into our formatted UI result cards
@@ -188,17 +196,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     };
   }, []);
 
-  const filteredLiveResults = useMemo(() => {
-    let list = mappedLiveResults;
-    if (activeTopTab === 'Files') {
-      list = list.filter(item => ['doc', 'docx', 'xls', 'xlsx', 'pdf', 'ppt', 'pptx'].includes(item.fileType.toLowerCase()));
-    } else if (activeTopTab === 'Images') {
-      list = list.filter(item => ['png', 'jpg', 'jpeg', 'gif', 'svg', 'tiff'].includes(item.fileType.toLowerCase()));
-    } else if (activeTopTab === 'Videos') {
-      list = list.filter(item => ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(item.fileType.toLowerCase()));
-    }
-    return list;
-  }, [mappedLiveResults, activeTopTab]);
+  const filteredLiveResults = mappedLiveResults;
 
   // Set the final target results and states based on current Mode (Live vs Mock)
   const resultsToRender = useMemo(() => {
