@@ -85,11 +85,23 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                 <button onClick={() => setFilters({ ...filters, date: '' })} className={styles.filterBadgeClose}><X size={12} /></button>
               </div>
             )}
-            {filters.author && (
-              <div className={styles.filterBadge}>
-                Author: {filters.author}
-                <button onClick={() => setFilters({ ...filters, author: '' })} className={styles.filterBadgeClose}><X size={12} /></button>
-              </div>
+            {filters.selectedAuthors && filters.selectedAuthors.length > 0 && (
+              filters.selectedAuthors.map(authorName => (
+                <div key={authorName} className={styles.filterBadge}>
+                  Author: {authorName}
+                  <button 
+                    onClick={() => {
+                      setFilters({
+                        ...filters,
+                        selectedAuthors: filters.selectedAuthors.filter(a => a !== authorName)
+                      });
+                    }} 
+                    className={styles.filterBadgeClose}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))
             )}
           </div>
         </div>

@@ -20,10 +20,10 @@ export interface ISearchResultsListProps {
   setActiveTopTab: (tab: string) => void;
   filters: {
     fileTypes: string[];
-    author: string;
+    selectedAuthors: string[];
     date: string;
   };
-  setFilters: (filters: { fileTypes: string[]; author: string; date: string }) => void;
+  setFilters: (filters: { fileTypes: string[]; selectedAuthors: string[]; date: string }) => void;
   setOpenMenuId: (id: string | null) => void;
   openMenuId: string | null;
 }

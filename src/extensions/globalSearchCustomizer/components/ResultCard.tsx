@@ -72,7 +72,6 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
 
   const formattedSize = result.size ? formatBytes(result.size) : '4.2 MB';
   const isImage = ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase() || '');
-  const cleanUrl = getCleanSharePointUrl(result.webUrl, result.title);
   const thumbUrl = isImage && !imageError ? getSharePointThumbnailUrl(result.webUrl, result.title) : '';
 
   return (
@@ -123,9 +122,6 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
           <span>{result.lastModified ? new Date(result.lastModified).toLocaleDateString() : 'Today'}</span>
           <span className={styles.metaDot} />
           <span>{formattedSize}</span>
-          <span className={styles.metaDot} />
-          <span style={{ background: '#eee', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', color: '#444', fontWeight: 'bold' }}>Type: {result.fileType}</span>
-          <span style={{ fontSize: '9px', color: '#888', display: 'block', marginTop: '4px', wordBreak: 'break-all' }}>URL: {cleanUrl || 'empty'}</span>
         </div>
 
         <p className={styles.cardDescription}>{result.summary}</p>

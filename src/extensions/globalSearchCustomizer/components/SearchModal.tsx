@@ -42,7 +42,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [filters, setFilters] = useState({
     fileTypes: ['All'],
-    author: '',
+    selectedAuthors: [] as string[],
     date: ''
   });
 
@@ -50,8 +50,15 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const [bottomTab, setBottomTab] = useState<'Search Results' | 'Recent Activities' | 'Starred Assets'>('Search Results');
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [starredIds, setStarredIds] = useState<Set<string>>(new Set(['m1', 'm4']));
-  const [isAuthorDropdownOpen, setIsAuthorDropdownOpen] = useState(false);
+  const [starredFiles, setStarredFiles] = useState<ISearchResult[]>(() => {
+    try {
+      const saved = localStorage.getItem('trivandi_starred_files_data');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const starredIds = useMemo(() => new Set(starredFiles.map(f => f.id)), [starredFiles]);
 
   // --- Recently Viewed Files state ---
   const [recentlyViewedFiles, setRecentlyViewedFiles] = useState<ISearchResult[]>(() => {
@@ -196,7 +203,75 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     };
   }, []);
 
-  const filteredLiveResults = mappedLiveResults;
+  // Dynamic unique list of authors alphabetically sorted
+  const authorsList = useMemo(() => {
+    const collected = new Set<string>();
+    // Default high-profile premium team members
+    ['Akhilesh Gandhi', 'Paul Kerby', 'Carla Glossip', 'Ava Pevsner', 'Sam Lay'].forEach(a => collected.add(a));
+    // Live loaded search authors
+    mappedLiveResults.forEach(r => {
+      if (r.author && r.author.trim() !== 'SharePoint User' && r.author.trim() !== 'SharePoint Portal') {
+        collected.add(r.author.trim());
+      }
+    });
+    return Array.from(collected).sort((a, b) => a.localeCompare(b));
+  }, [mappedLiveResults]);
+
+  // Robust live results filtering by Selected Authors and Dates
+  const filteredLiveResults = useMemo(() => {
+    let list = mappedLiveResults;
+    
+    // 1. Selected Authors Filter (Multi-select)
+    if (filters.selectedAuthors.length > 0) {
+      list = list.filter(item => filters.selectedAuthors.includes(item.author));
+    }
+    
+    // 2. Date Filter
+    if (filters.date) {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      list = list.filter(item => {
+        if (!item.lastModified) return false;
+        const itemDate = new Date(item.lastModified);
+        
+        if (filters.date === 'Today') {
+          return itemDate >= startOfToday;
+        }
+        if (filters.date === 'Yesterday') {
+          const yesterday = new Date(startOfToday);
+          yesterday.setDate(yesterday.getDate() - 1);
+          return itemDate >= yesterday && itemDate < startOfToday;
+        }
+        if (filters.date === 'This Week') {
+          const weekAgo = new Date(startOfToday);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return itemDate >= weekAgo;
+        }
+        if (filters.date === 'This Month') {
+          const monthAgo = new Date(startOfToday);
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          return itemDate >= monthAgo;
+        }
+        if (filters.date === 'This Year') {
+          const yearAgo = new Date(startOfToday);
+          yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+          return itemDate >= yearAgo;
+        }
+        // Custom Pick Date (YYYY-MM-DD timezone-safe comparison)
+        if (filters.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [year, month, day] = filters.date.split('-').map(Number);
+          return itemDate.getFullYear() === year && 
+                 (itemDate.getMonth() + 1) === month && 
+                 itemDate.getDate() === day;
+        }
+        const pickDateStr = new Date(filters.date).toDateString();
+        return itemDate.toDateString() === pickDateStr;
+      });
+    }
+    
+    return list;
+  }, [mappedLiveResults, filters.selectedAuthors, filters.date]);
 
   // Set the final target results and states based on current Mode (Live vs Mock)
   const resultsToRender = useMemo(() => {
@@ -206,14 +281,18 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         isStarred: starredIds.has(f.id)
       }));
     }
-    let list = filteredLiveResults;
     if (bottomTab === 'Starred Assets') {
-      list = list.filter(item => starredIds.has(item.id));
+      return starredFiles.map(f => ({
+        ...f,
+        isStarred: true
+      }));
     }
-    return list;
-  }, [bottomTab, recentlyViewedFiles, filteredLiveResults, starredIds]);
+    return filteredLiveResults;
+  }, [bottomTab, recentlyViewedFiles, starredFiles, filteredLiveResults, starredIds]);
 
-  const totalCountToRender: number = bottomTab === 'Search Results' ? liveTotalCount : resultsToRender.length;
+  const totalCountToRender: number = bottomTab === 'Search Results' 
+    ? ((filters.selectedAuthors.length > 0 || filters.date) ? filteredLiveResults.length : liveTotalCount)
+    : resultsToRender.length;
   const isLoading: boolean = liveLoading;
 
   // Selected File Object derivation
@@ -260,12 +339,26 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   // --- File Starring Handler ---
   const toggleStar = (e: React.MouseEvent, id: string): void => {
     e.stopPropagation();
-    setStarredIds(prev => {
-      const updated = new Set(prev);
-      if (updated.has(id)) {
-        updated.delete(id);
+    
+    // Find file details to store full object
+    const fileObj = mappedLiveResults.find(f => f.id === id) || recentlyViewedFiles.find(f => f.id === id) || starredFiles.find(f => f.id === id);
+    
+    setStarredFiles(prev => {
+      const exists = prev.some(f => f.id === id);
+      let updated: ISearchResult[];
+      if (exists) {
+        updated = prev.filter(f => f.id !== id);
       } else {
-        updated.add(id);
+        if (fileObj) {
+          updated = [...prev, { ...fileObj, isStarred: true }];
+        } else {
+          updated = prev;
+        }
+      }
+      try {
+        localStorage.setItem('trivandi_starred_files_data', JSON.stringify(updated));
+      } catch (err) {
+        // ignored
       }
       return updated;
     });
@@ -305,7 +398,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const handleClearAllFilters = (): void => {
     setFilters({
       fileTypes: ['All'],
-      author: '',
+      selectedAuthors: [],
       date: ''
     });
     setActiveTopTab('All');
@@ -340,14 +433,13 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
             <Sidebar 
               sidebarWidth={sidebarWidth}
               fileTypes={filters.fileTypes}
-              author={filters.author}
+              selectedAuthors={filters.selectedAuthors}
               date={filters.date}
               setFilters={setFilters}
               toggleFileType={toggleFileType}
-              isAuthorDropdownOpen={isAuthorDropdownOpen}
-              setIsAuthorDropdownOpen={setIsAuthorDropdownOpen}
               startResizingSidebar={startResizingSidebar}
               isResizingSidebar={isResizingSidebar}
+              authorsList={authorsList}
             />
 
             {/* Main Center Panel (Tabs & Listing Pane) */}

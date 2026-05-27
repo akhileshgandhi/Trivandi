@@ -9,16 +9,45 @@ const DATE_OPTIONS = ['Today', 'Yesterday', 'This Week', 'This Month', 'This Yea
 export const Sidebar: React.FC<IFiltersPanelProps> = ({
   sidebarWidth,
   fileTypes,
-  author,
+  selectedAuthors,
   date,
   setFilters,
   toggleFileType,
-  isAuthorDropdownOpen,
-  setIsAuthorDropdownOpen,
   startResizingSidebar,
   isResizingSidebar,
-  authorsList = ['Sarah Chen', 'Robert Wilson', 'Elena Rodriguez', 'James T. Kirk', 'Security Operations', 'HR Department']
+  authorsList
 }) => {
+  const [authorSearchQuery, setAuthorSearchQuery] = React.useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Filter authors alphabetically matching the search query
+  const filteredAuthors = React.useMemo(() => {
+    return authorsList
+      .filter(name => name.toLowerCase().includes(authorSearchQuery.toLowerCase()))
+      .sort((a, b) => a.localeCompare(b));
+  }, [authorsList, authorSearchQuery]);
+
+  const toggleAuthor = (name: string) => {
+    const updated = selectedAuthors.includes(name)
+      ? selectedAuthors.filter(a => a !== name)
+      : [...selectedAuthors, name];
+    setFilters({ fileTypes, selectedAuthors: updated, date });
+  };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, []);
+
   return (
     <>
       <aside 
@@ -51,47 +80,137 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
               })}
             </div>
 
-            {/* Filter by Author */}
-            <h3 className={styles.sidebarSectionHeader}>
-              Author <span className={styles.countLabel}>({authorsList.length})</span>
+            {/* Filter by Author Dropdown */}
+            <h3 className={styles.sidebarSectionHeader} style={{ marginTop: '24px' }}>
+              Author <span className={styles.countLabel}>({selectedAuthors.length} selected)</span>
             </h3>
-            <div className={styles.authorInputWrapper}>
-              <div style={{ position: 'relative' }}>
+            <div ref={dropdownRef} className={styles.authorInputWrapper} style={{ position: 'relative', marginBottom: '16px' }}>
+              <div 
+                style={{ position: 'relative', cursor: 'pointer' }}
+                onClick={() => setIsDropdownOpen(true)}
+              >
                 <User className={styles.authorIcon} size={16} />
                 <input 
                   type="text" 
                   placeholder="Find an author..."
-                  value={author}
-                  onFocus={() => setIsAuthorDropdownOpen(true)}
-                  onBlur={() => setTimeout(() => setIsAuthorDropdownOpen(false), 200)}
-                  onChange={(e) => setFilters({ fileTypes, author: e.target.value, date })}
+                  value={authorSearchQuery}
+                  onFocus={() => setIsDropdownOpen(true)}
+                  onChange={(e) => {
+                    setAuthorSearchQuery(e.target.value);
+                    setIsDropdownOpen(true);
+                  }}
                   className={styles.authorInput}
                 />
               </div>
               
-              {isAuthorDropdownOpen && (
-                <div className={styles.authorDropdown}>
-                  {authorsList
-                    .filter(name => name.toLowerCase().includes(author.toLowerCase()))
-                    .map(name => (
-                      <button
-                        key={name}
-                        onMouseDown={(e) => e.preventDefault()} // Prevent input blur before click
-                        onClick={() => setFilters({ fileTypes, author: name, date })}
-                        className={styles.authorDropdownItem}
-                      >
-                        <div className={styles.authorInitialsAvatar}>
-                          {name.charAt(0)}
-                        </div>
-                        {name}
-                      </button>
-                    ))
-                  }
-                  {authorsList.filter(name => name.toLowerCase().includes(author.toLowerCase())).length === 0 && (
-                    <div style={{ padding: '16px', fontSize: '14px', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center' }}>
-                      No authors found
-                    </div>
-                  )}
+              {isDropdownOpen && (
+                <div 
+                  style={{ 
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 100,
+                    marginTop: '6px',
+                    maxHeight: '230px', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    padding: '10px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '12px',
+                    background: '#ffffff',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 4px 8px 4px', borderBottom: '1px solid #f1f5f9', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>SELECT AUTHORS</span>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsDropdownOpen(false);
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
+                    >
+                      Done
+                    </button>
+                  </div>
+                  
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '5px', 
+                      overflowY: 'auto', 
+                      maxHeight: '170px',
+                      paddingRight: '2px'
+                    }}
+                  >
+                    {filteredAuthors.map(name => {
+                      const isChecked = selectedAuthors.includes(name);
+                      return (
+                        <label 
+                          key={name}
+                          onClick={(e) => e.stopPropagation()} // Prevent closing dropdown on item click
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px', 
+                            cursor: 'pointer', 
+                            padding: '6px 8px', 
+                            borderRadius: '6px', 
+                            backgroundColor: isChecked ? '#eff6ff' : 'transparent',
+                            transition: 'all 0.15s ease',
+                            userSelect: 'none'
+                          }}
+                        >
+                          <input 
+                            type="checkbox" 
+                            checked={isChecked}
+                            onChange={() => toggleAuthor(name)}
+                            style={{
+                              width: '14px',
+                              height: '14px',
+                              accentColor: '#2563eb',
+                              cursor: 'pointer'
+                            }}
+                          />
+                          <div 
+                            style={{ 
+                              width: '24px', 
+                              height: '24px', 
+                              borderRadius: '50%', 
+                              backgroundColor: isChecked ? '#2563eb' : '#64748b', 
+                              color: '#ffffff', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              fontSize: '11px', 
+                              fontWeight: 700 
+                            }}
+                          >
+                            {name.charAt(0).toUpperCase()}
+                          </div>
+                          <span 
+                            style={{ 
+                              fontSize: '13px', 
+                              color: isChecked ? '#1e40af' : '#334155', 
+                              fontWeight: isChecked ? 600 : 400,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {name}
+                          </span>
+                        </label>
+                      );
+                    })}
+                    {filteredAuthors.length === 0 && (
+                      <div style={{ padding: '16px', fontSize: '12px', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center' }}>
+                        No authors found
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -104,7 +223,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                 return (
                   <button 
                     key={opt}
-                    onClick={() => setFilters({ fileTypes, author, date: isActive ? '' : opt })}
+                    onClick={() => setFilters({ fileTypes, selectedAuthors, date: isActive ? '' : opt })}
                     className={`${styles.dateFilterButton} ${isActive ? styles.dateFilterActive : ''}`}
                   >
                     {opt}
@@ -120,7 +239,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                 <input 
                   type="date"
                   value={date && !DATE_OPTIONS.includes(date) ? date : ''}
-                  onChange={(e) => setFilters({ fileTypes, author, date: e.target.value })}
+                  onChange={(e) => setFilters({ fileTypes, selectedAuthors, date: e.target.value })}
                   className={styles.dateInput}
                 />
               </div>
@@ -136,7 +255,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
               Apply Filter
             </button>
             <button 
-              onClick={() => setFilters({ fileTypes: ['All'], author: '', date: '' })}
+              onClick={() => setFilters({ fileTypes: ['All'], selectedAuthors: [], date: '' })}
               className={styles.resetButton}
             >
               Reset Filters
