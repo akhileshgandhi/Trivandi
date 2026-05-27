@@ -65,6 +65,10 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     }
   });
 
+  // Top-level modal states for loose-coupling Copy link sharing dialog
+  const [copyFileDialogFile, setCopyFileDialogFile] = useState<ISearchResult | null>(null);
+  const [appCopyCopied, setAppCopyCopied] = useState(false);
+
   // Simulated Search History
   const [searchHistory, setSearchHistory] = useState<string[]>([
     'Quarterly Strategy plans',
@@ -287,6 +291,17 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
       }
     }
   }, [selectedFileId, isLiveMode, mappedLiveResults, initialMockResults, starredIds]);
+
+  // Listen to the custom copy-link event from any card's Action Menu to display the top-level overlay
+  useEffect(() => {
+    const handleCopyEvent = (e: CustomEvent) => {
+      setCopyFileDialogFile(e.detail);
+    };
+    window.addEventListener('trivandi-copy-link', handleCopyEvent as EventListener);
+    return () => {
+      window.removeEventListener('trivandi-copy-link', handleCopyEvent as EventListener);
+    };
+  }, []);
 
   const filteredLiveResults = useMemo(() => {
     let list = mappedLiveResults;
@@ -556,6 +571,109 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
 
         </div>
       </div>
+
+      {/* ========================================================
+           MODAL 2: Copy link SharePoint Share dialog (Top-level viewport)
+         ======================================================== */}
+      {copyFileDialogFile && (
+        <div 
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(15, 23, 42, 0.4)', 
+            backdropFilter: 'blur(4px)',
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            zIndex: 999999 
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setCopyFileDialogFile(null);
+          }}
+        >
+          <div 
+            style={{ 
+              width: '450px', 
+              background: '#ffffff', 
+              borderRadius: '16px', 
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+              padding: '24px',
+              boxSizing: 'border-box',
+              position: 'relative'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button top right */}
+            <button 
+              onClick={() => setCopyFileDialogFile(null)}
+              style={{ 
+                position: 'absolute', 
+                top: '16px', 
+                right: '16px', 
+                background: 'none', 
+                border: 'none', 
+                color: '#94a3b8', 
+                cursor: 'pointer',
+                fontSize: '18px'
+              }}
+            >
+              ✕
+            </button>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#4caf50', color: '#ffffff', fontSize: '12px', fontWeight: 'bold' }}>
+                ✓
+              </div>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#202124', margin: 0, fontFamily: 'Segoe UI, sans-serif' }}>
+                Link created
+              </h3>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #dadce0', borderRadius: '8px', padding: '6px 12px', background: '#f8f9fa', marginBottom: '12px' }}>
+              <span style={{ fontSize: '13px', color: '#3c4043', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: 'Segoe UI, sans-serif' }}>
+                {copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`}
+              </span>
+              <button 
+                onClick={async () => {
+                  try {
+                    const url = copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`;
+                    await navigator.clipboard.writeText(url);
+                    setAppCopyCopied(true);
+                    setTimeout(() => {
+                      setAppCopyCopied(false);
+                      setCopyFileDialogFile(null);
+                    }, 1500);
+                  } catch (err) {
+                    console.error('Failed to copy', err);
+                  }
+                }}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '20px',
+                  border: '1px solid #dadce0',
+                  background: appCopyCopied ? '#e8f5e9' : '#ffffff',
+                  color: appCopyCopied ? '#2e7d32' : '#1a73e8',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  fontFamily: 'Segoe UI, sans-serif'
+                }}
+              >
+                {appCopyCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#5f6368', fontFamily: 'Segoe UI, sans-serif' }}>
+              <span>People in your organization with the link can view</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#1a73e8', fontWeight: 600 }}>
+                ⚙ Settings
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
