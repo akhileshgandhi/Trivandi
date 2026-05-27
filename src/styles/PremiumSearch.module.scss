@@ -727,29 +727,44 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 .filterBadge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  background: rgba(26, 115, 232, 0.05);
-  border: 1px solid rgba(26, 115, 232, 0.1);
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(26, 115, 232, 0.08);
+  border: 1px solid rgba(26, 115, 232, 0.18);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
   color: $trivandi-blue;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(26, 115, 232, 0.05);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(26, 115, 232, 0.12);
+    border-color: rgba(26, 115, 232, 0.3);
+    box-shadow: 0 2px 4px rgba(26, 115, 232, 0.1);
+  }
 }
 
 .filterBadgeClose {
-  background: transparent;
+  background: rgba(26, 115, 232, 0.1);
   border: none;
   color: $trivandi-blue;
   display: flex;
-  padding: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border-radius: 50%;
   cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: -4px;
 
   &:hover {
-    opacity: 0.8;
+    background: rgba(26, 115, 232, 0.25);
+    color: darken($trivandi-blue, 15%);
+    transform: rotate(90deg);
   }
 }
 

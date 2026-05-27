@@ -56,25 +56,38 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
             {activeTopTab !== 'All' && (
               <div className={styles.filterBadge}>
                 Tab: {activeTopTab}
-                <button onClick={() => setActiveTopTab('All')} className={styles.filterBadgeClose}><X size={10} /></button>
+                <button onClick={() => setActiveTopTab('All')} className={styles.filterBadgeClose}><X size={12} /></button>
               </div>
             )}
             {filters.fileTypes.length > 0 && !filters.fileTypes.includes('All') && (
-              <div className={styles.filterBadge}>
-                Types: {filters.fileTypes.join(', ')}
-                <button onClick={() => setFilters({ ...filters, fileTypes: ['All'] })} className={styles.filterBadgeClose}><X size={10} /></button>
-              </div>
+              filters.fileTypes.map(type => (
+                <div key={type} className={styles.filterBadge}>
+                  Type: {type}
+                  <button 
+                    onClick={() => {
+                      const updated = filters.fileTypes.filter(t => t !== type);
+                      setFilters({
+                        ...filters,
+                        fileTypes: updated.length === 0 ? ['All'] : updated
+                      });
+                    }} 
+                    className={styles.filterBadgeClose}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))
             )}
             {filters.date && (
               <div className={styles.filterBadge}>
                 Date: {filters.date}
-                <button onClick={() => setFilters({ ...filters, date: '' })} className={styles.filterBadgeClose}><X size={10} /></button>
+                <button onClick={() => setFilters({ ...filters, date: '' })} className={styles.filterBadgeClose}><X size={12} /></button>
               </div>
             )}
             {filters.author && (
               <div className={styles.filterBadge}>
                 Author: {filters.author}
-                <button onClick={() => setFilters({ ...filters, author: '' })} className={styles.filterBadgeClose}><X size={10} /></button>
+                <button onClick={() => setFilters({ ...filters, author: '' })} className={styles.filterBadgeClose}><X size={12} /></button>
               </div>
             )}
           </div>
