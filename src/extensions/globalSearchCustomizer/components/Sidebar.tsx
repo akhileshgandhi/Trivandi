@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { User, Calendar } from 'lucide-react';
+import { User, Calendar, GripVertical } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { IFiltersPanelProps } from '../interface/IFiltersPanelProps';
 
@@ -267,7 +267,11 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
       <div 
         onMouseDown={startResizingSidebar}
         className={`${styles.resizeHandle} ${isResizingSidebar ? styles.resizeHandleActive : ''}`}
-      />
+      >
+        <div className={styles.resizeGrip}>
+          <GripVertical size={12} strokeWidth={2.5} />
+        </div>
+      </div>
     </>
   );
 };

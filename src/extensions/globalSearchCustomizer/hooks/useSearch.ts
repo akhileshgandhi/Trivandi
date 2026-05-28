@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { GraphSearchService } from '../services/GraphSearchService';
 import { ISearchResult } from '../../../models/ISearchResult';
 
@@ -15,27 +15,70 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
   const [error, setError] = useState<string | null>(null);
   const [from, setFrom] = useState(0);
 
+  // Keep track of the latest active parameters to prevent asynchronous race conditions
+  const activeParamsRef = useRef({ query, pageSize, from, fileTypes, activeTopTab, date });
+
+  useEffect(() => {
+    activeParamsRef.current = { query, pageSize, from, fileTypes, activeTopTab, date };
+  }, [query, pageSize, from, fileTypes, activeTopTab, date]);
+
   const executeSearch = useCallback(async () => {
     if (!service) {
       setError('Search service is not initialized.');
       return;
     }
 
+    const currentParams = { query, pageSize, from, fileTypes, activeTopTab, date };
+
+    console.log('--- [DEBUG hook] Triggering executeSearch in useSearch ---', currentParams);
+
     setLoading(true);
     setError(null);
     try {
       const res = await service.search(query, pageSize, from, fileTypes, activeTopTab, date);
+      
+      // Check if parameters have changed since this request was started
+      const latest = activeParamsRef.current;
+      const isStale = 
+        latest.query !== currentParams.query ||
+        latest.pageSize !== currentParams.pageSize ||
+        latest.from !== currentParams.from ||
+        latest.date !== currentParams.date ||
+        latest.activeTopTab !== currentParams.activeTopTab ||
+        JSON.stringify(latest.fileTypes) !== JSON.stringify(currentParams.fileTypes);
+
+      if (isStale) {
+        console.warn('--- [DEBUG hook] Stale search results discarded for query:', query);
+        return;
+      }
+
+      console.log('--- [DEBUG hook] Successful search response ---', {
+        resultsLength: res.results.length,
+        totalCount: res.totalCount
+      });
       setResults(res.results);
       setTotalCount(res.totalCount);
     } catch (err: any) {
-      console.error('Error executing Graph Search in hook:', err);
+      console.error('--- [DEBUG hook] Error executing Graph Search in hook ---', err);
       if (err?.statusCode === 429 || (err?.message && err.message.includes('429'))) {
         setError('Too many requests. Please wait a moment before searching again.');
       } else {
         setError(err?.message || 'Failed to fetch search results from Microsoft Graph API.');
       }
     } finally {
-      setLoading(false);
+      // Only set loading to false if this request is not stale
+      const latest = activeParamsRef.current;
+      const isStale = 
+        latest.query !== currentParams.query ||
+        latest.pageSize !== currentParams.pageSize ||
+        latest.from !== currentParams.from ||
+        latest.date !== currentParams.date ||
+        latest.activeTopTab !== currentParams.activeTopTab ||
+        JSON.stringify(latest.fileTypes) !== JSON.stringify(currentParams.fileTypes);
+
+      if (!isStale) {
+        setLoading(false);
+      }
     }
   }, [service, query, pageSize, from, fileTypes, activeTopTab, date]);
 

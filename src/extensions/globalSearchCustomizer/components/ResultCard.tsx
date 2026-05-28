@@ -3,6 +3,7 @@ import { Image as ImageIcon, FileSpreadsheet, FileText, FileBox } from 'lucide-r
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { IResultCardProps } from '../interface/IResultCardProps';
+import { renderFormattedSummary } from '../../../utils/SearchHelpers';
 
 // CARD ACCENT COLOR ASSIGNMENTS
 const CARD_COLORS = [
@@ -124,7 +125,7 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
           <span>{formattedSize}</span>
         </div>
 
-        <p className={styles.cardDescription}>{result.summary}</p>
+        <p className={styles.cardDescription}>{renderFormattedSummary(result.summary, '', color.accent)}</p>
         
         <div className={styles.cardProjectHubRow}>
           <span>PROJECT HUB: </span>

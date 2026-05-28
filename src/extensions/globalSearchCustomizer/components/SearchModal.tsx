@@ -4,6 +4,7 @@ import styles from '../../../styles/PremiumSearch.module.scss';
 import { GraphSearchService } from '../services/GraphSearchService';
 import { useSearch } from '../hooks/useSearch';
 import { ISearchResult } from '../../../models/ISearchResult';
+import { useDebounce } from 'use-debounce';
 
 
 // Import modular subcomponents
@@ -167,10 +168,13 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     pageSize: 10
   });
 
-  // Track search query changes to synchronize hook
+  // Debounce search query changes using standard 'use-debounce' React library
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 450);
+
+  // Track search query changes to synchronize hook with debounce
   useEffect(() => {
-    setQuery(searchQuery);
-  }, [searchQuery, setQuery]);
+    setQuery(debouncedSearchQuery);
+  }, [debouncedSearchQuery, setQuery]);
 
   // Track fileTypes filter changes to synchronize hook
   useEffect(() => {
@@ -351,9 +355,10 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     setSearchHistory(prev => prev.filter(h => h !== item));
   };
 
-  // --- Execute search ---
+  // --- Execute search instantly ---
   const handleSearch = (query: string): void => {
     setSearchQuery(query);
+    setQuery(query); // Trigger instantly!
     setIsHistoryOpen(false);
   };
 

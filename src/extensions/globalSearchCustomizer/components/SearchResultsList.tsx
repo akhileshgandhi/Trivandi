@@ -3,10 +3,53 @@ import { SlidersHorizontal, History as HistoryIcon, Star, ChevronLeft, ChevronRi
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { FileActionMenu } from './FileActionMenu';
+import { renderFormattedSummary, getSharePointThumbnailUrl } from '../../../utils/SearchHelpers';
 import { SkeletonLoader } from '../Common/SkeletonLoader';
 import { PaginationComponent } from '../Common/PaginationComponent';
 
 import { ISearchResultsListProps } from '../interface/ISearchResultsListProps';
+
+interface ISearchResultThumbnailProps {
+  result: ISearchResult;
+}
+
+const SearchResultThumbnail: React.FC<ISearchResultThumbnailProps> = ({ result }) => {
+  const [imageError, setImageError] = React.useState(false);
+  const isImage = ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase() || '');
+
+  if (isImage && !imageError) {
+    const thumbUrl = getSharePointThumbnailUrl(result.webUrl, result.title);
+    if (thumbUrl) {
+      return (
+        <img
+          src={thumbUrl}
+          alt={result.title}
+          onError={() => setImageError(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      );
+    }
+  }
+
+  // Fallback to standard icons
+  const ft = result.fileType ? result.fileType.toLowerCase() : '';
+  if (isImage) {
+    return <ImageIcon size={22} strokeWidth={2} />;
+  }
+  if (['xls', 'xlsx'].includes(ft)) {
+    return <FileSpreadsheet size={22} strokeWidth={2} />;
+  }
+  if (['pdf'].includes(ft)) {
+    return <FileText size={22} strokeWidth={2} />;
+  }
+  if (['doc', 'docx'].includes(ft)) {
+    return <FileText size={22} strokeWidth={2} />;
+  }
+  if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ft)) {
+    return <Video size={22} strokeWidth={2} />;
+  }
+  return <FileText size={22} strokeWidth={2} />;
+};
 
 export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
   resultsToRender,
@@ -30,7 +73,6 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
   setOpenMenuId,
   openMenuId
 }) => {
-  const [jumpPage, setJumpPage] = React.useState('');
 
   return (
     <main className={styles.mainContainer}>
@@ -138,12 +180,26 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
 
             const ft = result.fileType ? result.fileType.toLowerCase() : '';
             let typeClass = styles.type_default;
-            if (ft === 'pdf') typeClass = styles.type_pdf;
-            else if (['xls', 'xlsx'].includes(ft)) typeClass = styles.type_xlsx;
-            else if (['ppt', 'pptx'].includes(ft)) typeClass = styles.type_pptx;
-            else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) typeClass = styles.type_image;
-            else if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ft)) typeClass = styles.type_video;
-            else if (ft === 'folder') typeClass = styles.type_folder;
+            let accentColor = '#1a73e8';
+            if (ft === 'pdf') {
+              typeClass = styles.type_pdf;
+              accentColor = '#00acc1';
+            } else if (['xls', 'xlsx'].includes(ft)) {
+              typeClass = styles.type_xlsx;
+              accentColor = '#00796b';
+            } else if (['ppt', 'pptx'].includes(ft)) {
+              typeClass = styles.type_pptx;
+              accentColor = '#e52592';
+            } else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) {
+              typeClass = styles.type_image;
+              accentColor = '#9334e6';
+            } else if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ft)) {
+              typeClass = styles.type_video;
+              accentColor = '#ea4335';
+            } else if (ft === 'folder') {
+              typeClass = styles.type_folder;
+              accentColor = '#f5b041';
+            }
 
             return (
               <div
@@ -160,13 +216,11 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                 </div>
 
                 <div className={styles.cardLeftBlock}>
-                  <div className={styles.cardIconBox}>
-                    {['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase()) ? <ImageIcon size={22} strokeWidth={2} /> : 
-                     ['xls', 'xlsx'].includes(result.fileType?.toLowerCase()) ? <FileSpreadsheet size={22} strokeWidth={2} /> :
-                     ['pdf'].includes(result.fileType?.toLowerCase()) ? <FileText size={22} strokeWidth={2} /> :
-                     ['doc', 'docx'].includes(result.fileType?.toLowerCase()) ? <FileText size={22} strokeWidth={2} /> :
-                     ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(result.fileType?.toLowerCase()) ? <Video size={22} strokeWidth={2} /> :
-                     <FileText size={22} strokeWidth={2} />}
+                  <div 
+                    className={styles.cardIconBox}
+                    style={['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase()) ? { padding: 0, overflow: 'hidden' } : undefined}
+                  >
+                    <SearchResultThumbnail result={result} />
                   </div>
                   
                   <button 
@@ -192,7 +246,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                     <span>{sizeLabel}</span>
                   </div>
 
-                  <p className={styles.cardDescription}>{result.summary}</p>
+                  <p className={styles.cardDescription}>{renderFormattedSummary(result.summary, '', accentColor)}</p>
                   
                   <div className={styles.cardProjectHubRow}>
                     <span>PROJECT HUB: </span>
@@ -220,27 +274,6 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
               setFrom(newFrom);
             }}
           />
-
-          <div className={styles.jumpToWrapper}>
-            <span className={styles.jumpToLabel}>Jump to</span>
-            <input 
-              type="text" 
-              placeholder={(Math.floor(from / 10) + 1).toString()}
-              value={jumpPage}
-              onChange={(e) => setJumpPage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const pageNum = parseInt(jumpPage, 10);
-                  const pageCount = Math.ceil(totalCountToRender / 10);
-                  if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= pageCount) {
-                    setFrom((pageNum - 1) * 10);
-                    setJumpPage('');
-                  }
-                }
-              }}
-              className={styles.jumpToInput}
-            />
-          </div>
         </footer>
       )}
 

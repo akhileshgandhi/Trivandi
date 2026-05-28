@@ -63,6 +63,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 // ────────────────────────────────────────────────────────
@@ -142,7 +143,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   height: 40px;
   padding-left: 48px;
-  padding-right: 16px;
+  padding-right: 40px;
   border: 2px solid transparent;
   background: rgba(241, 245, 249, 0.6);
   border-radius: 9999px;
@@ -161,6 +162,29 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     background: #ffffff;
     border-color: rgba(26, 115, 232, 0.3);
     box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.05);
+  }
+}
+
+.searchClearBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: $slate-400;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 9999px;
+  transition: all $transition-fast;
+  z-index: 10;
+
+  &:hover {
+    background: $slate-100;
+    color: $slate-700;
   }
 }
 
@@ -585,20 +609,72 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .resizeHandle {
-  width: 4px;
+  width: 8px;
   cursor: col-resize;
   background: transparent;
-  z-index: 10;
+  z-index: 110;
   flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background $transition-fast;
 
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 3px;
+    right: 3px;
+    background: transparent;
+    transition: background $transition-fast;
+  }
+
   &:hover {
-    background: rgba(26, 115, 232, 0.2);
+    &::after {
+      background: rgba(26, 115, 232, 0.2);
+    }
+    .resizeGrip {
+      background: #1a73e8;
+      border-color: #1a73e8;
+      color: #ffffff;
+      transform: translate(-50%, -50%) scale(1.1);
+      box-shadow: 0 4px 12px rgba(26, 115, 232, 0.25);
+    }
   }
 }
 
 .resizeHandleActive {
-  background: rgba(26, 115, 232, 0.5) !important;
+  &::after {
+    background: rgba(26, 115, 232, 0.4) !important;
+  }
+  .resizeGrip {
+    transform: translate(-50%, -50%) scale(1.1) !important;
+    background: #1557b0 !important;
+    border-color: #1557b0 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(21, 87, 176, 0.3) !important;
+  }
+}
+
+.resizeGrip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  width: 20px;
+  height: 32px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid $slate-200;
+  box-shadow: $shadow-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $slate-600;
+  z-index: 120;
+  transition: all $transition-fast;
 }
 
 // ────────────────────────────────────────────────────────
@@ -654,10 +730,11 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 .activeTabLine {
   position: absolute;
   bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
+  left: 4px;
+  right: 4px;
+  height: 3px;
   background: $trivandi-blue;
+  border-radius: 9999px; /* beautiful rounded pill tab indicator */
 }
 
 .clearAllBtn {
@@ -803,7 +880,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background: rgba(241, 245, 249, 0.5);
+  background: #f8fafc; /* premium slate-50 background */
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -818,26 +895,25 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 // ────────────────────────────────────────────────────────
 .resultCard {
   position: relative;
-  padding: 16px;
+  padding: 18px 20px; /* generous padding for beautiful breathing room */
   background: #ffffff;
-  border-radius: $radius-xl;
-  border-top: 1px solid $slate-200;
-  border-right: 1px solid $slate-200;
-  border-bottom: 1px solid $slate-200;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9; /* clean, modern, softer border */
   border-left-width: 4px;
   border-left-style: solid;
-  transition: all $transition-normal;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); /* premium bezier curve */
   cursor: pointer;
   display: flex;
-  gap: 16px;
+  gap: 18px;
 
   @media (max-width: 640px) {
     flex-direction: column;
   }
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 20px -5px rgba(100, 116, 139, 0.15);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px -10px rgba(15, 23, 42, 0.08); /* soft, high-end shadow */
+    border-color: #e2e8f0;
   }
 }
 
@@ -1120,9 +1196,9 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   color: $slate-500;
   line-height: 1.6;
   font-weight: 500;
-  margin: 0 0 12px;
+  margin: 6px 0 12px; /* standard margin for clean hierarchy */
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2; /* 2 lines of description for richer search context! */
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1342,14 +1418,27 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 //  DocumentAnalysis (PreviewPane) Component
 // ────────────────────────────────────────────────────────
 .previewPane {
-  background: $slate-50;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
   border-left: 1px solid $slate-200;
-  flex-shrink: 0;
-  z-index: 40;
+  z-index: 100;
   display: flex;
   flex-direction: column;
-  box-shadow: $shadow-xl;
+  box-shadow: -10px 0 30px -5px rgba(15, 23, 42, 0.08);
   height: 100%;
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 .previewHeader {

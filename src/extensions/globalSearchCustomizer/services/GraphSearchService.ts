@@ -18,19 +18,29 @@ export class GraphSearchService {
   ): Promise<{ results: ISearchResult[]; totalCount: number }> {
     const client: any = await this._msGraphClientFactory.getClient('3');
 
-    // Build the query string using a safer KQL fallback
-    let queryString = query.trim() || 'IsDocument:1';
+    const rawQuery = query.trim();
+    // Build the query string using a safer KQL fallback and server-side Title boosting via XRANK
+    let boostedQuery = '';
+    if (rawQuery) {
+      if (rawQuery.includes(' ')) {
+        boostedQuery = `(${rawQuery} XRANK(cb=10000) Title:"${rawQuery}*")`;
+      } else {
+        boostedQuery = `(${rawQuery} XRANK(cb=10000) Title:${rawQuery}*)`;
+      }
+    }
+
+    let queryString = boostedQuery || 'IsDocument:1';
 
     if (activeTopTab === 'Folders') {
-      queryString = query.trim() ? `(${query.trim()}) AND IsContainer:true` : 'IsContainer:true';
+      queryString = boostedQuery ? `${boostedQuery} AND IsContainer:true` : 'IsContainer:true';
     } else if (activeTopTab === 'Files') {
-      queryString = query.trim() ? `(${query.trim()}) AND IsContainer:false` : 'IsContainer:false';
+      queryString = boostedQuery ? `${boostedQuery} AND IsContainer:false` : 'IsContainer:false';
     } else if (activeTopTab === 'Images') {
       const imgFilter = '(filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg) AND IsContainer:false';
-      queryString = query.trim() ? `(${query.trim()}) AND (${imgFilter})` : imgFilter;
+      queryString = boostedQuery ? `${boostedQuery} AND (${imgFilter})` : imgFilter;
     } else if (activeTopTab === 'Videos') {
       const vidFilter = '(filetype:mp4 OR filetype:mov OR filetype:avi) AND IsContainer:false';
-      queryString = query.trim() ? `(${query.trim()}) AND (${vidFilter})` : vidFilter;
+      queryString = boostedQuery ? `${boostedQuery} AND (${vidFilter})` : vidFilter;
     }
     
     // Add file type filters if present and not "All" (Only if not in Folders tab)
@@ -91,19 +101,34 @@ export class GraphSearchService {
       ]
     };
 
-    console.log('--- Sending MS Graph Search Payload ---');
+    console.log('--- [DEBUG] Raw Search Query input ---', query);
+    console.log('--- [DEBUG] Active Top Tab ---', activeTopTab);
+    console.log('--- [DEBUG] File Type Filters ---', fileTypes);
+    console.log('--- [DEBUG] Date Filter ---', date);
+    console.log('--- [DEBUG] Final Constructed KQL QueryString ---', queryString);
+    console.log('--- [DEBUG] Full MS Graph Search Request Payload ---');
     console.log(JSON.stringify(searchPayload, null, 2));
 
-    const response = await client
-      .api('/search/query')
-      .version('v1.0')
-      .post(searchPayload);
+    let response: any;
+    try {
+      response = await client
+        .api('/search/query')
+        .version('v1.0')
+        .post(searchPayload);
+      console.log('--- [DEBUG] Raw MS Graph Search Response ---');
+      console.log(JSON.stringify(response, null, 2));
+    } catch (error) {
+      console.error('--- [DEBUG] Error in MS Graph API Call ---', error);
+      throw error;
+    }
 
     // Parse response objects
     const searchResponse = response.value?.[0];
     const hitsContainer = searchResponse?.hitsContainers?.[0];
     const totalCount = hitsContainer?.total || 0;
     const hits = hitsContainer?.hits || [];
+    console.log('--- [DEBUG] Parsed Hits Count from MS Graph ---', hits.length);
+    console.log('--- [DEBUG] Total Results Count from MS Graph Index ---', totalCount);
 
     const results: ISearchResult[] = hits.map((hit: any) => {
       const resource = hit.resource || {};
@@ -158,6 +183,9 @@ export class GraphSearchService {
         siteName: resource.parentReference?.sharepointIds?.siteUrl?.split('/').pop() || 'SharePoint Portal'
       };
     });
+
+    console.log('--- [DEBUG] Mapped results array returning to caller ---');
+    console.log(JSON.stringify(results.map(r => ({ id: r.id, title: r.title, fileType: r.fileType })), null, 2));
 
     return { results, totalCount };
   }

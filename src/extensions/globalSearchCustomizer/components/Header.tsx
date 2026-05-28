@@ -45,6 +45,20 @@ export const Header: React.FC<IHeaderProps> = ({
             className={styles.searchInput}
           />
           
+          {searchQuery && (
+            <button 
+              onClick={() => {
+                setSearchQuery('');
+                handleSearch('');
+              }}
+              className={styles.searchClearBtn}
+              title="Clear search"
+              aria-label="Clear search"
+            >
+              <X size={14} strokeWidth={2.5} />
+            </button>
+          )}
+          
           {isSearchFocused && searchHistory.length > 0 && (
             <div className={styles.searchSuggestionBox}>
               <div className={styles.suggestionHeader}>
@@ -71,7 +85,6 @@ export const Header: React.FC<IHeaderProps> = ({
       <div className={styles.headerMeta}>
         <div className={styles.metaTextContainer}>
           <div className={styles.metaResultsCount}>{totalCountToRender.toLocaleString()} results</div>
-          <div className={styles.metaSubTitle}>SHOWING TOP 10,000</div>
         </div>
         
         <div className={styles.metaDivider} />

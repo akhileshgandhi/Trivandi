@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { FileText, ExternalLink, Download } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
+import { renderFormattedSummary, getSharePointThumbnailUrl } from '../../../utils/SearchHelpers';
 
 import { IDetailPanelProps } from '../interface/IDetailPanelProps';
 
@@ -10,24 +11,6 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
   React.useEffect(() => {
     setImageError(false);
   }, [selectedFile.id]);
-
-  const highlightText = (text: string, query: string) => {
-    if (!query || !query.trim()) return text;
-    const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    return (
-      <>
-        {parts.map((part, i) => 
-          part.toLowerCase() === query.toLowerCase() ? (
-            <span key={i} style={{ backgroundColor: 'rgba(26, 115, 232, 0.15)', color: '#1a73e8', fontWeight: 'bold', padding: '0 2px', borderRadius: '2px' }}>
-              {part}
-            </span>
-          ) : (
-            <span key={i}>{part}</span>
-          )
-        )}
-      </>
-    );
-  };
 
   const getActionUrl = (url: string, forceDownload: boolean): string => {
     if (!url) return '';
@@ -49,14 +32,8 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
 
   const isRealSharePoint = selectedFile.url && (selectedFile.url.includes('.sharepoint.com') || selectedFile.url.includes('/sites/'));
 
-  const getSharePointPreviewUrl = (url: string): string => {
-    if (!url) return '';
-    try {
-      const urlObj = new URL(url);
-      return `${urlObj.origin}/_layouts/15/getpreview.ashx?resolution=3&path=${encodeURIComponent(url)}`;
-    } catch (e) {
-      return url;
-    }
+  const getSharePointPreviewUrl = (url: string, title: string): string => {
+    return getSharePointThumbnailUrl(url, title, 3);
   };
 
   return (
@@ -65,7 +42,7 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
       <div className={styles.previewDocVisualCard}>
         {isRealSharePoint && !imageError ? (
           <img 
-            src={getSharePointPreviewUrl(selectedFile.url)}
+            src={getSharePointPreviewUrl(selectedFile.url, selectedFile.title)}
             className={styles.previewImage}
             onError={() => setImageError(true)}
             alt={selectedFile.title}
@@ -164,7 +141,7 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
           <div className={styles.highlightsContentWrapper}>
             <div className={styles.highlightsLineAccent} style={{ backgroundColor: selectedFile.color + '40' }} />
             <p className={styles.highlightsText}>
-              "{highlightText(selectedFile.description, searchQuery)}"
+              "{renderFormattedSummary(selectedFile.description, searchQuery, selectedFile.color)}"
             </p>
           </div>
         </div>
