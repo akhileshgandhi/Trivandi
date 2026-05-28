@@ -5,6 +5,7 @@ import { GraphSearchService } from '../services/GraphSearchService';
 import { useSearch } from '../hooks/useSearch';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { useDebounce } from 'use-debounce';
+import { useSearchStore } from '../store/useSearchStore';
 
 
 // Import modular subcomponents
@@ -105,17 +106,9 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const [copyFileDialogFile, setCopyFileDialogFile] = useState<ISearchResult | null>(null);
   const [appCopyCopied, setAppCopyCopied] = useState(false);
 
-  // --- Search History (inline, replacing zustand store) ---
-  const [searchHistory, setSearchHistory] = useState<string[]>([
-    'Quarterly Strategy plans',
-    'Financial sheets FY24',
-    'Brand design guide PDF',
-    'HR employee handbook v3'
-  ]);
-  const clearHistory = (): void => { setSearchHistory([]); };
-  const removeHistoryItem = (item: string): void => {
-    setSearchHistory(prev => prev.filter(h => h !== item));
-  };
+  // --- Zustand Store for Search History ---
+  const { searchHistory, addHistoryItem, removeHistoryItem, clearHistory } = useSearchStore();
+
 
   // --- Graph Service Setup ---
   const searchService = useMemo(() => {
@@ -388,7 +381,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const handleSearch = (query: string): void => {
     const trimmed = query.trim();
     if (trimmed) {
-      setSearchHistory(prev => [trimmed, ...prev.filter(h => h !== trimmed)].slice(0, 10));
+      addHistoryItem(trimmed);
     }
     setSearchQuery(trimmed);
     setQuery(trimmed); // Trigger instantly!

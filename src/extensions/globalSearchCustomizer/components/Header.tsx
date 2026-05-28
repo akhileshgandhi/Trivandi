@@ -65,7 +65,7 @@ export const Header: React.FC<IHeaderProps> = ({
                 <span>Recent Searches</span>
               </div>
               <div>
-                {searchHistory.map((historyItem, idx) => (
+                {searchHistory?.slice(0, 5).map((historyItem, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleSearch(historyItem)}
