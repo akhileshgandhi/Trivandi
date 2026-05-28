@@ -25,7 +25,7 @@ const SearchResultThumbnail: React.FC<ISearchResultThumbnailProps> = ({ result }
           src={thumbUrl}
           alt={result.title}
           onError={() => setImageError(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          className={styles.cardThumbnailImage}
         />
       );
     }
@@ -71,7 +71,8 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
   filters,
   setFilters,
   setOpenMenuId,
-  openMenuId
+  openMenuId,
+  searchHistory
 }) => {
 
   return (
@@ -138,7 +139,6 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
 
         <div className={styles.statsDivider} />
 
-        {/* History Action Button */}
         <button 
           onClick={() => {
             setIsHistoryOpen(!isHistoryOpen);
@@ -147,7 +147,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
           className={styles.historyNavButton}
         >
           <HistoryIcon size={12} strokeWidth={2.5} />
-          <span>History</span>
+          <span>History ({searchHistory?.length || 0})</span>
         </button>
       </div>
 
@@ -167,13 +167,15 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
             const isStarred = starredIds.has(result.id);
             
             const formatBytes = (bytes: number): string => {
-              if (!bytes) return '4.2 MB';
+              if (!bytes) return '---';
               const k = 1024;
               const sizes = ['Bytes', 'KB', 'MB', 'GB'];
               const i = Math.floor(Math.log(bytes) / Math.log(k));
               return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
             };
-            const sizeLabel = result.size ? formatBytes(result.size) : '4.2 MB';
+            const sizeLabel = result.fileType === 'folder'
+              ? 'Folder'
+              : (result.size ? formatBytes(result.size) : '---');
             const dateLabel = result.lastModified ? new Date(result.lastModified).toLocaleDateString() : 'Today';
 
             const isMenuOpen = openMenuId === result.id;
@@ -217,8 +219,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
 
                 <div className={styles.cardLeftBlock}>
                   <div 
-                    className={styles.cardIconBox}
-                    style={['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase()) ? { padding: 0, overflow: 'hidden' } : undefined}
+                    className={`${styles.cardIconBox} ${['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase()) ? styles.cardIconBoxImage : ''}`}
                   >
                     <SearchResultThumbnail result={result} />
                   </div>

@@ -14,7 +14,8 @@ export class GraphSearchService {
     from: number = 0,
     fileTypes: string[] = [],
     activeTopTab: string = 'All',
-    date: string = ''
+    date: string = '',
+    selectedAuthors: string[] = []
   ): Promise<{ results: ISearchResult[]; totalCount: number }> {
     const client: any = await this._msGraphClientFactory.getClient('3');
 
@@ -87,6 +88,12 @@ export class GraphSearchService {
       }
     }
 
+    // Add native SharePoint KQL author filters
+    if (selectedAuthors && selectedAuthors.length > 0) {
+      const authorQueries = selectedAuthors.map(a => `(Author:"${a}" OR AuthorOWSUSER:"${a}")`);
+      queryString += ` AND (${authorQueries.join(' OR ')})`;
+    }
+
     // Build Graph Search POST payload according to Microsoft Graph Search API guidelines
     const searchPayload = {
       requests: [
@@ -96,7 +103,18 @@ export class GraphSearchService {
             queryString: queryString
           },
           from: from,
-          size: pageSize
+          size: pageSize,
+          fields: [
+            'id',
+            'name',
+            'size',
+            'webUrl',
+            'lastModifiedDateTime',
+            'createdBy',
+            'parentReference',
+            'file',
+            'folder'
+          ]
         }
       ]
     };
@@ -189,4 +207,51 @@ export class GraphSearchService {
 
     return { results, totalCount };
   }
+
+  public async getAuthors(query: string = ''): Promise<string[]> {
+    try {
+      const client: any = await this._msGraphClientFactory.getClient('3');
+      
+      let url = '/users?$select=displayName&$top=30';
+      if (query.trim()) {
+        const cleanQuery = query.trim().replace(/'/g, "''");
+        url += `&$filter=startsWith(displayName,'${cleanQuery}') or startsWith(givenName,'${cleanQuery}') or startsWith(surname,'${cleanQuery}')`;
+      }
+      
+      const response = await client.api(url).version('v1.0').get();
+      const users = response.value || [];
+      const names = users
+        .map((u: any) => u.displayName)
+        .filter((name: string) => name && name.trim().length > 0);
+        
+      return Array.from(new Set(names)).sort((a: string, b: string) => a.localeCompare(b)) as string[];
+    } catch (error) {
+      console.error('Error fetching authors from Graph:', error);
+      // Graceful fallback to search for people using MS Graph Search query API
+      try {
+        const client: any = await this._msGraphClientFactory.getClient('3');
+        const searchPayload = {
+          requests: [
+            {
+              entityTypes: ['person'],
+              query: {
+                queryString: query.trim() ? `${query.trim()}*` : '*'
+              },
+              size: 20
+            }
+          ]
+        };
+        const response = await client.api('/search/query').version('v1.0').post(searchPayload);
+        const hits = response.value?.[0]?.hitsContainers?.[0]?.hits || [];
+        const names = hits
+          .map((hit: any) => hit.resource?.displayName)
+          .filter((name: string) => name && name.trim().length > 0);
+        return Array.from(new Set(names)).sort((a: string, b: string) => a.localeCompare(b)) as string[];
+      } catch (e) {
+        console.error('Fallback author search failed:', e);
+        return [];
+      }
+    }
+  }
 }
+

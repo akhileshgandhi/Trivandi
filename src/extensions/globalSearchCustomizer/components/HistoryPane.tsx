@@ -30,8 +30,8 @@ export const HistoryPane: React.FC<ISearchHistoryProps> = ({
         {/* Header Block */}
         <div className={styles.historyHeader}>
           <div className={styles.historyTitleBox}>
-            <HistoryIcon size={18} style={{ color: '#475569' }} strokeWidth={2} />
-            <span className={styles.historyTitleLabel}>Search History</span>
+            <HistoryIcon size={18} className={styles.historyHeaderIcon} strokeWidth={2} />
+            <span className={styles.historyTitleLabel}>Search History ({searchHistory.length})</span>
           </div>
           <button 
             onClick={() => setIsHistoryOpen(false)}
@@ -80,7 +80,7 @@ export const HistoryPane: React.FC<ISearchHistoryProps> = ({
             ) : (
               <div className={styles.historyEmptyState}>
                 <div className={styles.historyEmptyIconFrame}>
-                  <HistoryIcon size={24} style={{ color: '#cbd5e1' }} />
+                  <HistoryIcon size={24} className={styles.historyEmptyIcon} />
                 </div>
                 <p className={styles.historyEmptyTitle}>Terminal Void</p>
                 <p className={styles.historyEmptyDesc}>

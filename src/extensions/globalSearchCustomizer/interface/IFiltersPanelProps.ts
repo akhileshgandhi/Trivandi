@@ -10,4 +10,5 @@ export interface IFiltersPanelProps {
   startResizingSidebar: (e: React.MouseEvent) => void;
   isResizingSidebar: boolean;
   authorsList: string[];
+  searchService?: any;
 }

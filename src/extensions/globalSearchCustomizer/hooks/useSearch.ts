@@ -9,6 +9,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
   const [fileTypes, setFileTypes] = useState<string[]>(['All']);
   const [activeTopTab, setActiveTopTab] = useState<string>('All');
   const [date, setDate] = useState<string>('');
+  const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
   const [results, setResults] = useState<ISearchResult[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -16,11 +17,11 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
   const [from, setFrom] = useState(0);
 
   // Keep track of the latest active parameters to prevent asynchronous race conditions
-  const activeParamsRef = useRef({ query, pageSize, from, fileTypes, activeTopTab, date });
+  const activeParamsRef = useRef({ query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors });
 
   useEffect(() => {
-    activeParamsRef.current = { query, pageSize, from, fileTypes, activeTopTab, date };
-  }, [query, pageSize, from, fileTypes, activeTopTab, date]);
+    activeParamsRef.current = { query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors };
+  }, [query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors]);
 
   const executeSearch = useCallback(async () => {
     if (!service) {
@@ -28,14 +29,14 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
       return;
     }
 
-    const currentParams = { query, pageSize, from, fileTypes, activeTopTab, date };
+    const currentParams = { query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors };
 
     console.log('--- [DEBUG hook] Triggering executeSearch in useSearch ---', currentParams);
 
     setLoading(true);
     setError(null);
     try {
-      const res = await service.search(query, pageSize, from, fileTypes, activeTopTab, date);
+      const res = await service.search(query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors);
       
       // Check if parameters have changed since this request was started
       const latest = activeParamsRef.current;
@@ -45,6 +46,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
         latest.from !== currentParams.from ||
         latest.date !== currentParams.date ||
         latest.activeTopTab !== currentParams.activeTopTab ||
+        JSON.stringify(latest.selectedAuthors) !== JSON.stringify(currentParams.selectedAuthors) ||
         JSON.stringify(latest.fileTypes) !== JSON.stringify(currentParams.fileTypes);
 
       if (isStale) {
@@ -74,18 +76,19 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
         latest.from !== currentParams.from ||
         latest.date !== currentParams.date ||
         latest.activeTopTab !== currentParams.activeTopTab ||
+        JSON.stringify(latest.selectedAuthors) !== JSON.stringify(currentParams.selectedAuthors) ||
         JSON.stringify(latest.fileTypes) !== JSON.stringify(currentParams.fileTypes);
 
       if (!isStale) {
         setLoading(false);
       }
     }
-  }, [service, query, pageSize, from, fileTypes, activeTopTab, date]);
+  }, [service, query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors]);
 
   // Reset pagination offset to 0 whenever the query, activeTopTab, or filters change
   useEffect(() => {
     setFrom(0);
-  }, [query, fileTypes, activeTopTab, date]);
+  }, [query, fileTypes, activeTopTab, date, selectedAuthors]);
 
   useEffect(() => {
     if (service) {
@@ -102,6 +105,8 @@ export function useSearch({ service, initialQuery = '', pageSize = 20 }: IUseSea
     setActiveTopTab,
     date,
     setDate,
+    selectedAuthors,
+    setSelectedAuthors,
     results,
     totalCount,
     loading,

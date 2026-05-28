@@ -60,10 +60,10 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
             
             <div className={styles.mockThumbnailBody}>
               <h4 className={styles.mockThumbnailTitle}>{selectedFile.title}</h4>
-              <div className={styles.mockThumbnailTextLine} style={{ width: '90%' }} />
-              <div className={styles.mockThumbnailTextLine} style={{ width: '80%' }} />
-              <div className={styles.mockThumbnailTextLine} style={{ width: '95%' }} />
-              <div className={styles.mockThumbnailTextLine} style={{ width: '60%' }} />
+              <div className={`${styles.mockThumbnailTextLine} ${styles.skeleton_w90}`} />
+              <div className={`${styles.mockThumbnailTextLine} ${styles.skeleton_w80}`} />
+              <div className={`${styles.mockThumbnailTextLine} ${styles.skeleton_w95}`} />
+              <div className={`${styles.mockThumbnailTextLine} ${styles.skeleton_w60}`} />
             </div>
 
             <div className={styles.mockThumbnailFooter}>
@@ -81,10 +81,16 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
             {selectedFile.title}
           </h2>
           <div className={styles.visualSubRow}>
-            <span className={styles.siteBadge} style={{ backgroundColor: selectedFile.color + '10', color: selectedFile.color, fontSize: '9px', fontWeight: 800, padding: '4px 10px', borderRadius: '6px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '300px' }}>
+            <span 
+              className={styles.siteBadge} 
+              style={{ 
+                backgroundColor: selectedFile.color + '10', 
+                color: selectedFile.color 
+              }}
+            >
               {selectedFile.url ? selectedFile.url.toUpperCase() : 'SHAREPOINT SITE'}
             </span>
-            <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#cbd5e1', flexShrink: 0 }} />
+            <span className={styles.metaDot} />
             <span className={styles.verifiedLabel}>Verified Source</span>
           </div>
         </div>
@@ -105,7 +111,7 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
           </div>
           <div className={styles.bentoItem}>
             <p className={styles.bentoLabel}>Security</p>
-            <p className={styles.bentoValue} style={{ color: '#10b981' }}>Encrypted</p>
+            <p className={`${styles.bentoValue} ${styles.statusSuccess}`}>Encrypted</p>
           </div>
         </div>
 
@@ -116,8 +122,8 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
               {selectedFile.author ? selectedFile.author.charAt(0).toUpperCase() : 'U'}
             </div>
             <div>
-              <p style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', margin: '0 0 2px 0', lineHeight: 1 }}>Document Owner</p>
-              <p style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b', margin: 0 }}>{selectedFile.author || 'SharePoint User'}</p>
+              <p className={styles.ownerTitle}>Document Owner</p>
+              <p className={styles.ownerName}>{selectedFile.author || 'SharePoint User'}</p>
             </div>
           </div>
           <div className={styles.authorBadge}>

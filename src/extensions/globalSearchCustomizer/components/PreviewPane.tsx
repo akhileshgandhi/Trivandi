@@ -21,8 +21,7 @@ export const PreviewPane: React.FC<IDocumentAnalysisProps> = ({
     >
       <div 
         onMouseDown={startResizingPreview}
-        className={`${styles.resizeHandle} ${isResizingPreview ? styles.resizeHandleActive : ''}`}
-        style={{ position: 'absolute', left: 0, top: 0, bottom: 0, zIndex: 10 }}
+        className={`${styles.resizeHandle} ${styles.previewResizeHandle} ${isResizingPreview ? styles.resizeHandleActive : ''}`}
       >
         <div className={styles.resizeGrip}>
           <GripVertical size={12} strokeWidth={2.5} />
@@ -30,17 +29,13 @@ export const PreviewPane: React.FC<IDocumentAnalysisProps> = ({
       </div>
 
       {/* Elegant Header */}
-      <div className={styles.previewHeader} style={{ height: '64px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', background: '#ffffff' }}>
+      <div className={styles.previewHeader}>
         <div className={styles.previewHeaderContainer}>
           <div 
+            className={styles.previewHeaderIconBox}
             style={{ 
               color: selectedFile.color, 
-              backgroundColor: selectedFile.color + '15',
-              padding: '8px', 
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              backgroundColor: selectedFile.color + '15'
             }}
           >
             <FileText size={20} />
@@ -53,26 +48,8 @@ export const PreviewPane: React.FC<IDocumentAnalysisProps> = ({
         <button 
           onClick={() => setSelectedFile(null)}
           className={styles.previewCloseBtn}
-          style={{ 
-            padding: '8px',
-            color: '#94a3b8',
-            background: 'transparent',
-            border: 'none',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.15s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#f1f5f9';
-            e.currentTarget.style.color = '#0f172a';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#94a3b8';
-          }}
+          title="Close preview"
+          aria-label="Close preview"
         >
           <X size={18} />
         </button>

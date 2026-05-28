@@ -184,7 +184,7 @@ export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenCha
                 className={styles.actionItemIcon}
                 strokeWidth={2}
               />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span className={styles.actionItemText}>
                 {item.label}
               </span>
             </button>

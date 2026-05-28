@@ -2,6 +2,7 @@ import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import SearchModal from './components/SearchModal';
+import '../../styles/PremiumSearch.module.scss';
 
 export interface IGlobalSearchCustomizerApplicationCustomizerProperties {
   testMessage: string;

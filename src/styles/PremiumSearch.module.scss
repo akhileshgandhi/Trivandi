@@ -33,11 +33,22 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: rgba(15, 23, 42, 0.25);
-  backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.35); /* richer slate translucent overlay */
+  backdrop-filter: blur(12px); /* deep glassmorphic background blur */
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985); /* elite OS spotlight-style zoom opening */
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .modal {
@@ -49,6 +60,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   background: #ffffff;
   font-family: $font-sans;
+  animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .body {
@@ -130,46 +142,52 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 .searchIcon {
   position: absolute;
-  left: 16px;
+  left: 18px;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) scale(1);
   color: $slate-400;
   pointer-events: none;
   display: flex;
   align-items: center;
+  transition: all $transition-fast;
+}
+
+.searchBarWrapper:focus-within .searchIcon {
+  color: $trivandi-blue;
+  transform: translateY(-50%) scale(1.08); /* elegant micro-scale and color transition on focus */
 }
 
 .searchInput {
   width: 100%;
-  height: 40px;
-  padding-left: 48px;
-  padding-right: 40px;
-  border: 2px solid transparent;
-  background: rgba(241, 245, 249, 0.6);
+  height: 44px; /* modern slightly taller input bar */
+  padding-left: 50px;
+  padding-right: 44px;
+  border: 1px solid rgba(226, 232, 240, 0.8); /* crisp subtle border */
+  background: rgba(248, 250, 252, 0.7); /* glassmorphism-ready translucent base */
   border-radius: 9999px;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 500;
   color: $slate-800;
   outline: none;
-  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
-  transition: all $transition-fast;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02), 0 2px 8px -2px rgba(100, 116, 139, 0.06); /* subtle soft elevation shadow */
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &::placeholder {
-    color: rgba(100, 116, 139, 0.8);
+    color: rgba(148, 163, 184, 0.8);
   }
 
   &:focus {
     background: #ffffff;
-    border-color: rgba(26, 115, 232, 0.3);
-    box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.05);
+    border-color: rgba(26, 115, 232, 0.7);
+    box-shadow: 0 4px 20px rgba(26, 115, 232, 0.06), 0 0 0 3px rgba(26, 115, 232, 0.12); /* high-end focus glow */
   }
 }
 
 .searchClearBtn {
   position: absolute;
-  right: 12px;
+  right: 14px;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) scale(1);
   background: transparent;
   border: none;
   color: $slate-400;
@@ -185,6 +203,18 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   &:hover {
     background: $slate-100;
     color: $slate-700;
+    transform: translateY(-50%) scale(1.08); /* modern zoom effect */
+  }
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -193,17 +223,18 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   top: 100%;
   left: 0;
   right: 0;
-  margin-top: 4px;
+  margin-top: 8px; /* elegant space below input */
   background: #ffffff;
-  border: 1px solid $slate-200;
-  border-radius: $radius-xl;
-  box-shadow: $shadow-lg;
-  z-index: 50;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px; /* more rounded and organic */
+  box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.12); /* high-end dropdown shadow */
+  z-index: 100;
   overflow: hidden;
+  animation: slideDownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .suggestionHeader {
-  padding: 8px 16px;
+  padding: 10px 18px;
   background: $slate-50;
   border-bottom: 1px solid $slate-100;
   font-size: 10px;
@@ -218,23 +249,29 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
   border: none;
   background: transparent;
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: 12px 18px; /* slightly taller and roomier suggestion row */
+  font-size: 13.5px;
   color: $slate-600;
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
-  transition: background $transition-fast;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: $slate-50;
-    color: $slate-900;
+    background: rgba(26, 115, 232, 0.04); /* modern brand highlight background */
+    color: $trivandi-blue; /* brand highlighted text color */
+    padding-left: 22px; /* elite micro-slide effect to indicate selection */
   }
 }
 
 .suggestionIcon {
   color: $slate-300;
+  transition: color 0.2s ease;
+}
+
+.suggestionItem:hover .suggestionIcon {
+  color: $trivandi-blue;
 }
 
 .headerMeta {
@@ -1362,38 +1399,38 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 //  Bottom Sub-Footer Tab Navigation
 // ────────────────────────────────────────────────────────
 .bottomTabNav {
-  height: 40px;
-  background: $slate-100;
-  border-top: 1px solid $slate-200;
+  height: 42px;
+  background: #ffffff; /* pure white bottom bar for cleaner design */
+  border-top: 1px solid $slate-100;
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 24px;
   flex-shrink: 0;
 }
 
 .bottomTabWrapper {
   display: flex;
-  gap: 8px;
+  gap: 16px; /* more spacing between bottom tabs */
   align-items: center;
   flex: 1;
 }
 
 .bottomTabItem {
-  height: 40px;
+  height: 42px;
   border: none;
   background: transparent;
-  padding: 0 16px;
-  font-size: 11px;
-  font-weight: 900;
+  padding: 0 8px;
+  font-size: 11.5px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: $slate-600;
+  letter-spacing: 0.05em;
+  color: $slate-500;
   cursor: pointer;
   position: relative;
   transition: all $transition-fast;
 
   &:hover {
-    color: $slate-900;
+    color: $slate-800;
   }
 }
 
@@ -1408,10 +1445,11 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 .bottomActiveLine {
   position: absolute;
   bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
+  left: 4px;
+  right: 4px;
+  height: 3px;
   background: $trivandi-blue;
+  border-radius: 9999px; /* matching pill-shape indicator */
 }
 
 // ────────────────────────────────────────────────────────
@@ -2810,3 +2848,217 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
+// ────────────────────────────────────────────────────────
+//  Migrated Static Inline Styles
+// ────────────────────────────────────────────────────────
+.previewResizeHandle {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  z-index: 10 !important;
+}
+
+.previewHeaderIconBox {
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionItemText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ownerTitle {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  margin: 0 0 2px 0;
+  line-height: 1;
+}
+
+.ownerName {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.statusSuccess {
+  color: #10b981 !important;
+}
+
+.siteBadge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 300px;
+}
+
+.skeleton_w90 { width: 90% !important; }
+.skeleton_w80 { width: 80% !important; }
+.skeleton_w95 { width: 95% !important; }
+.skeleton_w60 { width: 60% !important; }
+
+// Author dropdown classes
+.authorDropdownHeader {
+  margin-top: 24px !important;
+}
+
+.authorDropdownWrapper {
+  position: relative !important;
+  margin-bottom: 16px !important;
+}
+
+.authorDropdownTrigger {
+  position: relative !important;
+  cursor: pointer !important;
+}
+
+.authorDropdownMenu {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 100 !important;
+  margin-top: 6px !important;
+  max-height: 230px !important; 
+  display: flex !important; 
+  flex-direction: column !important; 
+  padding: 10px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.authorDropdownMenuHeader {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 2px 4px 8px 4px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  margin-bottom: 8px !important;
+}
+
+.authorDropdownMenuTitle {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+}
+
+.authorDropdownMenuDone {
+  background: none !important;
+  border: none !important;
+  color: #2563eb !important;
+  font-size: 11px !important;
+  cursor: pointer !important;
+  font-weight: 700 !important;
+}
+
+.authorDropdownScroll {
+  display: flex !important; 
+  flex-direction: column !important; 
+  gap: 5px !important; 
+  overflow-y: auto !important; 
+  max-height: 170px !important;
+  padding-right: 2px !important;
+}
+
+.authorItemLabel {
+  display: flex !important; 
+  align-items: center !important; 
+  gap: 8px !important; 
+  cursor: pointer !important; 
+  padding: 6px 8px !important; 
+  border-radius: 6px !important; 
+  background-color: transparent !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+
+  &:hover {
+    background-color: #f8fafc !important;
+  }
+}
+
+.authorItemLabelChecked {
+  background-color: #eff6ff !important;
+}
+
+.authorItemCheckbox {
+  width: 14px !important;
+  height: 14px !important;
+  accent-color: #2563eb !important;
+  cursor: pointer !important;
+}
+
+.authorItemAvatar {
+  width: 24px !important; 
+  height: 24px !important; 
+  border-radius: 50% !important; 
+  background-color: #64748b !important; 
+  color: #ffffff !important; 
+  display: flex !important; 
+  align-items: center !important; 
+  justify-content: center !important; 
+  font-size: 11px !important; 
+  font-weight: 700 !important;
+}
+
+.authorItemAvatarChecked {
+  background-color: #2563eb !important;
+}
+
+.authorItemName {
+  font-size: 13px !important; 
+  color: #334155 !important; 
+  font-weight: 400 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.authorItemNameChecked {
+  color: #1e40af !important;
+  font-weight: 600 !important;
+}
+
+.authorDropdownEmpty {
+  padding: 16px !important;
+  font-size: 12px !important;
+  color: #94a3b8 !important;
+  font-style: italic !important;
+  text-align: center !important;
+}
+
+.historyHeaderIcon {
+  color: #475569 !important;
+}
+
+.historyEmptyIcon {
+  color: #cbd5e1 !important;
+}
+
+.cardIconBoxImage {
+  padding: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.cardThumbnailImage {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}

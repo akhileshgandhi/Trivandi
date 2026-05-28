@@ -83,23 +83,15 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
     >
       <div className={styles.cardLeftBlock}>
         <div 
-          className={styles.cardIconBox}
-          style={thumbUrl ? { 
-            backgroundColor: color.bg, 
-            color: color.accent, 
-            padding: 0, 
-            overflow: 'hidden', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center' 
-          } : { backgroundColor: color.bg, color: color.accent }}
+          className={`${styles.cardIconBox} ${thumbUrl ? styles.cardIconBoxImage : ''}`}
+          style={{ backgroundColor: color.bg, color: color.accent }}
         >
           {thumbUrl ? (
             <img 
               src={thumbUrl} 
               alt={result.title} 
               onError={() => setImageError(true)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              className={styles.cardThumbnailImage}
             />
           ) : (
             ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase() || '') ? <ImageIcon size={22} strokeWidth={2} /> : 
