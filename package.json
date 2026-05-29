@@ -73,7 +73,7 @@
     "viewerjs-react": "^1.0.2",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8",
-    "zustand": "^5.0.13"
+    "zustand": "^4.5.5"
   },
   "devDependencies": {
     "@microsoft/eslint-config-spfx": "1.20.1",
