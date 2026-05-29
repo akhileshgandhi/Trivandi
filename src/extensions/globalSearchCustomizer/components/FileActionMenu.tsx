@@ -41,16 +41,7 @@ export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenCha
     onOpenChange?.(nextState);
   };
 
-  // Helper: Get base tenant URL
-  const getTenantUrl = (url: string) => {
-    if (!url) return 'https://trivandi.sharepoint.com';
-    try {
-      const parsed = new URL(url);
-      return `${parsed.protocol}//${parsed.hostname}`;
-    } catch (e) {
-      return 'https://trivandi.sharepoint.com';
-    }
-  };
+
 
   // Helper: Parse directory location of the file in SharePoint
   const getFolderUrl = (fileUrl: string) => {
@@ -70,12 +61,31 @@ export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenCha
     try {
       const isSharePoint = url.includes('.sharepoint.com') || url.includes('/sites/') || url.includes('sharepoint.intel');
       if (isSharePoint) {
-        if (url.includes('web=')) {
-          return url.replace(/web=\d/, `web=${forceDownload ? '0' : '1'}`);
+        let finalUrl = url;
+        if (forceDownload) {
+          // Append SharePoint direct stream download parameter
+          if (finalUrl.includes('download=')) {
+            finalUrl = finalUrl.replace(/download=\d/, 'download=1');
+          } else {
+            const separator = finalUrl.includes('?') ? '&' : '?';
+            finalUrl = `${finalUrl}${separator}download=1`;
+          }
+          // Set web=0 to bypass opening in the online editor
+          if (finalUrl.includes('web=')) {
+            finalUrl = finalUrl.replace(/web=\d/, 'web=0');
+          } else {
+            finalUrl = `${finalUrl}&web=0`;
+          }
         } else {
-          const separator = url.includes('?') ? '&' : '?';
-          return `${url}${separator}web=${forceDownload ? '0' : '1'}`;
+          // Full preview - open in online reader
+          if (finalUrl.includes('web=')) {
+            finalUrl = finalUrl.replace(/web=\d/, 'web=1');
+          } else {
+            const separator = finalUrl.includes('?') ? '&' : '?';
+            finalUrl = `${finalUrl}${separator}web=1`;
+          }
         }
+        return finalUrl;
       }
     } catch (e) {
       // fallback
@@ -122,15 +132,15 @@ export const FileActionMenu: React.FC<IFileActionMenuProps> = ({ file, onOpenCha
       icon: Download,
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
-        // Dynamic zero-navigation same-page download
+        if (!file.webUrl) return;
         const downloadUrl = getBrowserOpenUrl(file.webUrl, true);
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = downloadUrl;
-        document.body.appendChild(iframe);
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 3000);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.setAttribute('download', file.title || 'download');
+        link.setAttribute('target', '_self');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
         setIsOpen(false);
         onOpenChange?.(false);
       }

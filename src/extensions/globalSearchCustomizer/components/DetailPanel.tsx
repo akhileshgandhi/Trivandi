@@ -17,12 +17,31 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
     try {
       const isSharePoint = url.includes('.sharepoint.com') || url.includes('/sites/') || url.includes('sharepoint.intel');
       if (isSharePoint) {
-        if (url.includes('web=')) {
-          return url.replace(/web=\d/, `web=${forceDownload ? '0' : '1'}`);
+        let finalUrl = url;
+        if (forceDownload) {
+          // Append SharePoint direct stream download parameter
+          if (finalUrl.includes('download=')) {
+            finalUrl = finalUrl.replace(/download=\d/, 'download=1');
+          } else {
+            const separator = finalUrl.includes('?') ? '&' : '?';
+            finalUrl = `${finalUrl}${separator}download=1`;
+          }
+          // Set web=0 to bypass opening in the online editor
+          if (finalUrl.includes('web=')) {
+            finalUrl = finalUrl.replace(/web=\d/, 'web=0');
+          } else {
+            finalUrl = `${finalUrl}&web=0`;
+          }
         } else {
-          const separator = url.includes('?') ? '&' : '?';
-          return `${url}${separator}web=${forceDownload ? '0' : '1'}`;
+          // Full preview - open in online reader
+          if (finalUrl.includes('web=')) {
+            finalUrl = finalUrl.replace(/web=\d/, 'web=1');
+          } else {
+            const separator = finalUrl.includes('?') ? '&' : '?';
+            finalUrl = `${finalUrl}${separator}web=1`;
+          }
         }
+        return finalUrl;
       }
     } catch (e) {
       // fallback
@@ -165,7 +184,17 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
           <button 
             className={styles.actionSecondaryBtn} 
             title="Download Asset"
-            onClick={() => window.open(getActionUrl(selectedFile.url, true), '_blank')}
+            onClick={() => {
+              if (!selectedFile.url) return;
+              const downloadUrl = getActionUrl(selectedFile.url, true);
+              const link = document.createElement('a');
+              link.href = downloadUrl;
+              link.setAttribute('download', selectedFile.title || 'download');
+              link.setAttribute('target', '_self');
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
           >
             <Download size={18} />
           </button>

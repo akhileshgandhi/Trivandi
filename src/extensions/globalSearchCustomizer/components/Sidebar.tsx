@@ -115,7 +115,6 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                       className={styles.checkboxInput}
                     />
                     <span>{type}</span>
-                    {type === 'All' && <span className={styles.checkboxBadge}>1.3M</span>}
                   </label>
                 );
               })}
@@ -232,17 +231,14 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
           {/* Action Row */}
           <div className={styles.sidebarActionWrapper}>
             <button 
-              className={styles.applyButton}
-              onClick={() => {}}
-            >
-              Apply Filter
-            </button>
-            <button 
               onClick={() => setFilters({ fileTypes: ['All'], selectedAuthors: [], date: '' })}
-              className={styles.resetButton}
+              className={styles.applyButton}
             >
-              Reset Filters
+              Reset All Filters
             </button>
+            <div style={{ textAlign: 'center', fontSize: '9px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>
+              Filters Applied Instantly
+            </div>
           </div>
         </div>
       </aside>

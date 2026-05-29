@@ -257,8 +257,6 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   // Dynamic unique list of authors alphabetically sorted
   const authorsList = useMemo(() => {
     const collected = new Set<string>();
-    // Default high-profile premium team members
-    ['Akhilesh Gandhi', 'Paul Kerby', 'Carla Glossip', 'Ava Pevsner', 'Sam Lay'].forEach(a => collected.add(a));
     // Live loaded search authors
     mappedLiveResults.forEach(r => {
       if (r.author && r.author.trim() !== 'SharePoint User' && r.author.trim() !== 'SharePoint Portal') {
@@ -268,18 +266,10 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     return Array.from(collected).sort((a, b) => a.localeCompare(b));
   }, [mappedLiveResults]);
 
-  // Robust live results are filtered on the server side, but we also do a secondary client-side validation to prune metadata mismatches (e.g. Office doc template authors vs SharePoint uploaders)
+  // Robust live results are filtered on the server side natively
   const filteredLiveResults = useMemo(() => {
-    if (filters.selectedAuthors.length > 0) {
-      return mappedLiveResults.filter(item => 
-        filters.selectedAuthors.some(author => 
-          item.author.toLowerCase().includes(author.toLowerCase()) ||
-          author.toLowerCase().includes(item.author.toLowerCase())
-        )
-      );
-    }
     return mappedLiveResults;
-  }, [mappedLiveResults, filters.selectedAuthors]);
+  }, [mappedLiveResults]);
 
   // Set the final target results and states based on current Mode (Live vs Mock)
   const resultsToRender = useMemo(() => {

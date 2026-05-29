@@ -38,6 +38,11 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: $font-sans !important;
+
+  * {
+    font-family: $font-sans !important;
+  }
 }
 
 @keyframes modalFadeIn {
@@ -973,6 +978,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 .type_pdf {
   border-left-color: #00acc1 !important;
+  &:hover {
+    border-color: rgba(0, 172, 193, 0.2) rgba(0, 172, 193, 0.2) rgba(0, 172, 193, 0.2) #00acc1 !important;
+    background: linear-gradient(90deg, rgba(0, 172, 193, 0.015) 0%, #ffffff 100%) !important;
+  }
   .cardIconBox {
     background-color: rgba(0, 172, 193, 0.08) !important;
     color: #00acc1 !important;
@@ -987,6 +996,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 .type_xlsx {
   border-left-color: #00796b !important;
+  &:hover {
+    border-color: rgba(0, 121, 107, 0.2) rgba(0, 121, 107, 0.2) rgba(0, 121, 107, 0.2) #00796b !important;
+    background: linear-gradient(90deg, rgba(0, 121, 107, 0.015) 0%, #ffffff 100%) !important;
+  }
   .cardIconBox {
     background-color: rgba(0, 121, 107, 0.08) !important;
     color: #00796b !important;
@@ -1001,6 +1014,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 .type_pptx {
   border-left-color: #e52592 !important;
+  &:hover {
+    border-color: rgba(229, 37, 146, 0.2) rgba(229, 37, 146, 0.2) rgba(229, 37, 146, 0.2) #e52592 !important;
+    background: linear-gradient(90deg, rgba(229, 37, 146, 0.015) 0%, #ffffff 100%) !important;
+  }
   .cardIconBox {
     background-color: rgba(229, 37, 146, 0.08) !important;
     color: #e52592 !important;
@@ -1015,6 +1032,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 .type_image {
   border-left-color: #9334e6 !important;
+  &:hover {
+    border-color: rgba(147, 52, 230, 0.2) rgba(147, 52, 230, 0.2) rgba(147, 52, 230, 0.2) #9334e6 !important;
+    background: linear-gradient(90deg, rgba(147, 52, 230, 0.015) 0%, #ffffff 100%) !important;
+  }
   .cardIconBox {
     background-color: rgba(147, 52, 230, 0.08) !important;
     color: #9334e6 !important;
@@ -1029,6 +1050,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 .type_video {
   border-left-color: #ea4335 !important;
+  &:hover {
+    border-color: rgba(234, 67, 53, 0.2) rgba(234, 67, 53, 0.2) rgba(234, 67, 53, 0.2) #ea4335 !important;
+    background: linear-gradient(90deg, rgba(234, 67, 53, 0.015) 0%, #ffffff 100%) !important;
+  }
   .cardIconBox {
     background-color: rgba(234, 67, 53, 0.08) !important;
     color: #ea4335 !important;
@@ -1043,6 +1068,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 .type_folder {
   border-left-color: #f5b041 !important;
+  &:hover {
+    border-color: rgba(245, 176, 65, 0.2) rgba(245, 176, 65, 0.2) rgba(245, 176, 65, 0.2) #f5b041 !important;
+    background: linear-gradient(90deg, rgba(245, 176, 65, 0.015) 0%, #ffffff 100%) !important;
+  }
   .cardIconBox {
     background-color: rgba(245, 176, 65, 0.08) !important;
     color: #f5b041 !important;
@@ -1057,6 +1086,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 .type_default {
   border-left-color: #1a73e8 !important;
+  &:hover {
+    border-color: rgba(26, 115, 232, 0.2) rgba(26, 115, 232, 0.2) rgba(26, 115, 232, 0.2) #1a73e8 !important;
+    background: linear-gradient(90deg, rgba(26, 115, 232, 0.015) 0%, #ffffff 100%) !important;
+  }
   .cardIconBox {
     background-color: rgba(26, 115, 232, 0.08) !important;
     color: #1a73e8 !important;
@@ -1100,6 +1133,19 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   transition: transform $transition-fast;
 }
 
+.cardIconBoxImage {
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+.cardThumbnailImage {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: inherit !important;
+  display: block !important;
+}
+
 .resultCard:hover .cardIconBox {
   transform: scale(1.05);
 }
@@ -1112,11 +1158,16 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   color: $slate-300;
   display: flex;
-  transition: background $transition-fast, color $transition-fast;
+  transition: background $transition-fast, color $transition-fast, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
   &:hover {
     background: $slate-50;
     color: $slate-400;
+    transform: scale(1.22);
+  }
+
+  &:active {
+    transform: scale(0.9);
   }
 }
 
@@ -1468,6 +1519,11 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: -10px 0 30px -5px rgba(15, 23, 42, 0.08);
   height: 100%;
   animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  font-family: $font-sans !important;
+
+  * {
+    font-family: $font-sans !important;
+  }
 }
 
 @keyframes slideInRight {
