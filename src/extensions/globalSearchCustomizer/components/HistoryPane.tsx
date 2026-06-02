@@ -12,7 +12,10 @@ export const HistoryPane: React.FC<ISearchHistoryProps> = ({
   setSearchHistory,
   removeHistoryItem,
   isResizingPreview,
-  startResizingPreview
+  startResizingPreview,
+  topQueries,
+  topClickedDocs,
+  onClearAnalytics
 }) => {
   if (!isHistoryOpen) return null;
 
@@ -41,11 +44,16 @@ export const HistoryPane: React.FC<ISearchHistoryProps> = ({
           </button>
         </div>
 
-        {/* Scrollable Query items */}
+        {/* Scrollable Query items and Analytics panels */}
         <div className={styles.historyScrollContent}>
+          
+          {/* Section 1: Recent Searches */}
+          <div className={styles.historySectionHeader}>
+            <span>RECENT SEARCH HISTORY</span>
+          </div>
           <div className={styles.historyListGroup}>
             {searchHistory.length > 0 ? (
-              searchHistory.map((item, idx) => (
+              searchHistory.slice(0, 8).map((item, idx) => (
                 <div 
                   key={idx}
                   className={styles.historyItemCard}
@@ -58,11 +66,10 @@ export const HistoryPane: React.FC<ISearchHistoryProps> = ({
                     className={styles.historyItemTrigger}
                   >
                     <div className={styles.historyItemIconBox}>
-                      <Search size={16} className={styles.suggestionIcon} />
+                      <Search size={14} className={styles.suggestionIcon} />
                     </div>
                     <div className={styles.historyItemInfo}>
                       <p className={styles.historyItemQueryText}>{item}</p>
-                      <p className={styles.historyItemTimeLabel}>Indexed 2m ago</p>
                     </div>
                   </button>
                   <button 
@@ -82,22 +89,78 @@ export const HistoryPane: React.FC<ISearchHistoryProps> = ({
                 <div className={styles.historyEmptyIconFrame}>
                   <HistoryIcon size={24} className={styles.historyEmptyIcon} />
                 </div>
-                <p className={styles.historyEmptyTitle}>Terminal Void</p>
+                <p className={styles.historyEmptyTitle}>No Recent Searches</p>
                 <p className={styles.historyEmptyDesc}>
-                  Your recent academic queries will be archived here for instant retrieval.
+                  Your search terms will be archived here for instant retrieval.
                 </p>
               </div>
             )}
           </div>
+
+          {/* Section 2: Top Search Analytics (Top Queries) */}
+          {topQueries && topQueries.length > 0 && (
+            <div className={styles.analyticsWrapper}>
+              <div className={styles.historySectionHeader}>
+                <span>YOUR TOP SEARCH QUERIES</span>
+              </div>
+              <div className={styles.analyticsQueriesList}>
+                {topQueries.map((item, idx) => (
+                  <button 
+                    key={idx} 
+                    onClick={() => {
+                      handleSearch(item.query);
+                      setIsHistoryOpen(false);
+                    }}
+                    className={styles.analyticsQueryRow}
+                    title={`Search for ${item.query} again`}
+                  >
+                    <span className={styles.analyticsQueryText}>{item.query}</span>
+                    <span className={styles.analyticsCountBadge}>{item.count} {item.count === 1 ? 'search' : 'searches'}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section 3: Click Analytics (Frequently Visited Documents) */}
+          {topClickedDocs && topClickedDocs.length > 0 && (
+            <div className={styles.analyticsWrapper}>
+              <div className={styles.historySectionHeader}>
+                <span>FREQUENTLY VISITED DOCUMENTS</span>
+              </div>
+              <div className={styles.analyticsDocsList}>
+                {topClickedDocs.map((doc, idx) => (
+                  <a 
+                    key={idx} 
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.analyticsDocRow}
+                    title={`Open ${doc.title} in a new tab`}
+                  >
+                    <div className={styles.analyticsDocIcon}>📄</div>
+                    <div className={styles.analyticsDocInfo}>
+                      <p className={styles.analyticsDocTitle}>{doc.title}</p>
+                      <p className={styles.analyticsDocClicks}>{doc.clickCount} {doc.clickCount === 1 ? 'view' : 'views'}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Clear Button Footer */}
         <div className={styles.historyFooter}>
           <button 
-            onClick={() => setSearchHistory([])}
+            onClick={() => {
+              setSearchHistory([]);
+              if (onClearAnalytics) onClearAnalytics();
+            }}
             className={styles.clearHistoryButton}
           >
-            Clear History
+            Reset Analytics & History
           </button>
         </div>
       </aside>

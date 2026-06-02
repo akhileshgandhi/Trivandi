@@ -10,4 +10,7 @@ export interface ISearchHistoryProps {
   removeHistoryItem: (item: string) => void;
   isResizingPreview: boolean;
   startResizingPreview: (e: React.MouseEvent) => void;
+  topQueries?: any[];
+  topClickedDocs?: any[];
+  onClearAnalytics?: () => void;
 }

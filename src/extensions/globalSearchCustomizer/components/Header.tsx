@@ -18,14 +18,11 @@ export const Header: React.FC<IHeaderProps> = ({
     <header className={styles.header}>
       {/* Logo */}
       <div className={styles.logoWrapper}>
-        <svg width="120" height="32" viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.logoSvg}>
-          <text x="5" y="24" className={styles.logoText}>
-            trivandi
-          </text>
-          <circle cx="43.5" cy="8" r="2.5" fill="#F22797" />
-          <circle cx="114.5" cy="8" r="2.5" fill="#F22797" />
-          <path d="M6 10.5C9 8.5 14 8.5 17 10.5" stroke="#F22797" strokeWidth="2.5" strokeLinecap="round" />
-        </svg>
+        <img 
+          src={require('../Assets/moreyeahLogo.png')} 
+          alt="Moreyeahs Logo" 
+          className={styles.logoImage} 
+        />
       </div>
 
       {/* Centered Search Bar */}

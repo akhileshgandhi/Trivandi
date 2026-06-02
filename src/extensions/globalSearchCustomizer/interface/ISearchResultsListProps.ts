@@ -27,4 +27,7 @@ export interface ISearchResultsListProps {
   setOpenMenuId: (id: string | null) => void;
   openMenuId: string | null;
   searchHistory?: string[];
+  sortBy: string;
+  setSortBy: (sortBy: string) => void;
+  promotedResults: any[];
 }

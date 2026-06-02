@@ -66,7 +66,12 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
       });
     }
 
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    const uniqueNames = Array.from(set);
+    const alphabetic = uniqueNames.filter(name => /^[a-zA-Z]/.test(name.trim().charAt(0)));
+    const nonAlphabetic = uniqueNames.filter(name => !/^[a-zA-Z]/.test(name.trim().charAt(0)));
+    alphabetic.sort((a, b) => a.localeCompare(b));
+    nonAlphabetic.sort((a, b) => a.localeCompare(b));
+    return [...alphabetic, ...nonAlphabetic];
   }, [apiAuthors, selectedAuthors, authorsList, authorSearchQuery]);
 
   const toggleAuthor = (name: string) => {
@@ -145,19 +150,6 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
               
               {isDropdownOpen && (
                 <div className={styles.authorDropdownMenu}>
-                  <div className={styles.authorDropdownMenuHeader}>
-                    <span className={styles.authorDropdownMenuTitle}>SELECT AUTHORS</span>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsDropdownOpen(false);
-                      }}
-                      className={styles.authorDropdownMenuDone}
-                    >
-                      Done
-                    </button>
-                  </div>
-                  
                    <div className={styles.authorDropdownScroll}>
                     {isLoadingAuthors && (
                       <div className={styles.authorDropdownEmpty}>
@@ -167,24 +159,21 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                     {!isLoadingAuthors && filteredAuthors.map(name => {
                       const isChecked = selectedAuthors.includes(name);
                       return (
-                        <label 
+                        <div 
                           key={name}
-                          onClick={(e) => e.stopPropagation()} // Prevent closing dropdown on item click
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleAuthor(name);
+                          }}
                           className={`${styles.authorItemLabel} ${isChecked ? styles.authorItemLabelChecked : ''}`}
                         >
-                          <input 
-                            type="checkbox" 
-                            checked={isChecked}
-                            onChange={() => toggleAuthor(name)}
-                            className={styles.authorItemCheckbox}
-                          />
                           <div className={`${styles.authorItemAvatar} ${isChecked ? styles.authorItemAvatarChecked : ''}`}>
                             {name.charAt(0).toUpperCase()}
                           </div>
                           <span className={`${styles.authorItemName} ${isChecked ? styles.authorItemNameChecked : ''}`}>
                             {name}
                           </span>
-                        </label>
+                        </div>
                       );
                     })}
                     {!isLoadingAuthors && filteredAuthors.length === 0 && (

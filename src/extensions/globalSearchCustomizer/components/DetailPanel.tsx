@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FileText, ExternalLink, Download } from 'lucide-react';
+import { FileText, ExternalLink, Download, Folder } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { renderFormattedSummary, getSharePointThumbnailUrl } from '../../../utils/SearchHelpers';
 
@@ -7,6 +7,8 @@ import { IDetailPanelProps } from '../interface/IDetailPanelProps';
 
 export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQuery }) => {
   const [imageError, setImageError] = React.useState(false);
+  const [isUrlPopupOpen, setIsUrlPopupOpen] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
     setImageError(false);
@@ -70,7 +72,7 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
           <div className={styles.mockThumbnailWrapper} style={{ borderTop: `4px solid ${selectedFile.color}` }}>
             <div className={styles.mockThumbnailHeader}>
               <div className={styles.mockThumbnailIcon} style={{ backgroundColor: selectedFile.color + '15', color: selectedFile.color }}>
-                <FileText size={20} />
+                {selectedFile.type === 'FOLDER' ? <Folder size={20} /> : <FileText size={20} />}
               </div>
               <span className={styles.mockThumbnailBadge} style={{ backgroundColor: selectedFile.color + '20', color: selectedFile.color }}>
                 {selectedFile.type}
@@ -104,10 +106,18 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
               className={styles.siteBadge} 
               style={{ 
                 backgroundColor: selectedFile.color + '10', 
-                color: selectedFile.color 
+                color: selectedFile.color,
+                cursor: 'pointer',
+                display: 'inline-block',
+                maxWidth: '100%'
               }}
+              onClick={() => {
+                setIsUrlPopupOpen(true);
+                setCopied(false);
+              }}
+              title="Click to view full URL"
             >
-              {selectedFile.url ? selectedFile.url.toUpperCase() : 'SHAREPOINT SITE'}
+              {selectedFile.url ? selectedFile.url : 'SHAREPOINT SITE'}
             </span>
             <span className={styles.metaDot} />
             <span className={styles.verifiedLabel}>Verified Source</span>
@@ -200,6 +210,117 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
           </button>
         </div>
       </div>
+
+      {isUrlPopupOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            backdropFilter: 'blur(4px)'
+          }}
+          onClick={() => setIsUrlPopupOpen(false)}
+        >
+          <div 
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              padding: '24px',
+              maxWidth: '500px',
+              width: '90%',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #e2e8f0',
+              fontFamily: 'Segoe UI, system-ui, sans-serif'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>Full Document URL</h3>
+              <button 
+                onClick={() => setIsUrlPopupOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                  padding: '4px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div 
+              style={{
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                wordBreak: 'break-all',
+                fontSize: '13px',
+                color: '#334155',
+                lineHeight: 1.5,
+                maxHeight: '200px',
+                overflowY: 'auto',
+                marginBottom: '20px',
+                fontFamily: 'Consolas, Monaco, monospace'
+              }}
+            >
+              {selectedFile.url}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(selectedFile.url);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+                style={{
+                  backgroundColor: copied ? '#10b981' : selectedFile.color,
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease'
+                }}
+              >
+                {copied ? 'Copied!' : 'Copy Link'}
+              </button>
+              <button
+                onClick={() => setIsUrlPopupOpen(false)}
+                style={{
+                  backgroundColor: '#f1f5f9',
+                  color: '#334155',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

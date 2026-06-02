@@ -15,7 +15,8 @@ export class GraphSearchService {
     fileTypes: string[] = [],
     activeTopTab: string = 'All',
     date: string = '',
-    selectedAuthors: string[] = []
+    selectedAuthors: string[] = [],
+    sortBy: string = 'relevance'
   ): Promise<{ results: ISearchResult[]; totalCount: number }> {
     const client: any = await this._msGraphClientFactory.getClient('3');
 
@@ -33,15 +34,15 @@ export class GraphSearchService {
     let queryString = boostedQuery || 'IsDocument:1';
 
     if (activeTopTab === 'Folders') {
-      queryString = boostedQuery ? `${boostedQuery} AND IsContainer:true` : 'IsContainer:true';
+      queryString = boostedQuery ? `(${boostedQuery}) AND (IsContainer:true OR contentclass:STS_Folder)` : '(IsContainer:true OR contentclass:STS_Folder)';
     } else if (activeTopTab === 'Files') {
-      queryString = boostedQuery ? `${boostedQuery} AND IsContainer:false` : 'IsContainer:false';
+      queryString = boostedQuery ? `(${boostedQuery}) AND IsContainer:false AND NOT contentclass:STS_Folder` : 'IsContainer:false AND NOT contentclass:STS_Folder';
     } else if (activeTopTab === 'Images') {
-      const imgFilter = '(filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg) AND IsContainer:false';
-      queryString = boostedQuery ? `${boostedQuery} AND (${imgFilter})` : imgFilter;
+      const imgFilter = '(filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg) AND IsContainer:false AND NOT contentclass:STS_Folder';
+      queryString = boostedQuery ? `(${boostedQuery}) AND (${imgFilter})` : imgFilter;
     } else if (activeTopTab === 'Videos') {
-      const vidFilter = '(filetype:mp4 OR filetype:mov OR filetype:avi) AND IsContainer:false';
-      queryString = boostedQuery ? `${boostedQuery} AND (${vidFilter})` : vidFilter;
+      const vidFilter = '(filetype:mp4 OR filetype:mov OR filetype:avi) AND IsContainer:false AND NOT contentclass:STS_Folder';
+      queryString = boostedQuery ? `(${boostedQuery}) AND (${vidFilter})` : vidFilter;
     }
     
     // Add file type filters if present and not "All" (Only if not in Folders tab)
@@ -95,7 +96,7 @@ export class GraphSearchService {
     }
 
     // Build Graph Search POST payload according to Microsoft Graph Search API guidelines
-    const searchPayload = {
+    const searchPayload: any = {
       requests: [
         {
           entityTypes: ['driveItem'],
@@ -118,6 +119,23 @@ export class GraphSearchService {
         }
       ]
     };
+
+    if (sortBy && sortBy !== 'relevance') {
+      let sortField = 'lastModifiedDateTime';
+      let desc = true;
+      if (sortBy === 'dateAsc') {
+        desc = false;
+      } else if (sortBy === 'sizeDesc') {
+        sortField = 'size';
+        desc = true;
+      }
+      searchPayload.requests[0].sortProperties = [
+        {
+          name: sortField,
+          isDescending: desc
+        }
+      ];
+    }
 
     console.log('--- [DEBUG] Raw Search Query input ---', query);
     console.log('--- [DEBUG] Active Top Tab ---', activeTopTab);
@@ -154,21 +172,32 @@ export class GraphSearchService {
       // Determine file extension cleanly
       let fileType = 'doc';
       const name = resource.name || '';
-      if (resource.folder || (!resource.file && !name.includes('.'))) {
+      const rawUrl = resource.webUrl || '';
+      
+      const hasExtension = name.includes('.') && name.split('.').pop()?.toLowerCase() !== name.toLowerCase();
+      const ext = hasExtension ? name.split('.').pop()?.toLowerCase() : '';
+      
+      const isFolder = 
+        !!resource.folder || 
+        rawUrl.includes('/:f:/') || 
+        !hasExtension; // No extension means it is a folder
+
+      if (isFolder) {
         fileType = 'folder';
+      } else if (ext) {
+        if (ext === 'pdf') fileType = 'pdf';
+        else if (['xls', 'xlsx'].includes(ext)) fileType = 'xlsx';
+        else if (['ppt', 'pptx'].includes(ext)) fileType = 'pptx';
+        else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) fileType = 'png';
+        else if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ext)) fileType = 'mp4';
+        else fileType = ext;
       } else if (resource.file?.mimeType) {
         const mime = resource.file.mimeType.toLowerCase();
         if (mime.includes('pdf')) fileType = 'pdf';
         else if (mime.includes('excel') || mime.includes('spreadsheet')) fileType = 'xlsx';
         else if (mime.includes('presentation') || mime.includes('powerpoint')) fileType = 'pptx';
         else if (mime.includes('image')) fileType = 'png';
-      } else {
-        const ext = name.split('.').pop()?.toLowerCase();
-        if (ext && ext !== name.toLowerCase()) {
-          fileType = ext;
-        } else {
-          fileType = 'folder'; // Fallback if no valid extension found
-        }
+        else if (mime.includes('video')) fileType = 'mp4';
       }
 
       const getCleanSharePointUrl = (webUrl: string, title: string): string => {
@@ -182,6 +211,15 @@ export class GraphSearchService {
           cleaned = cleaned.replace(/\/:[a-z]:\/r\//i, '/');
           cleaned = cleaned.replace(/\/:[a-z]:\/g\//i, '/');
           cleaned = cleaned.split('?')[0]; // Strip query parameters
+
+          // Force files to open in the browser instead of downloading by appending ?web=1
+          const parts = title.split('.');
+          if (parts.length > 1) {
+            const ext = parts.pop()?.toLowerCase();
+            if (ext && ext !== 'folder') {
+              cleaned = `${cleaned}?web=1`;
+            }
+          }
           return cleaned;
         } catch (e) {
           return webUrl;
@@ -208,11 +246,22 @@ export class GraphSearchService {
     return { results, totalCount };
   }
 
+  private sortAuthorsList(names: string[]): string[] {
+    const uniqueNames = Array.from(new Set(names));
+    const alphabetic = uniqueNames.filter(name => /^[a-zA-Z]/.test(name.trim().charAt(0)));
+    const nonAlphabetic = uniqueNames.filter(name => !/^[a-zA-Z]/.test(name.trim().charAt(0)));
+    
+    alphabetic.sort((a, b) => a.localeCompare(b));
+    nonAlphabetic.sort((a, b) => a.localeCompare(b));
+    
+    return [...alphabetic, ...nonAlphabetic];
+  }
+
   public async getAuthors(query: string = ''): Promise<string[]> {
     try {
       const client: any = await this._msGraphClientFactory.getClient('3');
       
-      let url = '/users?$select=displayName&$top=30';
+      let url = '/users?$select=displayName&$top=999';
       if (query.trim()) {
         const cleanQuery = query.trim().replace(/'/g, "''");
         url += `&$filter=startsWith(displayName,'${cleanQuery}') or startsWith(givenName,'${cleanQuery}') or startsWith(surname,'${cleanQuery}')`;
@@ -224,7 +273,7 @@ export class GraphSearchService {
         .map((u: any) => u.displayName)
         .filter((name: string) => name && name.trim().length > 0);
         
-      return Array.from(new Set(names)).sort((a: string, b: string) => a.localeCompare(b)) as string[];
+      return this.sortAuthorsList(names);
     } catch (error) {
       console.error('Error fetching authors from Graph:', error);
       // Graceful fallback to search for people using MS Graph Search query API
@@ -237,7 +286,7 @@ export class GraphSearchService {
               query: {
                 queryString: query.trim() ? `${query.trim()}*` : '*'
               },
-              size: 20
+              size: 500
             }
           ]
         };
@@ -246,7 +295,7 @@ export class GraphSearchService {
         const names = hits
           .map((hit: any) => hit.resource?.displayName)
           .filter((name: string) => name && name.trim().length > 0);
-        return Array.from(new Set(names)).sort((a: string, b: string) => a.localeCompare(b)) as string[];
+        return this.sortAuthorsList(names);
       } catch (e) {
         console.error('Fallback author search failed:', e);
         return [];

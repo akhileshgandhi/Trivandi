@@ -7,6 +7,9 @@ import { ISearchResult } from '../../../models/ISearchResult';
 import { useDebounce } from 'use-debounce';
 import { useSearchStore } from '../store/useSearchStore';
 
+// Import services
+import { PromotedResultsService } from '../services/PromotedResultsService';
+import { SearchAnalyticsService } from '../services/SearchAnalyticsService';
 
 // Import modular subcomponents
 import { Sidebar } from './Sidebar';
@@ -158,7 +161,9 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     setDate,
     setSelectedAuthors: hookSetSelectedAuthors,
     from,
-    setFrom
+    setFrom,
+    sortBy,
+    setSortBy
   } = useSearch({
     service: searchService,
     initialQuery: '',
@@ -233,15 +238,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     });
   }, [liveResults, starredIds]);
 
-  // Track selectedFileId change to push clicked files into recentlyViewedFiles via store action
-  useEffect(() => {
-    if (selectedFileId) {
-      const fileObj = mappedLiveResults.find(f => f.id === selectedFileId);
-      if (fileObj) {
-        addRecentFile(fileObj);
-      }
-    }
-  }, [selectedFileId, mappedLiveResults, addRecentFile]);
+
 
   // Listen to the custom copy-link event from any card's Action Menu to display the top-level overlay
   useEffect(() => {
@@ -263,13 +260,30 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         collected.add(r.author.trim());
       }
     });
-    return Array.from(collected).sort((a, b) => a.localeCompare(b));
+    const uniqueNames = Array.from(collected);
+    const alphabetic = uniqueNames.filter(name => /^[a-zA-Z]/.test(name.trim().charAt(0)));
+    const nonAlphabetic = uniqueNames.filter(name => !/^[a-zA-Z]/.test(name.trim().charAt(0)));
+    alphabetic.sort((a, b) => a.localeCompare(b));
+    nonAlphabetic.sort((a, b) => a.localeCompare(b));
+    return [...alphabetic, ...nonAlphabetic];
   }, [mappedLiveResults]);
 
-  // Robust live results are filtered on the server side natively
+  // Robust live results are filtered on the server side natively, with client-side safeguards
   const filteredLiveResults = useMemo(() => {
+    if (activeTopTab === 'Folders') {
+      return mappedLiveResults.filter(r => r.fileType === 'folder');
+    }
+    if (activeTopTab === 'Files') {
+      return mappedLiveResults.filter(r => r.fileType !== 'folder');
+    }
+    if (activeTopTab === 'Images') {
+      return mappedLiveResults.filter(r => ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(r.fileType?.toLowerCase()));
+    }
+    if (activeTopTab === 'Videos') {
+      return mappedLiveResults.filter(r => ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(r.fileType?.toLowerCase()));
+    }
     return mappedLiveResults;
-  }, [mappedLiveResults]);
+  }, [mappedLiveResults, activeTopTab]);
 
   // Set the final target results and states based on current Mode (Live vs Mock)
   const resultsToRender = useMemo(() => {
@@ -287,6 +301,34 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     }
     return filteredLiveResults;
   }, [bottomTab, recentlyViewedFiles, starredFiles, filteredLiveResults, starredIds]);
+
+  // Track selectedFileId change to push clicked files into recentlyViewedFiles via store action and register clicks in analytics
+  useEffect(() => {
+    if (selectedFileId) {
+      const fileObj = resultsToRender.find(f => f.id === selectedFileId);
+      if (fileObj) {
+        addRecentFile(fileObj);
+        // Track the click in analytics
+        SearchAnalyticsService.trackCardClick(fileObj.id, fileObj.title, fileObj.webUrl);
+        setAnalyticsTrigger(prev => prev + 1);
+      }
+    }
+  }, [selectedFileId, resultsToRender, addRecentFile]);
+
+  // Search Analytics state triggers and queries derivation
+  const [analyticsTrigger, setAnalyticsTrigger] = useState(0);
+
+  const topQueries = useMemo(() => {
+    return SearchAnalyticsService.getTopQueries(5);
+  }, [analyticsTrigger, searchQuery]);
+
+  const topClickedDocs = useMemo(() => {
+    return SearchAnalyticsService.getTopClickedDocuments(5);
+  }, [analyticsTrigger, selectedFileId]);
+
+  const promotedResults = useMemo(() => {
+    return PromotedResultsService.getPromotedResults(searchQuery);
+  }, [searchQuery]);
 
   const totalCountToRender: number = bottomTab === 'Search Results' 
     ? liveTotalCount
@@ -372,6 +414,9 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     const trimmed = query.trim();
     if (trimmed) {
       addHistoryItem(trimmed);
+      // Track the search query in analytics
+      SearchAnalyticsService.trackSearchQuery(trimmed);
+      setAnalyticsTrigger(prev => prev + 1);
     }
     setSearchQuery(trimmed);
     setQuery(trimmed); // Trigger instantly!
@@ -465,6 +510,9 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                 setOpenMenuId={setOpenMenuId}
                 openMenuId={openMenuId}
                 searchHistory={searchHistory}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                promotedResults={promotedResults}
               />
             </div>
 
@@ -489,6 +537,12 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
               removeHistoryItem={removeHistoryItem}
               isResizingPreview={isResizingPreview}
               startResizingPreview={startResizingPreview}
+              topQueries={topQueries}
+              topClickedDocs={topClickedDocs}
+              onClearAnalytics={() => {
+                SearchAnalyticsService.clearAnalytics();
+                setAnalyticsTrigger(prev => prev + 1);
+              }}
             />
 
           </div>

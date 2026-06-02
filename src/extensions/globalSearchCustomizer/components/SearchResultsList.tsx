@@ -72,7 +72,10 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
   setFilters,
   setOpenMenuId,
   openMenuId,
-  searchHistory
+  searchHistory,
+  sortBy,
+  setSortBy,
+  promotedResults
 }) => {
 
   return (
@@ -139,6 +142,26 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
 
         <div className={styles.statsDivider} />
 
+        {/* Dynamic Sort Ranking Option */}
+        {bottomTab === 'Search Results' && (
+          <div className={styles.sortContainer}>
+            <span className={styles.sortLabel}>SORT BY</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className={styles.sortSelect}
+              title="Change search ranking criteria"
+            >
+              <option value="relevance">Relevance Tuning</option>
+              <option value="dateDesc">Newest Modified</option>
+              <option value="dateAsc">Oldest Modified</option>
+              <option value="sizeDesc">Largest Assets</option>
+            </select>
+          </div>
+        )}
+
+        <div className={styles.statsDivider} />
+
         <button 
           onClick={() => {
             setIsHistoryOpen(!isHistoryOpen);
@@ -153,6 +176,33 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
 
       {/* Results cards panel */}
       <div className={styles.resultsListWrapper}>
+        {/* Render High-Fidelity Promoted Resources / Bookmarks */}
+        {!isLoading && bottomTab === 'Search Results' && promotedResults && promotedResults.length > 0 && (
+          <div className={styles.promotedSection}>
+            {promotedResults.map((promo) => (
+              <a
+                key={promo.id}
+                href={promo.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.promotedCard}
+              >
+                <div className={styles.promotedCrownBox}>
+                  👑
+                </div>
+                <div className={styles.promotedCardBody}>
+                  <div className={styles.promotedTitleRow}>
+                    <h4 className={styles.promotedCardTitle}>{promo.title}</h4>
+                    <span className={styles.promotedCategoryBadge}>{promo.category}</span>
+                  </div>
+                  <p className={styles.promotedCardDescription}>{promo.description}</p>
+                  <span className={styles.promotedUrlLabel}>Explore Official Portal ↗</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+
         {isLoading ? (
           <SkeletonLoader count={4} />
         ) : resultsToRender.length === 0 ? (

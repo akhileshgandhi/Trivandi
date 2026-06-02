@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Image as ImageIcon, FileSpreadsheet, FileText, FileBox } from 'lucide-react';
+import { Image as ImageIcon, FileSpreadsheet, FileText, FileBox, Folder } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { IResultCardProps } from '../interface/IResultCardProps';
@@ -16,6 +16,17 @@ const CARD_COLORS = [
   { accent: '#d93025', bg: '#fde7e9', shadow: 'rgba(217, 48, 37, 0.2)' },
   { accent: '#188038', bg: '#e6f4ea', shadow: 'rgba(24, 128, 56, 0.2)' },
 ];
+
+const getFileColor = (fileType: string) => {
+  const ft = fileType ? fileType.toLowerCase() : '';
+  if (ft === 'pdf') return { color: '#00acc1', bg: '#e0f7fa' };
+  if (['xls', 'xlsx'].includes(ft)) return { color: '#00796b', bg: '#e0f2f1' };
+  if (['ppt', 'pptx'].includes(ft)) return { color: '#e52592', bg: '#fce4ec' };
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) return { color: '#9334e6', bg: '#f3e5f5' };
+  if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ft)) return { color: '#ea4335', bg: '#fce8e6' };
+  if (ft === 'folder') return { color: '#f39c12', bg: '#fef5e7' }; // Beautiful yellow-gold folder
+  return { color: '#1a73e8', bg: '#e8f0fe' }; // Default clean document blue
+};
 
 const getCleanSharePointUrl = (webUrl: string, title: string) => {
   if (!webUrl) return '';
@@ -60,6 +71,7 @@ const getSharePointThumbnailUrl = (webUrl: string, title: string) => {
 
 export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick }) => {
   const color = CARD_COLORS[idx % CARD_COLORS.length];
+  const fileColor = getFileColor(result.fileType);
   const [imageError, setImageError] = React.useState(false);
   
   // Format sizes cleanly
@@ -84,7 +96,7 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
       <div className={styles.cardLeftBlock}>
         <div 
           className={`${styles.cardIconBox} ${thumbUrl ? styles.cardIconBoxImage : ''}`}
-          style={{ backgroundColor: color.bg, color: color.accent }}
+          style={{ backgroundColor: fileColor.bg, color: fileColor.color }}
         >
           {thumbUrl ? (
             <img 
@@ -98,6 +110,7 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
             ['xls', 'xlsx'].includes(result.fileType?.toLowerCase() || '') ? <FileSpreadsheet size={22} strokeWidth={2} /> :
             ['pdf'].includes(result.fileType?.toLowerCase() || '') ? <FileText size={22} strokeWidth={2} /> :
             ['doc', 'docx'].includes(result.fileType?.toLowerCase() || '') ? <FileText size={22} strokeWidth={2} /> :
+            ['folder'].includes(result.fileType?.toLowerCase() || '') ? <Folder size={22} strokeWidth={2} /> :
             <FileBox size={22} strokeWidth={2} />
           )}
         </div>
