@@ -9,6 +9,7 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
   const [imageError, setImageError] = React.useState(false);
   const [isUrlPopupOpen, setIsUrlPopupOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const [snippetCopied, setSnippetCopied] = React.useState(false);
 
   React.useEffect(() => {
     setImageError(false);
@@ -101,27 +102,6 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
           <h2 className={styles.visualTitle}>
             {selectedFile.title}
           </h2>
-          <div className={styles.visualSubRow}>
-            <span 
-              className={styles.siteBadge} 
-              style={{ 
-                backgroundColor: selectedFile.color + '10', 
-                color: selectedFile.color,
-                cursor: 'pointer',
-                display: 'inline-block',
-                maxWidth: '100%'
-              }}
-              onClick={() => {
-                setIsUrlPopupOpen(true);
-                setCopied(false);
-              }}
-              title="Click to view full URL"
-            >
-              {selectedFile.url ? selectedFile.url : 'SHAREPOINT SITE'}
-            </span>
-            <span className={styles.metaDot} />
-            <span className={styles.verifiedLabel}>Verified Source</span>
-          </div>
         </div>
         
         {/* Bento Grid */}
@@ -139,8 +119,10 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
             <p className={styles.bentoValue}>{selectedFile.date || 'Today'}</p>
           </div>
           <div className={styles.bentoItem}>
-            <p className={styles.bentoLabel}>Security</p>
-            <p className={`${styles.bentoValue} ${styles.statusSuccess}`}>Encrypted</p>
+            <p className={styles.bentoLabel}>Site Name</p>
+            <p className={styles.bentoValue} title={selectedFile.siteName || 'SharePoint Site'} style={{ wordBreak: 'break-word' }}>
+              {selectedFile.siteName || 'SharePoint Site'}
+            </p>
           </div>
         </div>
 
@@ -167,10 +149,12 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
             <span 
               className={styles.copySnippet}
               onClick={() => {
-                navigator.clipboard.writeText(selectedFile.description || '');
+                navigator.clipboard.writeText(selectedFile.description || '').catch(() => undefined);
+                setSnippetCopied(true);
+                setTimeout(() => setSnippetCopied(false), 2000);
               }}
             >
-              Copy snippet
+              {snippetCopied ? 'Copied!' : 'Copy snippet'}
             </span>
           </div>
           <div className={styles.highlightsContentWrapper}>

@@ -160,7 +160,7 @@ export const HistoryPane: React.FC<ISearchHistoryProps> = ({
             }}
             className={styles.clearHistoryButton}
           >
-            Reset Analytics & History
+            Clear History
           </button>
         </div>
       </aside>

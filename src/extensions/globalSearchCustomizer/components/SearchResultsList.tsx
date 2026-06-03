@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { SlidersHorizontal, History as HistoryIcon, Star, ChevronLeft, ChevronRight, X, ImageIcon, FileSpreadsheet, FileText, Video } from 'lucide-react';
+import { SlidersHorizontal, History as HistoryIcon, Star, ChevronLeft, ChevronRight, X, ImageIcon, FileSpreadsheet, FileText, Video, ChevronDown } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { FileActionMenu } from './FileActionMenu';
@@ -77,6 +77,25 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
   setSortBy,
   promotedResults
 }) => {
+  const [isSortOpen, setIsSortOpen] = React.useState(false);
+  const sortRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const sortOptions = [
+    { value: 'relevance', label: 'Relevance Tuning' },
+    { value: 'dateDesc', label: 'Newest Modified' },
+    { value: 'dateAsc', label: 'Oldest Modified' },
+    { value: 'sizeDesc', label: 'Largest Assets' }
+  ];
 
   return (
     <main className={styles.mainContainer}>
@@ -146,17 +165,32 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
         {bottomTab === 'Search Results' && (
           <div className={styles.sortContainer}>
             <span className={styles.sortLabel}>SORT BY</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className={styles.sortSelect}
-              title="Change search ranking criteria"
-            >
-              <option value="relevance">Relevance Tuning</option>
-              <option value="dateDesc">Newest Modified</option>
-              <option value="dateAsc">Oldest Modified</option>
-              <option value="sizeDesc">Largest Assets</option>
-            </select>
+            <div className={styles.customSortWrapper} ref={sortRef}>
+              <button 
+                className={styles.customSortButton} 
+                onClick={() => setIsSortOpen(!isSortOpen)}
+                title="Change search ranking criteria"
+              >
+                {sortOptions.find(opt => opt.value === sortBy)?.label || 'Relevance Tuning'}
+                <ChevronDown size={14} />
+              </button>
+              {isSortOpen && (
+                <div className={styles.customSortDropdown}>
+                  {sortOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      className={`${styles.customSortOption} ${sortBy === opt.value ? styles.activeSortOption : ''}`}
+                      onClick={() => {
+                        setSortBy(opt.value);
+                        setIsSortOpen(false);
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

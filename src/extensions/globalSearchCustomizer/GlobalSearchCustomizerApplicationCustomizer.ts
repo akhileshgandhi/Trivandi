@@ -78,6 +78,7 @@ export default class GlobalSearchCustomizerApplicationCustomizer
       isOpen: true,
       onDismiss: () => this._closeModal(),
     });
+    // eslint-disable-next-line @microsoft/spfx/pair-react-dom-render-unmount
     ReactDOM.render(element, this._modalContainer);
   }
 
@@ -85,12 +86,14 @@ export default class GlobalSearchCustomizerApplicationCustomizer
     if (!this._modalContainer) return;
     this._isModalOpen = false;
     sessionStorage.removeItem('trivandi_search_modal_open');
+    // eslint-disable-next-line @microsoft/spfx/pair-react-dom-render-unmount
     ReactDOM.unmountComponentAtNode(this._modalContainer);
   }
 
   public onDispose(): void {
     if (this._observer) this._observer.disconnect();
     if (this._modalContainer) {
+      // eslint-disable-next-line @microsoft/spfx/pair-react-dom-render-unmount
       ReactDOM.unmountComponentAtNode(this._modalContainer);
       this._modalContainer.remove();
     }

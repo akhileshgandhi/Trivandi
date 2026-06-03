@@ -167,6 +167,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 .searchInput {
   width: 100%;
+  box-sizing: border-box;
   height: 44px; /* modern slightly taller input bar */
   padding-left: 50px;
   padding-right: 44px;
@@ -354,13 +355,13 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebarTitle {
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
   color: $slate-800;
   margin-bottom: 16px;
-  border-b: 1px solid $slate-100;
+  border-bottom: 1px solid $slate-100;
   padding-bottom: 8px;
 }
 
@@ -414,10 +415,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebarSectionHeader {
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
   color: $slate-800;
   margin-top: 24px;
   margin-bottom: 12px;
@@ -439,35 +440,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
 
-.authorIcon {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: $slate-400;
-  transition: color $transition-fast;
-}
 
-.authorInput {
-  width: 100%;
-  height: 36px;
-  background: $slate-50;
-  border: 1px solid $slate-200;
-  border-radius: $radius-xl;
-  padding-left: 44px;
-  padding-right: 16px;
-  font-size: 14px;
-  color: $slate-700;
-  outline: none;
-  font-weight: 600;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: all $transition-fast;
-
-  &:focus {
-    background: #ffffff;
-    border-color: rgba(26, 115, 232, 0.2);
-  }
-}
 
 .authorDropdown {
   position: absolute;
@@ -559,10 +532,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .datePickerLabel {
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
   color: $slate-800;
   margin-top: 24px;
   margin-bottom: 12px;
@@ -1955,11 +1928,11 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .historyTitleLabel {
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: $slate-900;
+  font-size: 14px;
+  font-weight: 700;
+  color: $slate-800;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .historyCloseBtn {
@@ -1981,7 +1954,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 .historyScrollContent {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 8px 24px 24px;
 
   &::-webkit-scrollbar {
     display: none;
@@ -1991,101 +1964,105 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 .historyListGroup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .historyItemCard {
-  position: relative;
-  border-radius: $radius-xl;
-  border: 2px solid transparent;
-  transition: all $transition-fast;
+  position: relative !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  border: 1px solid #f1f5f9 !important;
+  transition: all 0.2s ease !important;
+  overflow: hidden !important;
 
   &:hover {
-    background: #ffffff;
-    box-shadow: $shadow-md;
-    border-color: rgba(26, 115, 232, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    border-color: rgba(26, 115, 232, 0.15) !important;
+    transform: translateY(-1px) !important;
   }
 }
 
 .historyItemTrigger {
-  width: 100%;
-  text-align: left;
-  border: none;
-  background: transparent;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  cursor: pointer;
+  width: 100% !important;
+  text-align: left !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 12px 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  cursor: pointer !important;
 }
 
 .historyItemIconBox {
-  padding: 10px;
-  background: $slate-100;
-  border-radius: 8px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-  display: flex;
-  transition: all $transition-fast;
+  padding: 8px !important;
+  background: #f8fafc !important;
+  border-radius: 8px !important;
+  color: #64748b !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
 }
 
 .historyItemCard:hover .historyItemIconBox {
-  background: $trivandi-blue;
-  color: #ffffff;
+  background: rgba(26, 115, 232, 0.08) !important;
+  color: #1a73e8 !important;
 }
 
 .historyItemInfo {
-  flex: 1;
-  min-width: 0;
-  padding-right: 24px;
+  flex: 1 !important;
+  min-width: 0 !important;
+  padding-right: 24px !important;
 }
 
 .historyItemQueryText {
-  font-size: 14px;
-  font-weight: 600;
-  color: $slate-700;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: color $transition-fast;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  transition: color 0.2s ease !important;
 }
 
 .historyItemCard:hover .historyItemQueryText {
-  color: $trivandi-blue;
+  color: #1a73e8 !important;
 }
 
 .historyItemTimeLabel {
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: $slate-400;
-  margin: 2px 0 0;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #94a3b8 !important;
+  margin: 2px 0 0 !important;
 }
 
 .historyItemRemoveBtn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
-  background: transparent;
-  padding: 8px;
-  border-radius: 9999px;
-  color: $slate-300;
-  cursor: pointer;
-  opacity: 0;
-  display: flex;
-  transition: all $transition-fast;
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 8px !important;
+  border-radius: 9999px !important;
+  color: #cbd5e1 !important;
+  cursor: pointer !important;
+  opacity: 0 !important;
+  display: flex !important;
+  transition: all 0.2s ease !important;
 
   &:hover {
-    background: #fee2e2;
-    color: #ef4444;
+    background: #fee2e2 !important;
+    color: #ef4444 !important;
   }
 }
 
 .historyItemCard:hover .historyItemRemoveBtn {
-  opacity: 1;
+  opacity: 1 !important;
 }
 
 .historyEmptyState {
@@ -2130,26 +2107,28 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .clearHistoryButton {
-  width: 100%;
-  height: 44px;
-  background: $slate-50;
-  border: none;
-  color: $slate-500;
-  border-radius: $radius-xl;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  transition: all $transition-fast;
+  width: 100% !important;
+  height: 44px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+  border-radius: 12px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
 
   &:hover {
-    background: #fee2e2;
-    color: #ef4444;
+    background: #fee2e2 !important;
+    border-color: #fca5a5 !important;
+    color: #ef4444 !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1) !important;
   }
 
   &:active {
-    transform: scale(0.98);
+    transform: scale(0.98) !important;
   }
 }
 
@@ -2217,13 +2196,13 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .actionItemIcon {
-  color: $slate-400;
+  color: #1a73e8;
   flex-shrink: 0;
   transition: color $transition-fast;
 }
 
 .actionDropdownItem:hover .actionItemIcon {
-  color: $slate-600;
+  color: #1a73e8;
 }
 
 .actionItemCopied {
@@ -2798,7 +2777,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .copyDialogContent {
-  width: 450px;
+  width: 650px;
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
@@ -2860,11 +2839,14 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 .copyDialogUrlText {
   font-size: 13px;
   color: #3c4043;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   flex: 1;
   font-family: 'Segoe UI', sans-serif;
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  cursor: text;
 }
 
 .copyDialogCopyButton {
@@ -2990,11 +2972,11 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative !important;
   cursor: pointer !important;
   display: flex !important;
-  // align-items: center !important;
+  align-items: center !important;
   gap: 8px !important;
   padding: 8px !important;
-  // background: #f8fafc !important;
-  // border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  background: #f8fafc !important;
+  border: 1px solid rgba(226, 232, 240, 0.5) !important;
   border-radius: 16px !important;
   transition: all 0.2s ease !important;
 
@@ -3094,8 +3076,8 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   width: 28px !important; 
   height: 28px !important; 
   border-radius: 50% !important; 
-  background-color: #f1f5f9 !important; 
-  color: #64748b !important; 
+  background-color: #eff6ff !important; 
+  color: #1a73e8 !important; 
   display: flex !important; 
   align-items: center !important; 
   justify-content: center !important; 
@@ -3170,27 +3152,81 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   color: #64748b !important; /* slate-500 */
 }
 
-.sortSelect {
-  height: 30px !important;
-  background: #f1f5f9 !important; /* slate-100 */
-  border: 1px solid #cbd5e1 !important; /* slate-300 */
+.customSortWrapper {
+  position: relative !important;
+  display: inline-block !important;
+}
+
+.customSortButton {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  height: 32px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
   border-radius: 9999px !important;
-  padding: 0 12px !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  color: #334155 !important; /* slate-700 */
+  padding: 0 16px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
   cursor: pointer !important;
   outline: none !important;
   transition: all 0.2s ease !important;
 
   &:hover {
-    background: #e2e8f0 !important;
-    border-color: #94a3b8 !important;
+    border-color: #cbd5e1 !important;
+    background: #f8fafc !important;
   }
 
   &:focus {
     border-color: #1a73e8 !important;
-    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15) !important;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1) !important;
+  }
+}
+
+.customSortDropdown {
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  right: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 4px !important;
+  min-width: 180px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  z-index: 50 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.customSortOption {
+  display: block !important;
+  width: 100% !important;
+  text-align: left !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #475569 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+
+  &:hover {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+  }
+}
+
+.activeSortOption {
+  background: #ebf5ff !important;
+  color: #1a73e8 !important;
+  font-weight: 600 !important;
+  
+  &:hover {
+    background: #e1effe !important;
   }
 }
 
@@ -3293,16 +3329,20 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 // History & Analytics Styles
 .historySectionHeader {
-  font-size: 9px !important;
+  font-size: 11px !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.15em !important;
-  color: #94a3b8 !important; /* slate-400 */
-  margin-top: 24px !important;
-  margin-bottom: 12px !important;
+  letter-spacing: 0.05em !important;
+  color: #64748b !important;
+  margin-top: 16px !important;
+  margin-bottom: 8px !important;
   border-bottom: 1px solid #f1f5f9 !important;
-  padding-bottom: 6px !important;
+  padding-bottom: 8px !important;
   display: block !important;
+
+  &:first-child {
+    margin-top: 8px !important;
+  }
 }
 
 .analyticsWrapper {
@@ -3330,6 +3370,8 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   &:hover {
     background: rgba(26, 115, 232, 0.03) !important;
     border-color: rgba(26, 115, 232, 0.15) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
     .analyticsQueryText {
       color: #1a73e8 !important;
     }
@@ -3375,10 +3417,12 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer !important;
 
   &:hover {
-    background: rgba(242, 39, 151, 0.03) !important;
-    border-color: rgba(242, 39, 151, 0.15) !important;
+    background: rgba(26, 115, 232, 0.03) !important;
+    border-color: rgba(26, 115, 232, 0.15) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
     .analyticsDocTitle {
-      color: #F22797 !important;
+      color: #1a73e8 !important;
     }
   }
 }
@@ -3408,5 +3452,19 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 600 !important;
   color: #64748b !important;
   margin: 2px 0 0 0 !important;
+}
+.spellSuggestion {
+  font-size: 13px;
+  color: #5f6368;
+  padding: 4px 16px;
+  button {
+    background: none;
+    border: none;
+    color: #1a73e8;
+    cursor: pointer;
+    font-style: italic;
+    text-decoration: underline;
+    font-size: 13px;
+  }
 }
 

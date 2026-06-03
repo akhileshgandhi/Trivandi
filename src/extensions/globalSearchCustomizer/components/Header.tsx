@@ -1,8 +1,11 @@
 import * as React from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 
 import { IHeaderProps } from '../interface/IHeaderProps';
+import { useAutocomplete } from '../hooks/useAutocomplete';
+import { AutocompleteDropdown } from './AutocompleteDropdown';
 
 export const Header: React.FC<IHeaderProps> = ({
   searchQuery,
@@ -12,22 +15,72 @@ export const Header: React.FC<IHeaderProps> = ({
   setIsSearchFocused,
   searchHistory,
   totalCountToRender,
-  onDismiss
+  onDismiss,
+  service
 }) => {
+  const { suggestions, clearSuggestions } = useAutocomplete(searchQuery, service);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to clear suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        clearSuggestions();
+        setActiveIndex(-1);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [clearSuggestions]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(prev => Math.min(prev + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => Math.max(prev - 1, -1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIndex >= 0 && suggestions[activeIndex]) {
+        handleSelect(suggestions[activeIndex].label);
+      } else {
+        handleSearch(searchQuery);
+        clearSuggestions();
+      }
+    } else if (e.key === 'Escape') {
+      clearSuggestions();
+      setActiveIndex(-1);
+    }
+  };
+
+  const handleSelect = (label: string) => {
+    setSearchQuery(label);
+    clearSuggestions();
+    setActiveIndex(-1);
+    handleSearch(label);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setActiveIndex(-1);
+  };
+
   return (
     <header className={styles.header}>
       {/* Logo */}
       <div className={styles.logoWrapper}>
         <img 
-          src={require('../Assets/moreyeahLogo.png')} 
-          alt="Moreyeahs Logo" 
+          src={require('../Assets/Trivandi Logo.png')} 
+          alt="Trivandi Logo" 
           className={styles.logoImage} 
         />
       </div>
 
       {/* Centered Search Bar */}
       <div className={styles.searchBarContainer}>
-        <div className={styles.searchBarWrapper}>
+        <div className={styles.searchBarWrapper} ref={wrapperRef} style={{ position: 'relative' }}>
           <span className={styles.searchIcon}>
             <Search size={18} strokeWidth={2.5} />
           </span>
@@ -37,8 +90,8 @@ export const Header: React.FC<IHeaderProps> = ({
             value={searchQuery}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
             className={styles.searchInput}
           />
           
@@ -47,6 +100,8 @@ export const Header: React.FC<IHeaderProps> = ({
               onClick={() => {
                 setSearchQuery('');
                 handleSearch('');
+                clearSuggestions();
+                setActiveIndex(-1);
               }}
               className={styles.searchClearBtn}
               title="Clear search"
@@ -55,8 +110,14 @@ export const Header: React.FC<IHeaderProps> = ({
               <X size={14} strokeWidth={2.5} />
             </button>
           )}
+
+          <AutocompleteDropdown
+            suggestions={suggestions}
+            onSelect={handleSelect}
+            activeIndex={activeIndex}
+          />
           
-          {isSearchFocused && searchHistory.length > 0 && (
+          {isSearchFocused && searchHistory.length > 0 && (!suggestions || suggestions.length === 0) && searchQuery.length < 2 && (
             <div className={styles.searchSuggestionBox}>
               <div className={styles.suggestionHeader}>
                 <span>Recent Searches</span>

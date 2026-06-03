@@ -4,7 +4,7 @@
   "https": true,
   "serveConfigurations": {
     "default": {
-      "pageUrl": "https://moreyahs.sharepoint.com/_layouts/15/sharepoint.aspx",
+      "pageUrl": "https://trivandildn.sharepoint.com/_layouts/15/sharepoint.aspx",
       "customActions": {
         "a886704a-9718-4402-8f93-bf183172c188": {
           "location": "ClientSideExtension.ApplicationCustomizer",
@@ -15,7 +15,7 @@
       }
     },
     "globalSearchCustomizer": {
-      "pageUrl": "https://moreyahs.sharepoint.com/_layouts/15/sharepoint.aspx",
+      "pageUrl": "https://trivandildn.sharepoint.com/_layouts/15/sharepoint.aspx",
       "customActions": {
         "a886704a-9718-4402-8f93-bf183172c188": {
           "location": "ClientSideExtension.ApplicationCustomizer",

@@ -118,4 +118,27 @@ export class SearchAnalyticsService {
       console.error('Failed to clear analytics databases:', e);
     }
   }
+
+  public static getClickCount(id: string): number {
+    try {
+      const stored = localStorage.getItem('searchClickAnalytics');
+      if (!stored) return 0;
+      const dict: Record<string, number> = JSON.parse(stored);
+      return dict[id] || 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  public static recordClick(id: string): void {
+    if (!id) return;
+    try {
+      const stored = localStorage.getItem('searchClickAnalytics');
+      const dict: Record<string, number> = stored ? JSON.parse(stored) : {};
+      dict[id] = (dict[id] || 0) + 1;
+      localStorage.setItem('searchClickAnalytics', JSON.stringify(dict));
+    } catch (e) {
+      console.error('Failed to record click for re-ranking:', e);
+    }
+  }
 }

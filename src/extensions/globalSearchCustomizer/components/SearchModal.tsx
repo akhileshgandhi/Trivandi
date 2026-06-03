@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { GraphSearchService } from '../services/GraphSearchService';
 import { useSearch } from '../hooks/useSearch';
+import { useDynamicBrandTerms } from '../hooks/useDynamicBrandTerms';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { useDebounce } from 'use-debounce';
 import { useSearchStore } from '../store/useSearchStore';
@@ -18,6 +19,7 @@ import { PreviewPane } from './PreviewPane';
 import { HistoryPane } from './HistoryPane';
 import { Header } from './Header';
 import { SearchResultsList } from './SearchResultsList';
+import { SpellCorrectionBanner } from './SpellCorrectionBanner';
 
 import { ISearchModalProps } from '../interface/ISearchModalProps';
 
@@ -37,7 +39,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   if (!isOpen) return null;
 
   // --- Unified Column Widths & Resizing States ---
-  const [sidebarWidth, setSidebarWidth] = useState(240);
+  const [sidebarWidth, setSidebarWidth] = useState(300);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
 
   const [previewWidth, setPreviewWidth] = useState(380);
@@ -81,7 +83,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const addRecentFile = (file: ISearchResult): void => {
     setRecentlyViewedFiles(prev => {
       const filtered = prev.filter(f => f.id !== file.id);
-      const updated = [file, ...filtered];
+      const updated = [file, ...filtered].slice(0, 30);
       try { sessionStorage.setItem('trivandi_recent_files_data', JSON.stringify(updated)); } catch (e) { /* ignored */ }
       return updated;
     });
@@ -95,7 +97,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
       return next;
     });
     setStarredFiles(prev => {
-      const hasStar = prev.some(f => f.id === file.id);
+      const hasStar = prev.some(f => f.id === file.id);      
       const next = hasStar ? prev.filter(f => f.id !== file.id) : [...prev, { ...file, isStarred: true }];
       try { localStorage.setItem('trivandi_starred_files_data', JSON.stringify(next)); } catch (e) { /* ignored */ }
       return next;
@@ -116,7 +118,11 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   // --- Graph Service Setup ---
   const searchService = useMemo(() => {
     if (context && context.msGraphClientFactory) {
-      return new GraphSearchService(context.msGraphClientFactory);
+      return new GraphSearchService(
+        context.msGraphClientFactory,
+        context.spHttpClient,
+        context.pageContext?.web?.absoluteUrl
+      );
     }
     return null;
   }, [context]);
@@ -151,6 +157,8 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   }, [isResizingSidebar, isResizingPreview]);
 
   // --- Hook Execution for Live Data ---
+  const dynamicTerms = useDynamicBrandTerms(searchService);
+
   const {
     results: liveResults,
     totalCount: liveTotalCount,
@@ -163,11 +171,15 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     from,
     setFrom,
     sortBy,
-    setSortBy
+    setSortBy,
+    suggestedQuery,
+    correctedQuery,
+    setSkipCorrection
   } = useSearch({
     service: searchService,
     initialQuery: '',
-    pageSize: 10
+    pageSize: 10,
+    dynamicTerms: dynamicTerms
   });
 
   // Debounce search query changes using standard 'use-debounce' React library
@@ -310,6 +322,8 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         addRecentFile(fileObj);
         // Track the click in analytics
         SearchAnalyticsService.trackCardClick(fileObj.id, fileObj.title, fileObj.webUrl);
+        SearchAnalyticsService.recordClick(fileObj.id);
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
         setAnalyticsTrigger(prev => prev + 1);
       }
     }
@@ -450,7 +464,9 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           searchHistory={searchHistory}
           totalCountToRender={totalCountToRender}
           onDismiss={onDismiss}
+          service={searchService}
         />
+
 
         {/* ================= BODY WRAPPER ================= */}
         <div className={styles.body}>
@@ -488,6 +504,15 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
               )}
 
               {/* Main Results Listing Pane */}
+              {correctedQuery && (
+                <SpellCorrectionBanner
+                  correctedQuery={correctedQuery}
+                  originalQuery={searchQuery}
+                  onUseOriginal={() => {
+                    setSkipCorrection(true);
+                  }}
+                />
+              )}
               <SearchResultsList 
                 resultsToRender={resultsToRender}
                 totalCountToRender={totalCountToRender}
@@ -583,9 +608,13 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
             </div>
 
             <div className={styles.copyDialogInputRow}>
-              <span className={styles.copyDialogUrlText}>
-                {copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`}
-              </span>
+              <input 
+                type="text"
+                readOnly
+                className={styles.copyDialogUrlText}
+                value={copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`}
+                onClick={(e) => e.currentTarget.select()}
+              />
               <button 
                 onClick={async () => {
                   try {
@@ -608,9 +637,6 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
 
             <div className={styles.copyDialogFooter}>
               <span>People in your organization with the link can view</span>
-              <span className={styles.copyDialogSettingsLink}>
-                ⚙ Settings
-              </span>
             </div>
           </div>
         </div>

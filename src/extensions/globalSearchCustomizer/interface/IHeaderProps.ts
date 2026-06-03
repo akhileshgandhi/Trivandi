@@ -1,3 +1,5 @@
+import { GraphSearchService } from '../services/GraphSearchService';
+
 export interface IHeaderProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -7,4 +9,5 @@ export interface IHeaderProps {
   searchHistory: string[];
   totalCountToRender: number;
   onDismiss: () => void;
+  service: GraphSearchService | null;
 }

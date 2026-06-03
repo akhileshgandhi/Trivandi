@@ -13,4 +13,5 @@ export interface ISearchResult {
   thumbnailUrl?: string;
   createdDate?: string;
   objectType?: string;
+  relevanceScore?: number;
 }
