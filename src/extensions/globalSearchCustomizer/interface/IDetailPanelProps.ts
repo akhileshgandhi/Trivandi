@@ -3,6 +3,7 @@ export interface IDetailPanelProps {
     id: string;
     title: string;
     author: string;
+    originalAuthor?: string;
     date: string;
     size: string;
     description: string;
@@ -16,6 +17,9 @@ export interface IDetailPanelProps {
     siteUrl: string;
     webUrl: string;
     lastModified: string;
+    libraryUrl?: string;
+    thumbnailUrl?: string;
+    thumbnailUrlLarge?: string;
   };
   searchQuery: string;
 }

@@ -15,10 +15,10 @@ interface ISearchResultThumbnailProps {
 
 const SearchResultThumbnail: React.FC<ISearchResultThumbnailProps> = ({ result }) => {
   const [imageError, setImageError] = React.useState(false);
-  const isImage = ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase() || '');
+  const isMedia = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'mp4', 'mov', 'avi'].includes(result.fileType?.toLowerCase() || '');
 
-  if (isImage && !imageError) {
-    const thumbUrl = getSharePointThumbnailUrl(result.webUrl, result.title);
+  if (isMedia && !imageError) {
+    const thumbUrl = result.thumbnailUrl || '';
     if (thumbUrl) {
       return (
         <img
@@ -33,7 +33,7 @@ const SearchResultThumbnail: React.FC<ISearchResultThumbnailProps> = ({ result }
 
   // Fallback to standard icons
   const ft = result.fileType ? result.fileType.toLowerCase() : '';
-  if (isImage) {
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) {
     return <ImageIcon size={22} strokeWidth={2} />;
   }
   if (['xls', 'xlsx'].includes(ft)) {

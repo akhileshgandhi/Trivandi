@@ -91,7 +91,15 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
       });
       const reranked = rerankResults(res.results, SearchAnalyticsService.getClickCount.bind(SearchAnalyticsService));
       setResults(reranked);
-      setTotalCount(res.totalCount);
+
+      // Artificially cap results to 200 for completely blank wildcard searches to reduce pagination overload
+      const isBlankSearch = queryToSearch.trim() === '' &&
+        fileTypes.length === 1 && fileTypes[0] === 'All' &&
+        selectedAuthors.length === 0 &&
+        date === '';
+      
+      const cappedTotalCount = isBlankSearch ? Math.min(res.totalCount, 200) : res.totalCount;
+      setTotalCount(cappedTotalCount);
       setSuggestedQuery(res.suggestedQuery);
 
       if (skipCorrection) {

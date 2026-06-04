@@ -2,6 +2,8 @@ import { MSGraphClientFactory, MSGraphClient } from '@microsoft/sp-http';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { expandQuery } from '../../../utils/synonymDictionary';
 
+const userPhotoCache = new Map<string, string | null>();
+
 export class GraphSearchService {
   private _msGraphClientFactory: MSGraphClientFactory;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,7 +106,8 @@ export class GraphSearchService {
 
     // Add native SharePoint KQL author filters
     if (selectedAuthors && selectedAuthors.length > 0) {
-      const authorQueries = selectedAuthors.map(a => `(Author:"${a}" OR AuthorOWSUSER:"${a}")`);
+      // Strictly filter by SharePoint uploader/creator, ignoring embedded computer file authors
+      const authorQueries = selectedAuthors.map(a => `AuthorOWSUSER:"${a}"`);
       queryString += ` AND (${authorQueries.join(' OR ')})`;
     }
 
@@ -132,9 +135,11 @@ export class GraphSearchService {
             'webUrl',
             'lastModifiedDateTime',
             'createdBy',
+            'lastModifiedBy',
             'parentReference',
             'file',
-            'folder'
+            'folder',
+            'Author'
           ],
           queryAlterationOptions: {
             enableSuggestion: true,
@@ -190,7 +195,7 @@ export class GraphSearchService {
     console.log('--- [DEBUG] Parsed Hits Count from MS Graph ---', hits.length);
     console.log('--- [DEBUG] Total Results Count from MS Graph Index ---', totalCount);
 
-    const results: ISearchResult[] = hits.map((hit: any) => {
+    let results: ISearchResult[] = hits.map((hit: any) => {
       const resource = hit.resource || {};
       
       // Determine file extension cleanly
@@ -225,29 +230,10 @@ export class GraphSearchService {
       }
 
       const getCleanSharePointUrl = (webUrl: string, title: string): string => {
-        if (!webUrl) return '';
-        try {
-          let cleaned = webUrl;
-          if (cleaned.includes('/Forms/DispForm.aspx')) {
-            cleaned = cleaned.replace(/\/Forms\/DispForm\.aspx.*/i, `/${title}`);
-          }
-          cleaned = cleaned.replace(/\/:[a-z]:\/[a-z]\//i, '/');
-          cleaned = cleaned.replace(/\/:[a-z]:\/r\//i, '/');
-          cleaned = cleaned.replace(/\/:[a-z]:\/g\//i, '/');
-          cleaned = cleaned.split('?')[0]; // Strip query parameters
-
-          // Force files to open in the browser instead of downloading by appending ?web=1
-          const parts = title.split('.');
-          if (parts.length > 1) {
-            const ext = parts.pop()?.toLowerCase();
-            if (ext && ext !== 'folder') {
-              cleaned = `${cleaned}?web=1`;
-            }
-          }
-          return cleaned;
-        } catch (e) {
-          return webUrl;
-        }
+        // Microsoft Graph's webUrl is natively designed to open the file in the browser.
+        // Stripping query parameters or modifying the path (like replacing DispForm.aspx)
+        // destroys the link integrity and causes 404s. We must return it exactly as-is.
+        return webUrl || '';
       };
 
       const getSiteName = (url: string, fallbackUrl: string): string => {
@@ -280,13 +266,50 @@ export class GraphSearchService {
         return fallbackUrl?.split('/').pop() || 'SharePoint Portal';
       };
 
+      let indexedAuthor = '';
+      if (resource.Author) {
+        indexedAuthor = Array.isArray(resource.Author) ? resource.Author[0] : resource.Author;
+      }
+      
+      const createdByName = resource.createdBy?.user?.displayName || '';
+      const modifiedByName = resource.lastModifiedBy?.user?.displayName || '';
+      
+      // author is the SharePoint uploader
+      const finalAuthor = createdByName || indexedAuthor || modifiedByName || 'SharePoint User';
+      
+      // Try to find the original author from either indexedAuthor or lastModifiedBy
+      let potentialOriginal = indexedAuthor || modifiedByName;
+      
+      // Smart Fallback: If MS Graph hides the internal Author property (common for driveItems), 
+      // but the user explicitly filtered by an author and this file was returned, 
+      // we can deduce that the filtered author MUST be the original embedded author!
+      if (selectedAuthors && selectedAuthors.length > 0) {
+        const potentialMatchesFilter = potentialOriginal ? selectedAuthors.some(a => a.toLowerCase() === potentialOriginal.toLowerCase()) : false;
+        const uploaderMatchesFilter = selectedAuthors.some(a => a.toLowerCase() === createdByName.toLowerCase());
+        
+        // If neither the known potential original nor the uploader matches the filter, 
+        // the filter MUST have matched the hidden embedded author.
+        if (!potentialMatchesFilter && !uploaderMatchesFilter) {
+          potentialOriginal = selectedAuthors[0];
+        }
+      }
+      
+      let origAuthor = '';
+      if (potentialOriginal && createdByName && potentialOriginal.trim().toLowerCase() !== createdByName.trim().toLowerCase()) {
+        origAuthor = potentialOriginal.trim();
+      }
+
       return {
         id: resource.id || hit.hitId || Math.random().toString(),
         title: resource.name || 'Untitled Document',
         webUrl: getCleanSharePointUrl(resource.webUrl || '', resource.name || ''),
         fileType: fileType,
         lastModified: resource.lastModifiedDateTime || new Date().toISOString(),
-        author: resource.createdBy?.user?.displayName || 'SharePoint User',
+        author: finalAuthor,
+        originalAuthor: origAuthor,
+        authorEmail: resource.createdBy?.user?.email || '',
+        driveId: resource.parentReference?.driveId || '',
+        itemId: resource.id || '',
         size: resource.size || 0,
         summary: hit.summary || resource.description || 'No description preview available.',
         siteUrl: resource.parentReference?.siteId || '',
@@ -294,6 +317,90 @@ export class GraphSearchService {
         relevanceScore: hit.rank ?? 0
       };
     });
+
+    // Fetch thumbnails + library URL for each result using MS Graph.
+    // driveUrlCache avoids duplicate /drives/{driveId} calls within a single search.
+    const driveUrlCache = new Map<string, string>();
+
+    results = await Promise.all(results.map(async (res) => {
+      if (res.driveId) {
+        // ── Library URL (needed for correct AllItems.aspx viewer links) ──────────
+        if (!driveUrlCache.has(res.driveId)) {
+          try {
+            const driveInfo = await client.api(`/drives/${res.driveId}`).select('webUrl').get();
+            driveUrlCache.set(res.driveId, driveInfo?.webUrl || '');
+          } catch (e) {
+            driveUrlCache.set(res.driveId, ''); // cache the failure so we don't retry
+          }
+        }
+        res.libraryUrl = driveUrlCache.get(res.driveId) || '';
+
+        // ── Thumbnail (images & videos only) ─────────────────────────────────────
+        const isMedia = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'mp4', 'mov', 'avi'].includes(res.fileType?.toLowerCase() || '');
+        if (isMedia && res.itemId) {
+          try {
+            // Fetch the actual DriveItem to get the true physical webUrl (bypassing DispForm.aspx)
+            const itemResponse = await client.api(`/drives/${res.driveId}/items/${res.itemId}`).select('webUrl,name,parentReference').get();
+            if (itemResponse) {
+              if (itemResponse.webUrl && !itemResponse.webUrl.includes('DispForm.aspx')) {
+                res.webUrl = itemResponse.webUrl;
+              } else if (res.libraryUrl && itemResponse.name && itemResponse.parentReference?.path) {
+                // If webUrl is the ugly DispForm properties page, mathematically reconstruct the true file URL
+                const pathParts = itemResponse.parentReference.path.split('/drive/root:');
+                const subPath = pathParts.length > 1 && pathParts[1] ? pathParts[1] : '';
+                res.webUrl = `${res.libraryUrl}${subPath}/${itemResponse.name}`;
+              }
+            }
+
+            // Request large explicitly to force Graph to generate it if it's not cached
+            const thumbResponse = await client.api(`/drives/${res.driveId}/items/${res.itemId}/thumbnails/0/large`).get();
+            if (thumbResponse?.url) {
+              res.thumbnailUrlLarge = thumbResponse.url;
+              res.thumbnailUrl = thumbResponse.url;
+            }
+          } catch (e) {
+            try {
+              const smallThumb = await client.api(`/drives/${res.driveId}/items/${res.itemId}/thumbnails/0/small`).get();
+              if (smallThumb?.url) {
+                res.thumbnailUrl = smallThumb.url;
+                res.thumbnailUrlLarge = smallThumb.url;
+              }
+            } catch (e2) {
+              console.warn(`[GraphSearchService] Thumbnail fetch failed for ${res.itemId}`, e2);
+            }
+          }
+        }
+      }
+      return res;
+    }));
+
+    // Fetch author photo as blob to avoid browser-level 404 noise
+    results = await Promise.all(results.map(async (res) => {
+      if (res.authorEmail) {
+        const cachedPhoto = userPhotoCache.get(res.authorEmail);
+        if (cachedPhoto !== undefined) {
+          res.authorPhotoUrl = cachedPhoto || undefined;
+        } else {
+          try {
+            const photoResponse = await client
+              .api(`/users/${res.authorEmail}/photo/$value`)
+              .responseType('blob' as any)
+              .get();
+            if (photoResponse) {
+              const blobUrl = URL.createObjectURL(photoResponse);
+              userPhotoCache.set(res.authorEmail, blobUrl);
+              res.authorPhotoUrl = blobUrl;
+            } else {
+              userPhotoCache.set(res.authorEmail, null);
+            }
+          } catch {
+            userPhotoCache.set(res.authorEmail, null);
+            // No photo — ResultCard will show initials
+          }
+        }
+      }
+      return res;
+    }));
 
     console.log('--- [DEBUG] Mapped results array returning to caller ---');
     console.log('--- [DEBUG] Results before re-ranking ---', results.map(r => ({ id: r.id, title: r.title, relevanceScore: r.relevanceScore })));

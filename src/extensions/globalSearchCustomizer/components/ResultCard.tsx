@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Image as ImageIcon, FileSpreadsheet, FileText, FileBox, Folder } from 'lucide-react';
+import { Image as ImageIcon, FileSpreadsheet, FileText, FileBox, Folder, Video } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { IResultCardProps } from '../interface/IResultCardProps';
@@ -47,28 +47,6 @@ const getCleanSharePointUrl = (webUrl: string, title: string) => {
   }
 };
 
-const getSharePointThumbnailUrl = (webUrl: string, title: string) => {
-  if (!webUrl) return '';
-  try {
-    const cleanUrl = getCleanSharePointUrl(webUrl, title);
-    const urlObj = new URL(cleanUrl);
-    const host = urlObj.origin;
-    const pathParts = urlObj.pathname.split('/');
-    let sitePath = '';
-    
-    // Correctly resolve site collections and personal OneDrive personal paths
-    if (host.includes('-my.sharepoint.com') && pathParts[1] === 'personal' && pathParts[2]) {
-      sitePath = `/personal/${pathParts[2]}`;
-    } else if (pathParts[1] === 'sites' && pathParts[2]) {
-      sitePath = `/sites/${pathParts[2]}`;
-    }
-    
-    return `${host}${sitePath}/_layouts/15/getpreview.ashx?path=${encodeURIComponent(cleanUrl)}&size=S`;
-  } catch (e) {
-    return '';
-  }
-};
-
 export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick }) => {
   const color = CARD_COLORS[idx % CARD_COLORS.length];
   const fileColor = getFileColor(result.fileType);
@@ -84,8 +62,13 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
   };
 
   const formattedSize = result.size ? formatBytes(result.size) : '4.2 MB';
-  const isImage = ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase() || '');
-  const thumbUrl = isImage && !imageError ? getSharePointThumbnailUrl(result.webUrl, result.title) : '';
+  const isMedia = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'mp4', 'mov', 'avi'].includes(result.fileType?.toLowerCase() || '');
+  const thumbUrl = isMedia && !imageError ? (result.thumbnailUrl || '') : '';
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
 
   return (
     <div
@@ -111,6 +94,7 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
             ['pdf'].includes(result.fileType?.toLowerCase() || '') ? <FileText size={22} strokeWidth={2} /> :
             ['doc', 'docx'].includes(result.fileType?.toLowerCase() || '') ? <FileText size={22} strokeWidth={2} /> :
             ['folder'].includes(result.fileType?.toLowerCase() || '') ? <Folder size={22} strokeWidth={2} /> :
+            ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(result.fileType?.toLowerCase() || '') ? <Video size={22} strokeWidth={2} /> :
             <FileBox size={22} strokeWidth={2} />
           )}
         </div>
@@ -123,6 +107,17 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
 
         <div className={styles.cardMetadataRow}>
           <span className={styles.metaBoldLabel}>BY: </span>
+          {result.authorPhotoUrl ? (
+            <img 
+              src={result.authorPhotoUrl} 
+              alt={result.author}
+              style={{ width: 18, height: 18, borderRadius: '50%', marginRight: 6, verticalAlign: 'middle', display: 'inline-block' }}
+            />
+          ) : (
+            <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: color.accent, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 'bold', marginRight: 6, verticalAlign: 'middle' }}>
+              {getInitials(result.author)}
+            </div>
+          )}
           <span className={styles.metaValueDark}>{result.author}</span>
           <span className={styles.metaDot} />
           <span>{result.lastModified ? new Date(result.lastModified).toLocaleDateString() : 'Today'}</span>

@@ -15,36 +15,72 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
     setImageError(false);
   }, [selectedFile.id]);
 
-  const getActionUrl = (url: string, forceDownload: boolean): string => {
+  const getActionUrl = (url: string, forceDownload: boolean, libraryUrl?: string): string => {
     if (!url) return '';
     try {
       const isSharePoint = url.includes('.sharepoint.com') || url.includes('/sites/') || url.includes('sharepoint.intel');
       if (isSharePoint) {
-        let finalUrl = url;
         if (forceDownload) {
-          // Append SharePoint direct stream download parameter
+          // Download path — append ?download=1&web=0 for direct stream
+          let finalUrl = url;
           if (finalUrl.includes('download=')) {
             finalUrl = finalUrl.replace(/download=\d/, 'download=1');
           } else {
             const separator = finalUrl.includes('?') ? '&' : '?';
             finalUrl = `${finalUrl}${separator}download=1`;
           }
-          // Set web=0 to bypass opening in the online editor
           if (finalUrl.includes('web=')) {
             finalUrl = finalUrl.replace(/web=\d/, 'web=0');
           } else {
             finalUrl = `${finalUrl}&web=0`;
           }
+          return finalUrl;
         } else {
-          // Full preview - open in online reader
-          if (finalUrl.includes('web=')) {
-            finalUrl = finalUrl.replace(/web=\d/, 'web=1');
+          // Full Preview
+          const urlWithoutQuery = url.split('?')[0].toLowerCase();
+          const mediaExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.mp4', '.mov', '.avi', '.wmv', '.mkv', '.flv', '.webm'];
+          const isMediaFile = mediaExtensions.some(ext => urlWithoutQuery.endsWith(ext));
+
+          if (isMediaFile) {
+            // Force the native SharePoint lightbox viewer: AllItems.aspx?id={encodedFilePath}
+            // We omit the 'parent' parameter because SharePoint automatically infers the 
+            // context for the id, preventing Ice Cream Cone errors in deep subfolders.
+            try {
+              const cleanUrl = url.split('?')[0];
+              const hostMatch = cleanUrl.match(/^(https?:\/\/[^/]+)/i);
+              const host = hostMatch ? hostMatch[1] : '';
+              const urlObj = new URL(cleanUrl);
+              const filePath = decodeURIComponent(urlObj.pathname);
+
+              if (libraryUrl && host && filePath) {
+                const libUrlObj = new URL(libraryUrl);
+                const libraryPath = decodeURIComponent(libUrlObj.pathname);
+                return `${host}${libraryPath}/Forms/AllItems.aspx?id=${encodeURIComponent(filePath)}`;
+              }
+            } catch (err) {
+              console.warn('Failed to construct AllItems URL for media, falling back to web=1', err);
+            }
+            // Fallback: If libraryUrl was missing or parsing failed, append ?web=1 
+            // to force the SharePoint native viewer instead of downloading the raw file.
+            let finalMediaUrl = url;
+            if (url.includes('?')) {
+              if (!url.includes('web=1')) finalMediaUrl = `${finalMediaUrl}&web=1`;
+            } else {
+              finalMediaUrl = `${finalMediaUrl}?web=1`;
+            }
+            return finalMediaUrl;
           } else {
-            const separator = finalUrl.includes('?') ? '&' : '?';
-            finalUrl = `${finalUrl}${separator}web=1`;
+            // For documents (Word, Excel, PPT, PDF), ?web=1 forces the file to open 
+            // safely in the Office Online Server browser viewer instead of downloading.
+            let finalUrl = url;
+            if (url.includes('?')) {
+              if (!url.includes('web=1')) finalUrl = `${finalUrl}&web=1`;
+            } else {
+              finalUrl = `${finalUrl}?web=1`;
+            }
+            return finalUrl;
           }
         }
-        return finalUrl;
       }
     } catch (e) {
       // fallback
@@ -62,9 +98,10 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
     <div className={styles.previewContentScroll}>
       {/* Document Visual Preview Card / Thumbnail */}
       <div className={styles.previewDocVisualCard}>
-        {isRealSharePoint && !imageError ? (
-          <img 
-            src={getSharePointPreviewUrl(selectedFile.url, selectedFile.title)}
+        {/* Priority: Graph API thumbnailUrlLarge → thumbnailUrl → getpreview.ashx → icon fallback */}
+        {!imageError && (selectedFile.thumbnailUrlLarge || selectedFile.thumbnailUrl || (isRealSharePoint && getSharePointPreviewUrl(selectedFile.url, selectedFile.title))) ? (
+          <img
+            src={selectedFile.thumbnailUrlLarge || selectedFile.thumbnailUrl || getSharePointPreviewUrl(selectedFile.url, selectedFile.title)}
             className={styles.previewImage}
             onError={() => setImageError(true)}
             alt={selectedFile.title}
@@ -127,7 +164,7 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
         </div>
 
         {/* Author Card */}
-        <div className={styles.authorCard}>
+        <div className={styles.authorCard}> 
           <div className={styles.authorCardLeft}>
             <div className={styles.authorAvatar} style={{ backgroundColor: selectedFile.color }}>
               {selectedFile.author ? selectedFile.author.charAt(0).toUpperCase() : 'U'}
@@ -170,7 +207,7 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
           <button 
             className={styles.actionPrimaryBtn}
             style={{ backgroundColor: selectedFile.color, boxShadow: `0 10px 20px -5px ${selectedFile.color}40` }}
-            onClick={() => window.open(getActionUrl(selectedFile.url, false), '_blank')}
+            onClick={() => window.open(getActionUrl(selectedFile.url, false, selectedFile.libraryUrl), '_blank')}
           >
             <ExternalLink size={14} />
             Full Preview
@@ -180,7 +217,7 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
             title="Download Asset"
             onClick={() => {
               if (!selectedFile.url) return;
-              const downloadUrl = getActionUrl(selectedFile.url, true);
+              const downloadUrl = getActionUrl(selectedFile.url, true, selectedFile.libraryUrl);
               const link = document.createElement('a');
               link.href = downloadUrl;
               link.setAttribute('download', selectedFile.title || 'download');

@@ -220,13 +220,16 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
           {/* Action Row */}
           <div className={styles.sidebarActionWrapper}>
             <button 
-              onClick={() => setFilters({ fileTypes: ['All'], selectedAuthors: [], date: '' })}
+              onClick={() => setFilters({ fileTypes, selectedAuthors, date })}
               className={styles.applyButton}
             >
-              Reset All Filters
+              Apply Filters
             </button>
-            <div style={{ textAlign: 'center', fontSize: '9px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>
-              Filters Applied Instantly
+            <div 
+              style={{ textAlign: 'center', fontSize: '10px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '6px', cursor: 'pointer' }}
+              onClick={() => setFilters({ fileTypes: ['All'], selectedAuthors: [], date: '' })}
+            >
+              Clear All Filters
             </div>
           </div>
         </div>

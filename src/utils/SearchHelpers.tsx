@@ -27,8 +27,14 @@ export const getCleanSharePointUrl = (webUrl: string, title: string): string => 
 };
 
 export const getSharePointThumbnailUrl = (webUrl: string, title: string, resolution: number = 0): string => {
-  if (!webUrl) return '';
   try {
+    if (!webUrl) return '';
+    
+    // Guard: do not attempt thumbnail if the URL contains spaces (plain or encoded)
+    if (webUrl.includes(' ') || webUrl.includes('%20') || decodeURIComponent(webUrl).includes(' ')) {
+      return '';
+    }
+
     const cleanUrl = getCleanSharePointUrl(webUrl, title);
     const urlObj = new URL(cleanUrl);
     const host = urlObj.origin;

@@ -245,7 +245,12 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         fileType: cleanType,
         siteName: res.siteName || 'SharePoint Site',
         siteUrl: res.siteUrl || '',
-        isStarred: isStarred
+        isStarred: isStarred,
+        thumbnailUrl: res.thumbnailUrl,
+        authorPhotoUrl: res.authorPhotoUrl,
+        authorEmail: res.authorEmail,
+        driveId: res.driveId,
+        itemId: res.itemId
       } as ISearchResult;
     });
   }, [liveResults, starredIds]);
@@ -368,6 +373,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
       id: file.id,
       title: file.title,
       author: file.author,
+      originalAuthor: file.originalAuthor,
       date: file.lastModified ? new Date(file.lastModified).toLocaleDateString() : 'Today',
       size: sizeInMB,
       description: file.summary || 'No description extracted.',
@@ -380,7 +386,10 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
       siteName: file.siteName,
       siteUrl: file.siteUrl,
       webUrl: file.webUrl,
-      lastModified: file.lastModified
+      lastModified: file.lastModified,
+      libraryUrl: file.libraryUrl || '',
+      thumbnailUrl: file.thumbnailUrl || '',
+      thumbnailUrlLarge: file.thumbnailUrlLarge || ''
     };
   }, [selectedFileId, resultsToRender]);
 
