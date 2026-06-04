@@ -459,6 +459,21 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
+  const getShareableUrl = (url: string) => {
+    if (!url) return '';
+    let finalUrl = url;
+    if (finalUrl.includes('?')) {
+      if (finalUrl.includes('download=1')) {
+        finalUrl = finalUrl.replace('download=1', 'web=1');
+      } else if (!finalUrl.includes('web=1')) {
+        finalUrl = `${finalUrl}&web=1`;
+      }
+    } else {
+      finalUrl = `${finalUrl}?web=1`;
+    }
+    return finalUrl;
+  };
+
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
@@ -621,13 +636,14 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                 type="text"
                 readOnly
                 className={styles.copyDialogUrlText}
-                value={copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`}
+                value={getShareableUrl(copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`)}
                 onClick={(e) => e.currentTarget.select()}
               />
               <button 
                 onClick={async () => {
                   try {
-                    const url = copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`;
+                    const rawUrl = copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`;
+                    const url = getShareableUrl(rawUrl);
                     await navigator.clipboard.writeText(url);
                     setAppCopyCopied(true);
                     setTimeout(() => {

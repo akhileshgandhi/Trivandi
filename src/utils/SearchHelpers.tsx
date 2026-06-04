@@ -30,10 +30,7 @@ export const getSharePointThumbnailUrl = (webUrl: string, title: string, resolut
   try {
     if (!webUrl) return '';
     
-    // Guard: do not attempt thumbnail if the URL contains spaces (plain or encoded)
-    if (webUrl.includes(' ') || webUrl.includes('%20') || decodeURIComponent(webUrl).includes(' ')) {
-      return '';
-    }
+    // Removed space guard to allow thumbnails for files with spaces (e.g. PPT, PDF)
 
     const cleanUrl = getCleanSharePointUrl(webUrl, title);
     const urlObj = new URL(cleanUrl);

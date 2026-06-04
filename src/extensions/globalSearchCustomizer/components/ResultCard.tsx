@@ -84,6 +84,7 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
           {thumbUrl ? (
             <img 
               src={thumbUrl} 
+              loading="lazy"
               alt={result.title} 
               onError={() => setImageError(true)}
               className={styles.cardThumbnailImage}

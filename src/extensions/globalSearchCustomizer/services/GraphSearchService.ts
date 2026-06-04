@@ -4,6 +4,9 @@ import { expandQuery } from '../../../utils/synonymDictionary';
 
 const userPhotoCache = new Map<string, string | null>();
 
+import { CacheService } from './CacheService';
+import { RetryService } from './RetryService';
+
 export class GraphSearchService {
   private _msGraphClientFactory: MSGraphClientFactory;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,6 +30,16 @@ export class GraphSearchService {
     selectedAuthors: string[] = [],
     sortBy: string = 'dateDesc'
   ): Promise<{ results: ISearchResult[]; totalCount: number; suggestedQuery?: string }> {
+    const cacheKey = CacheService.buildKey(
+      query, fileTypes, date, selectedAuthors, from, activeTopTab, sortBy
+    );
+    const cachedResult = CacheService.get(cacheKey);
+    if (cachedResult) {
+      // console.log('--- [DEBUG] Cache HIT for query:', query);
+      return cachedResult;
+    }
+    // console.log('--- [DEBUG] Cache MISS for query:', query);
+
     const client: any = await this._msGraphClientFactory.getClient('3');
 
     const rawQuery = query.trim();
@@ -116,7 +129,7 @@ export class GraphSearchService {
     queryString += ` ${excludedTypes.map(ext => `-filetype:${ext}`).join(' ')}`;
 
     const expandedQuery = expandQuery(queryString);
-    console.log('--- [DEBUG] Expanded Query ---', expandedQuery);
+    // console.log('--- [DEBUG] Expanded Query ---', expandedQuery);
 
     // Build Graph Search POST payload according to Microsoft Graph Search API guidelines
     const searchPayload: any = {
@@ -166,22 +179,24 @@ export class GraphSearchService {
       ];
     }
 
-    console.log('--- [DEBUG] Raw Search Query input ---', query);
-    console.log('--- [DEBUG] Active Top Tab ---', activeTopTab);
-    console.log('--- [DEBUG] File Type Filters ---', fileTypes);
-    console.log('--- [DEBUG] Date Filter ---', date);
-    console.log('--- [DEBUG] Final Constructed KQL QueryString ---', queryString);
-    console.log('--- [DEBUG] Full MS Graph Search Request Payload ---');
-    console.log(JSON.stringify(searchPayload, null, 2));
+    // console.log('--- [DEBUG] Raw Search Query input ---', query);
+    // console.log('--- [DEBUG] Active Top Tab ---', activeTopTab);
+    // console.log('--- [DEBUG] File Type Filters ---', fileTypes);
+    // console.log('--- [DEBUG] Date Filter ---', date);
+    // console.log('--- [DEBUG] Final Constructed KQL QueryString ---', queryString);
+    // console.log('--- [DEBUG] Full MS Graph Search Request Payload ---');
+    // console.log(JSON.stringify(searchPayload, null, 2));
 
     let response: any;
     try {
-      response = await client
-        .api('/search/query')
-        .version('v1.0')
-        .post(searchPayload);
-      console.log('--- [DEBUG] Raw MS Graph Search Response ---');
-      console.log(JSON.stringify(response, null, 2));
+      response = await RetryService.withRetry(() =>
+        client
+          .api('/search/query')
+          .version('v1.0')
+          .post(searchPayload)
+      );
+      // console.log('--- [DEBUG] Raw MS Graph Search Response ---');
+      // console.log(JSON.stringify(response, null, 2));
     } catch (error) {
       console.error('--- [DEBUG] Error in MS Graph API Call ---', error);
       throw error;
@@ -192,8 +207,8 @@ export class GraphSearchService {
     const hitsContainer = searchResponse?.hitsContainers?.[0];
     const totalCount = hitsContainer?.total || 0;
     const hits = hitsContainer?.hits || [];
-    console.log('--- [DEBUG] Parsed Hits Count from MS Graph ---', hits.length);
-    console.log('--- [DEBUG] Total Results Count from MS Graph Index ---', totalCount);
+    // console.log('--- [DEBUG] Parsed Hits Count from MS Graph ---', hits.length);
+    // console.log('--- [DEBUG] Total Results Count from MS Graph Index ---', totalCount);
 
     let results: ISearchResult[] = hits.map((hit: any) => {
       const resource = hit.resource || {};
@@ -335,20 +350,24 @@ export class GraphSearchService {
         }
         res.libraryUrl = driveUrlCache.get(res.driveId) || '';
 
-        // ── Thumbnail (images & videos only) ─────────────────────────────────────
         const isMedia = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'mp4', 'mov', 'avi'].includes(res.fileType?.toLowerCase() || '');
-        if (isMedia && res.itemId) {
+        const hasGraphThumbnail = isMedia || ['pdf', 'ppt', 'pptx', 'doc', 'docx'].includes(res.fileType?.toLowerCase() || '');
+        
+        if (hasGraphThumbnail && res.itemId) {
           try {
-            // Fetch the actual DriveItem to get the true physical webUrl (bypassing DispForm.aspx)
-            const itemResponse = await client.api(`/drives/${res.driveId}/items/${res.itemId}`).select('webUrl,name,parentReference').get();
-            if (itemResponse) {
-              if (itemResponse.webUrl && !itemResponse.webUrl.includes('DispForm.aspx')) {
-                res.webUrl = itemResponse.webUrl;
-              } else if (res.libraryUrl && itemResponse.name && itemResponse.parentReference?.path) {
-                // If webUrl is the ugly DispForm properties page, mathematically reconstruct the true file URL
-                const pathParts = itemResponse.parentReference.path.split('/drive/root:');
-                const subPath = pathParts.length > 1 && pathParts[1] ? pathParts[1] : '';
-                res.webUrl = `${res.libraryUrl}${subPath}/${itemResponse.name}`;
+            // Only rewrite webUrl to a direct physical link for images and videos.
+            // Documents MUST keep their SharePoint viewer links (e.g., DispForm / Doc.aspx).
+            if (isMedia) {
+              const itemResponse = await client.api(`/drives/${res.driveId}/items/${res.itemId}`).select('webUrl,name,parentReference').get();
+              if (itemResponse) {
+                if (itemResponse.webUrl && !itemResponse.webUrl.includes('DispForm.aspx')) {
+                  res.webUrl = itemResponse.webUrl;
+                } else if (res.libraryUrl && itemResponse.name && itemResponse.parentReference?.path) {
+                  // If webUrl is the ugly DispForm properties page, mathematically reconstruct the true file URL
+                  const pathParts = itemResponse.parentReference.path.split('/drive/root:');
+                  const subPath = pathParts.length > 1 && pathParts[1] ? pathParts[1] : '';
+                  res.webUrl = `${res.libraryUrl}${subPath}/${itemResponse.name}`;
+                }
               }
             }
 
@@ -402,8 +421,8 @@ export class GraphSearchService {
       return res;
     }));
 
-    console.log('--- [DEBUG] Mapped results array returning to caller ---');
-    console.log('--- [DEBUG] Results before re-ranking ---', results.map(r => ({ id: r.id, title: r.title, relevanceScore: r.relevanceScore })));
+    // console.log('--- [DEBUG] Mapped results array returning to caller ---');
+    // console.log('--- [DEBUG] Results before re-ranking ---', results.map(r => ({ id: r.id, title: r.title, relevanceScore: r.relevanceScore })));
 
     const alteration = searchResponse?.queryAlterationResponse?.queryAlteration;
     let suggestedQuery = alteration?.alteredQueryString || undefined;
@@ -432,7 +451,7 @@ export class GraphSearchService {
           const spellingSuggestion = json.SpellingSuggestion || json.d?.query?.SpellingSuggestion;
           if (spellingSuggestion) {
             suggestedQuery = spellingSuggestion;
-            console.log('--- [DEBUG] Native SharePoint Search Spelled Suggestion ---', suggestedQuery);
+            // console.log('--- [DEBUG] Native SharePoint Search Spelled Suggestion ---', suggestedQuery);
           }
         }
       } catch (err) {
@@ -440,6 +459,7 @@ export class GraphSearchService {
       }
     }
 
+    CacheService.set(cacheKey, { results, totalCount, suggestedQuery });
     return { results, totalCount, suggestedQuery };
   }
 
@@ -544,7 +564,7 @@ export class GraphSearchService {
         });
       });
       
-      console.log('--- [DEBUG] Dynamic terms built ---', wordsSet.size, Array.from(wordsSet).slice(0, 20));
+      // console.log('--- [DEBUG] Dynamic terms built ---', wordsSet.size, Array.from(wordsSet).slice(0, 20));
       return Array.from(wordsSet);
     } catch (error) {
       console.error('Error fetching indexed terms:', error);

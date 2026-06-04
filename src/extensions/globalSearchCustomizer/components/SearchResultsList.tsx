@@ -23,6 +23,7 @@ const SearchResultThumbnail: React.FC<ISearchResultThumbnailProps> = ({ result }
       return (
         <img
           src={thumbUrl}
+          loading="lazy"
           alt={result.title}
           onError={() => setImageError(true)}
           className={styles.cardThumbnailImage}

@@ -21,6 +21,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
   const [suggestedQuery, setSuggestedQuery] = useState<string | undefined>(undefined);
   const [correctedQuery, setCorrectedQuery] = useState<string | null>(null);
   const [skipCorrection, setSkipCorrection] = useState<boolean>(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Track query transitions for auto sorting switch
   const prevQueryRef = useRef(query);
@@ -43,6 +44,11 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
   }, [query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, sortBy, skipCorrection]);
 
   const executeSearch = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     if (!service) {
       setError('Search service is not initialized.');
       return;
