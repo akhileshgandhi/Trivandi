@@ -20,6 +20,7 @@ export const Header: React.FC<IHeaderProps> = ({
 }) => {
   const { suggestions, clearSuggestions } = useAutocomplete(searchQuery, service);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [showDropdown, setShowDropdown] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Click outside to clear suggestions
@@ -28,6 +29,7 @@ export const Header: React.FC<IHeaderProps> = ({
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
         clearSuggestions();
         setActiveIndex(-1);
+        setShowDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -43,6 +45,7 @@ export const Header: React.FC<IHeaderProps> = ({
       setActiveIndex(prev => Math.max(prev - 1, -1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
+      setShowDropdown(false);
       if (activeIndex >= 0 && suggestions[activeIndex]) {
         handleSelect(suggestions[activeIndex].label);
       } else {
@@ -52,6 +55,7 @@ export const Header: React.FC<IHeaderProps> = ({
     } else if (e.key === 'Escape') {
       clearSuggestions();
       setActiveIndex(-1);
+      setShowDropdown(false);
     }
   };
 
@@ -59,12 +63,14 @@ export const Header: React.FC<IHeaderProps> = ({
     setSearchQuery(label);
     clearSuggestions();
     setActiveIndex(-1);
+    setShowDropdown(false);
     handleSearch(label);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setActiveIndex(-1);
+    setShowDropdown(true);
   };
 
   return (
@@ -88,7 +94,12 @@ export const Header: React.FC<IHeaderProps> = ({
             type="text"
             placeholder="Search documents, pages, files..."
             value={searchQuery}
-            onFocus={() => setIsSearchFocused(true)}
+            onFocus={() => {
+              setIsSearchFocused(true);
+              if (searchQuery.trim().length > 0) {
+                setShowDropdown(true);
+              }
+            }}
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
@@ -102,6 +113,7 @@ export const Header: React.FC<IHeaderProps> = ({
                 handleSearch('');
                 clearSuggestions();
                 setActiveIndex(-1);
+                setShowDropdown(false);
               }}
               className={styles.searchClearBtn}
               title="Clear search"
@@ -111,11 +123,13 @@ export const Header: React.FC<IHeaderProps> = ({
             </button>
           )}
 
-          <AutocompleteDropdown
-            suggestions={suggestions}
-            onSelect={handleSelect}
-            activeIndex={activeIndex}
-          />
+          {showDropdown && (
+            <AutocompleteDropdown
+              suggestions={suggestions}
+              onSelect={handleSelect}
+              activeIndex={activeIndex}
+            />
+          )}
           
           {isSearchFocused && searchHistory.length > 0 && (!suggestions || suggestions.length === 0) && searchQuery.length < 2 && (
             <div className={styles.searchSuggestionBox}>

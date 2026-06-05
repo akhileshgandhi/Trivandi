@@ -1454,10 +1454,8 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
   background: transparent;
   padding: 0 8px;
-  font-size: 11.5px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 14px;
+  font-weight: 900;
   color: $slate-500;
   cursor: pointer;
   position: relative;
@@ -3329,13 +3327,13 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 // History & Analytics Styles
 .historySectionHeader {
-  font-size: 11px !important;
-  font-weight: 800 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  color: #64748b !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  color: #1e293b !important; // Matches $slate-800
   margin-top: 16px !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 16px !important;
   border-bottom: 1px solid #f1f5f9 !important;
   padding-bottom: 8px !important;
   display: block !important;

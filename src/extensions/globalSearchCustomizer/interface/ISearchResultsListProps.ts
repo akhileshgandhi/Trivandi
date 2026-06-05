@@ -29,5 +29,4 @@ export interface ISearchResultsListProps {
   searchHistory?: string[];
   sortBy: string;
   setSortBy: (sortBy: string) => void;
-  promotedResults: any[];
 }

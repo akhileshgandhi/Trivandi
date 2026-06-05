@@ -49,7 +49,7 @@ export const HistoryPane: React.FC<ISearchHistoryProps> = ({
           
           {/* Section 1: Recent Searches */}
           <div className={styles.historySectionHeader}>
-            <span>RECENT SEARCH HISTORY</span>
+            <span>Recent Search History</span>
           </div>
           <div className={styles.historyListGroup}>
             {searchHistory.length > 0 ? (
@@ -101,7 +101,7 @@ export const HistoryPane: React.FC<ISearchHistoryProps> = ({
           {topQueries && topQueries.length > 0 && (
             <div className={styles.analyticsWrapper}>
               <div className={styles.historySectionHeader}>
-                <span>YOUR TOP SEARCH QUERIES</span>
+                <span>Your Top Search Queries</span>
               </div>
               <div className={styles.analyticsQueriesList}>
                 {topQueries.map((item, idx) => (
@@ -126,7 +126,7 @@ export const HistoryPane: React.FC<ISearchHistoryProps> = ({
           {topClickedDocs && topClickedDocs.length > 0 && (
             <div className={styles.analyticsWrapper}>
               <div className={styles.historySectionHeader}>
-                <span>FREQUENTLY VISITED DOCUMENTS</span>
+                <span>Frequently Visited Documents</span>
               </div>
               <div className={styles.analyticsDocsList}>
                 {topClickedDocs.map((doc, idx) => (

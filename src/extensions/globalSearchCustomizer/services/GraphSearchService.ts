@@ -351,7 +351,7 @@ export class GraphSearchService {
         res.libraryUrl = driveUrlCache.get(res.driveId) || '';
 
         const isMedia = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'mp4', 'mov', 'avi'].includes(res.fileType?.toLowerCase() || '');
-        const hasGraphThumbnail = isMedia || ['pdf', 'ppt', 'pptx', 'doc', 'docx'].includes(res.fileType?.toLowerCase() || '');
+        const hasGraphThumbnail = isMedia || ['pdf', 'ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx'].includes(res.fileType?.toLowerCase() || '');
         
         if (hasGraphThumbnail && res.itemId) {
           try {

@@ -75,8 +75,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
   openMenuId,
   searchHistory,
   sortBy,
-  setSortBy,
-  promotedResults
+  setSortBy
 }) => {
   const [isSortOpen, setIsSortOpen] = React.useState(false);
   const sortRef = React.useRef<HTMLDivElement>(null);
@@ -211,32 +210,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
 
       {/* Results cards panel */}
       <div className={styles.resultsListWrapper}>
-        {/* Render High-Fidelity Promoted Resources / Bookmarks */}
-        {!isLoading && bottomTab === 'Search Results' && promotedResults && promotedResults.length > 0 && (
-          <div className={styles.promotedSection}>
-            {promotedResults.map((promo) => (
-              <a
-                key={promo.id}
-                href={promo.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.promotedCard}
-              >
-                <div className={styles.promotedCrownBox}>
-                  👑
-                </div>
-                <div className={styles.promotedCardBody}>
-                  <div className={styles.promotedTitleRow}>
-                    <h4 className={styles.promotedCardTitle}>{promo.title}</h4>
-                    <span className={styles.promotedCategoryBadge}>{promo.category}</span>
-                  </div>
-                  <p className={styles.promotedCardDescription}>{promo.description}</p>
-                  <span className={styles.promotedUrlLabel}>Explore Official Portal ↗</span>
-                </div>
-              </a>
-            ))}
-          </div>
-        )}
+        {/* Promoted Results feature has been removed as per user request */}
 
         {isLoading ? (
           <SkeletonLoader count={4} />
@@ -346,7 +320,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
       </div>
 
       {/* Pagination controls footer */}
-      {!isLoading && resultsToRender.length > 0 && (
+      {!isLoading && resultsToRender.length > 0 && bottomTab === 'Search Results' && (
         <footer className={styles.pagination}>
           <span className={styles.paginationInfo}>
             PAGE {Math.floor(from / 10) + 1} <span className={styles.infoDivider}>|</span> SHOWING <span className={styles.infoHighlight}>{from + 1}-{from + resultsToRender.length}</span> OF <span className={styles.infoHighlight}>{totalCountToRender}</span>

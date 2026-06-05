@@ -9,7 +9,7 @@ import { useDebounce } from 'use-debounce';
 import { useSearchStore } from '../store/useSearchStore';
 
 // Import services
-import { PromotedResultsService } from '../services/PromotedResultsService';
+
 import { SearchAnalyticsService } from '../services/SearchAnalyticsService';
 
 // Import modular subcomponents
@@ -345,9 +345,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     return SearchAnalyticsService.getTopClickedDocuments(5);
   }, [analyticsTrigger, selectedFileId]);
 
-  const promotedResults = useMemo(() => {
-    return PromotedResultsService.getPromotedResults(searchQuery);
-  }, [searchQuery]);
+
 
   const totalCountToRender: number = bottomTab === 'Search Results' 
     ? liveTotalCount
@@ -561,7 +559,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                 searchHistory={searchHistory}
                 sortBy={sortBy}
                 setSortBy={setSortBy}
-                promotedResults={promotedResults}
+
               />
             </div>
 
