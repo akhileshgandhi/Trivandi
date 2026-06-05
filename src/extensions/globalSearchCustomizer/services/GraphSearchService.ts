@@ -28,10 +28,11 @@ export class GraphSearchService {
     activeTopTab: string = 'All',
     date: string = '',
     selectedAuthors: string[] = [],
+    selectedSites: string[] = [],
     sortBy: string = 'dateDesc'
   ): Promise<{ results: ISearchResult[]; totalCount: number; suggestedQuery?: string }> {
     const cacheKey = CacheService.buildKey(
-      query, fileTypes, date, selectedAuthors, from, activeTopTab, sortBy
+      query, fileTypes, date, selectedAuthors, selectedSites, from, activeTopTab, sortBy
     );
     const cachedResult = CacheService.get(cacheKey);
     if (cachedResult) {
@@ -53,11 +54,11 @@ export class GraphSearchService {
 
     if (activeTopTab === 'Folders') {
       queryString = boostedQuery 
-        ? `(${boostedQuery}) AND (ContentTypeId:0x0120*)` 
-        : 'ContentTypeId:0x0120*';
+        ? `(${boostedQuery}) AND (IsDocument:0)` 
+        : 'IsDocument:0';
     } else if (activeTopTab === 'Files') {
       const docTypes = 'filetype:pdf OR filetype:doc OR filetype:docx OR filetype:xls OR filetype:xlsx OR filetype:csv OR filetype:ppt OR filetype:pptx OR filetype:txt OR filetype:rtf OR filetype:msg OR filetype:zip';
-      const filesFilter = `NOT(ContentTypeId:0x0120*) AND (${docTypes})`;
+      const filesFilter = `IsDocument:1 AND (${docTypes})`;
       queryString = boostedQuery ? `(${boostedQuery}) AND (${filesFilter})` : filesFilter;
     } else if (activeTopTab === 'Images') {
       const imgFilter = '(filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg) AND IsContainer:false AND NOT contentclass:STS_Folder';
@@ -124,6 +125,20 @@ export class GraphSearchService {
       queryString += ` AND (${authorQueries.join(' OR ')})`;
     }
 
+    // Add site filter if selected sites exist
+    if (selectedSites && selectedSites.length > 0) {
+      let tenantUrl = 'https://trivandildn.sharepoint.com';
+      try {
+        if (this._siteUrl) {
+          tenantUrl = new URL(this._siteUrl).origin;
+        }
+      } catch (e) {
+        // ignore
+      }
+      const siteQueries = selectedSites.map(s => `SPSiteUrl:"${tenantUrl}/sites/${s}"`);
+      queryString += ` AND (${siteQueries.join(' OR ')})`;
+    }
+
     // Globally exclude developer and system files from all searches
     const excludedTypes = ['md', 'ts', 'jsx', 'json', 'cmd', 'js', 'java', 'css', 'html', 'scss', 'xml', 'yml', 'yaml', 'env', 'sh', 'bat', 'py', 'sql'];
     queryString += ` ${excludedTypes.map(ext => `-filetype:${ext}`).join(' ')}`;
@@ -141,6 +156,7 @@ export class GraphSearchService {
           },
           from: from,
           size: pageSize,
+          trimDuplicates: false,
           fields: [
             'id',
             'name',

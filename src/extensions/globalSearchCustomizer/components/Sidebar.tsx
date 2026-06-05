@@ -6,10 +6,19 @@ import { IFiltersPanelProps } from '../interface/IFiltersPanelProps';
 const FILE_TYPE_OPTIONS = ['All', 'PDF', 'DOC', 'XLS', 'PPT'];
 const DATE_OPTIONS = ['Today', 'Yesterday', 'This Week', 'This Month', 'This Year'];
 
+const SITES = [
+  { label: 'Intranet',   siteId: 'TrivandiHub' },
+  { label: 'People',     siteId: 'PeopleHub' },
+  { label: 'Company',    siteId: 'CompanyHub' },
+  { label: 'Marketing',  siteId: 'BrandingMarketing' },
+  { label: 'Projects',   siteId: 'Projects' },
+];
+
 export const Sidebar: React.FC<IFiltersPanelProps> = ({
   sidebarWidth,
   fileTypes,
   selectedAuthors,
+  selectedSites,
   date,
   setFilters,
   toggleFileType,
@@ -78,7 +87,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
     const updated = selectedAuthors.includes(name)
       ? selectedAuthors.filter(a => a !== name)
       : [...selectedAuthors, name];
-    setFilters({ fileTypes, selectedAuthors: updated, date });
+    setFilters({ fileTypes, selectedAuthors: updated, selectedSites, date });
   };
 
   // Close dropdown when clicking outside
@@ -120,6 +129,33 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                       className={styles.checkboxInput}
                     />
                     <span>{type}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <h3 className={styles.sidebarTitle} style={{ marginTop: '16px' }}>Sites</h3>
+            <div className={styles.sidebarOptionList}>
+              {SITES.map(site => {
+                const isActive = (selectedSites || []).includes(site.siteId);
+                return (
+                  <label 
+                    key={site.siteId} 
+                    className={`${styles.checkboxLabel} ${isActive ? styles.checkboxActive : ''}`}
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={isActive}
+                      onChange={() => {
+                        const current = selectedSites || [];
+                        const updated = current.includes(site.siteId)
+                          ? current.filter(s => s !== site.siteId)
+                          : [...current, site.siteId];
+                        setFilters({ fileTypes, selectedAuthors, selectedSites: updated, date });
+                      }}
+                      className={styles.checkboxInput}
+                    />
+                    <span>{site.label}</span>
                   </label>
                 );
               })}
@@ -189,18 +225,20 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
             {/* Filter by Date */}
             <h3 className={styles.sidebarSectionHeader}>Modified</h3>
             <div className={styles.sidebarOptionList}>
-              {DATE_OPTIONS.map(opt => {
-                const isActive = date === opt;
-                return (
-                  <button 
-                    key={opt}
-                    onClick={() => setFilters({ fileTypes, selectedAuthors, date: isActive ? '' : opt })}
-                    className={`${styles.dateFilterButton} ${isActive ? styles.dateFilterActive : ''}`}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
+              <div className={styles.dateFilterGrid}>
+                {DATE_OPTIONS.map(opt => {
+                  const isActive = date === opt;
+                  return (
+                    <button 
+                      key={opt}
+                      onClick={() => setFilters({ fileTypes, selectedAuthors, selectedSites, date: isActive ? '' : opt })}
+                      className={`${styles.dateFilterButton} ${isActive ? styles.dateFilterActive : ''}`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
 
               <div className={styles.datePickerLabel}>Or pick a specific date</div>
               <div className={styles.datePickerBox}>
@@ -210,7 +248,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                 <input 
                   type="date"
                   value={date && !DATE_OPTIONS.includes(date) ? date : ''}
-                  onChange={(e) => setFilters({ fileTypes, selectedAuthors, date: e.target.value })}
+                  onChange={(e) => setFilters({ fileTypes, selectedAuthors, selectedSites, date: e.target.value })}
                   className={styles.dateInput}
                 />
               </div>
@@ -220,14 +258,14 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
           {/* Action Row */}
           <div className={styles.sidebarActionWrapper}>
             <button 
-              onClick={() => setFilters({ fileTypes, selectedAuthors, date })}
+              onClick={() => setFilters({ fileTypes, selectedAuthors, selectedSites, date })}
               className={styles.applyButton}
             >
               Apply Filters
             </button>
             <div 
               style={{ textAlign: 'center', fontSize: '10px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '6px', cursor: 'pointer' }}
-              onClick={() => setFilters({ fileTypes: ['All'], selectedAuthors: [], date: '' })}
+              onClick={() => setFilters({ fileTypes: ['All'], selectedAuthors: [], selectedSites: [], date: '' })}
             >
               Clear All Filters
             </div>

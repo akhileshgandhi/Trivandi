@@ -156,6 +156,24 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                 </div>
               ))
             )}
+            {filters.selectedSites && filters.selectedSites.length > 0 && (
+              filters.selectedSites.map(siteId => (
+                <div key={siteId} className={styles.filterBadge}>
+                  Site: {siteId}
+                  <button 
+                    onClick={() => {
+                      setFilters({
+                        ...filters,
+                        selectedSites: filters.selectedSites.filter(s => s !== siteId)
+                      });
+                    }} 
+                    className={styles.filterBadgeClose}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

@@ -7,11 +7,12 @@ export class CacheService {
     fileTypes: string[], 
     date: string, 
     selectedAuthors: string[], 
+    selectedSites: string[],
     from: number,
     activeTopTab: string,
     sortBy: string
   ): string {
-    return `${query}|${JSON.stringify(fileTypes)}|${date}|${JSON.stringify(selectedAuthors)}|${from}|${activeTopTab}|${sortBy}`;
+    return `${query}|${JSON.stringify(fileTypes)}|${date}|${JSON.stringify(selectedAuthors)}|${JSON.stringify(selectedSites)}|${from}|${activeTopTab}|${sortBy}`;
   }
 
   public static get(key: string): any | null {

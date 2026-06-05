@@ -51,6 +51,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const [filters, setFilters] = useState({
     fileTypes: ['All'],
     selectedAuthors: [] as string[],
+    selectedSites: [] as string[],
     date: ''
   });
 
@@ -167,7 +168,10 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     setFileTypes,
     setActiveTopTab: hookSetActiveTopTab,
     setDate,
+    selectedAuthors,
     setSelectedAuthors: hookSetSelectedAuthors,
+    selectedSites,
+    setSelectedSites: hookSetSelectedSites,
     from,
     setFrom,
     sortBy,
@@ -209,6 +213,11 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   useEffect(() => {
     hookSetSelectedAuthors(filters.selectedAuthors);
   }, [filters.selectedAuthors, hookSetSelectedAuthors]);
+
+  // Track selectedSites changes to synchronize hook
+  useEffect(() => {
+    hookSetSelectedSites(filters.selectedSites || []);
+  }, [filters.selectedSites, hookSetSelectedSites]);
 
 
   // Helper to generate deterministic, realistic file sizes for visual excellence when size is missing
@@ -449,6 +458,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     setFilters({
       fileTypes: ['All'],
       selectedAuthors: [],
+      selectedSites: [],
       date: ''
     });
     setActiveTopTab('All');
@@ -501,6 +511,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                 sidebarWidth={sidebarWidth}
                 fileTypes={filters.fileTypes}
                 selectedAuthors={filters.selectedAuthors}
+                selectedSites={filters.selectedSites}
                 date={filters.date}
                 setFilters={setFilters}
                 toggleFileType={toggleFileType}

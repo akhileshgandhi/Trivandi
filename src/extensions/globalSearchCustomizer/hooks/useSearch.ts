@@ -12,6 +12,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
   const [activeTopTab, setActiveTopTab] = useState<string>('All');
   const [date, setDate] = useState<string>('');
   const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
+  const [selectedSites, setSelectedSites] = useState<string[]>([]);
   const [results, setResults] = useState<ISearchResult[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -37,11 +38,11 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
   }, [query]);
 
   // Keep track of the latest active parameters to prevent asynchronous race conditions
-  const activeParamsRef = useRef({ query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, sortBy, skipCorrection });
+  const activeParamsRef = useRef({ query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, selectedSites, sortBy, skipCorrection });
 
   useEffect(() => {
-    activeParamsRef.current = { query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, sortBy, skipCorrection };
-  }, [query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, sortBy, skipCorrection]);
+    activeParamsRef.current = { query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, selectedSites, sortBy, skipCorrection };
+  }, [query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, selectedSites, sortBy, skipCorrection]);
 
   const executeSearch = useCallback(async () => {
     if (abortControllerRef.current) {
@@ -54,7 +55,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
       return;
     }
 
-    const currentParams = { query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, sortBy, skipCorrection };
+    const currentParams = { query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, selectedSites, sortBy, skipCorrection };
 
     console.log('--- [DEBUG hook] Triggering executeSearch in useSearch ---', currentParams);
 
@@ -72,7 +73,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
         }
       }
 
-      const res = await service.search(queryToSearch, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, sortBy);
+      const res = await service.search(queryToSearch, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, selectedSites, sortBy);
       
       // Check if parameters have changed since this request was started
       const latest = activeParamsRef.current;
@@ -84,6 +85,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
         latest.sortBy !== currentParams.sortBy ||
         latest.activeTopTab !== currentParams.activeTopTab ||
         JSON.stringify(latest.selectedAuthors) !== JSON.stringify(currentParams.selectedAuthors) ||
+        JSON.stringify(latest.selectedSites) !== JSON.stringify(currentParams.selectedSites) ||
         JSON.stringify(latest.fileTypes) !== JSON.stringify(currentParams.fileTypes);
 
       if (isStale) {
@@ -132,18 +134,19 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
         latest.activeTopTab !== currentParams.activeTopTab ||
         latest.skipCorrection !== currentParams.skipCorrection ||
         JSON.stringify(latest.selectedAuthors) !== JSON.stringify(currentParams.selectedAuthors) ||
+        JSON.stringify(latest.selectedSites) !== JSON.stringify(currentParams.selectedSites) ||
         JSON.stringify(latest.fileTypes) !== JSON.stringify(currentParams.fileTypes);
 
       if (!isStale) {
         setLoading(false);
       }
     }
-  }, [service, query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, sortBy, skipCorrection, dynamicTerms]);
+  }, [service, query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, selectedSites, sortBy, skipCorrection, dynamicTerms]);
 
   // Reset pagination offset to 0 whenever the query, activeTopTab, sortBy or filters change
   useEffect(() => {
     setFrom(0);
-  }, [query, fileTypes, activeTopTab, date, selectedAuthors, sortBy]);
+  }, [query, fileTypes, activeTopTab, date, selectedAuthors, selectedSites, sortBy]);
 
   useEffect(() => {
     setSkipCorrection(false);
@@ -178,6 +181,8 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
     setDate,
     selectedAuthors,
     setSelectedAuthors,
+    selectedSites,
+    setSelectedSites,
     results,
     totalCount,
     loading,

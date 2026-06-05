@@ -348,10 +348,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebarInner {
-  padding: 20px;
+  padding: 12px 20px 20px 20px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .sidebarTitle {
@@ -360,9 +360,9 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   text-transform: none;
   letter-spacing: normal;
   color: $slate-800;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   border-bottom: 1px solid $slate-100;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
 
 .sidebarOptionList {
@@ -420,10 +420,10 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   text-transform: none;
   letter-spacing: normal;
   color: $slate-800;
-  margin-top: 24px;
+  margin-top: 0;
   margin-bottom: 12px;
   border-bottom: 1px solid $slate-100;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -502,6 +502,13 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   color: $trivandi-blue;
 }
 
+.dateFilterGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
 .dateFilterButton {
   width: 100%;
   text-align: left;
@@ -537,8 +544,8 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   text-transform: none;
   letter-spacing: normal;
   color: $slate-800;
-  margin-top: 24px;
-  margin-bottom: 12px;
+  margin-top: 8px;
+  margin-bottom: 8px;
   padding: 0 4px;
 }
 
