@@ -26,7 +26,7 @@ import { ISearchModalProps } from '../interface/ISearchModalProps';
 // File type design mapping helper
 const getFileColor = (fileType: string) => {
   const ft = fileType ? fileType.toLowerCase() : '';
-  if (ft === 'pdf') return { color: '#00acc1', bg: '#e0f7fa' };
+  if (ft === 'pdf') return { color: '#d93025', bg: '#fde7e9' };
   if (['xls', 'xlsx'].includes(ft)) return { color: '#00796b', bg: '#e0f2f1' };
   if (['ppt', 'pptx'].includes(ft)) return { color: '#e52592', bg: '#fce4ec' };
   if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) return { color: '#9334e6', bg: '#f3e5f5' };

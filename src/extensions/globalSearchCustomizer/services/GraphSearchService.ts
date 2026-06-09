@@ -47,15 +47,73 @@ export class GraphSearchService {
     // Build the query string using a safer KQL fallback and server-side Title boosting via XRANK
     let boostedQuery = '';
     if (rawQuery) {
-      boostedQuery = rawQuery.replace(/["\\]/g, '\\$&');
+      const escaped = rawQuery.replace(/["\\]/g, '\\$&');
+      const trimmed = escaped.trim();
+      const words = trimmed.split(/\s+/);
+      const hasTrailingSpace = query.endsWith(' ');
+      const isMultiWord = words.length >= 2;
+      const isLongEnough = trimmed.length >= 6;
+      
+      const isCompleteQuery = hasTrailingSpace 
+                              || isMultiWord 
+                              || isLongEnough;
+
+      if (!isCompleteQuery) {
+        // ── PARTIAL QUERY (short, single word, still typing) ──
+        // Loose prefix matching — cast wide net
+        // e.g. "4 bi" → finds "4 Bids", "4 Bills", "Bids folder"
+        boostedQuery = `(title:${trimmed}* OR ${trimmed}*)`;
+
+      } else {
+        // ── COMPLETE QUERY (multi-word or long or space-ended) ──
+        // Tight matching — title exact match gets highest priority
+        // e.g. "4 Bids" → "4 Bids" folder must be #1
+        
+        if (isMultiWord) {
+          const lastWord = words[words.length - 1];
+          const withoutLast = words.slice(0, -1).join(' ');
+          
+          boostedQuery = [
+            // Highest priority — exact title match
+            `title:"${trimmed}"`,
+            // Second — exact phrase anywhere
+            `"${trimmed}"`,
+            // Third — title with last word as prefix
+            `title:"${withoutLast} ${lastWord}*"`,
+            // Fourth — phrase with last word as prefix
+            `"${withoutLast} ${lastWord}*"`,
+          ].join(' OR ');
+          
+          boostedQuery = `(${boostedQuery})`;
+          
+        } else {
+          // Single long word (6+ chars)
+          boostedQuery = [
+            `title:"${trimmed}"`,
+            `"${trimmed}"`,
+            `title:${trimmed}*`,
+            `${trimmed}*`,
+          ].join(' OR ');
+          
+          boostedQuery = `(${boostedQuery})`;
+        }
+      }
+    }
+
+    // If query starts with leading zero like "04 Bids",
+    // also search "4 Bids" — both folders may exist
+    if (rawQuery.match(/^0\d/)) {
+      const withoutLeadingZero = rawQuery.replace(/^0+/, '').trim();
+      const escapedAlt = withoutLeadingZero.replace(/["\\]/g, '\\$&');
+      boostedQuery = `(${boostedQuery} OR title:"${escapedAlt}" OR "${escapedAlt}")`;
     }
 
     let queryString = boostedQuery || 'IsDocument:1';
 
     if (activeTopTab === 'Folders') {
       queryString = boostedQuery 
-        ? `(${boostedQuery}) AND (IsDocument:0)` 
-        : 'IsDocument:0';
+        ? `(${boostedQuery}) AND (IsContainer:true)` 
+        : 'IsContainer:true';
     } else if (activeTopTab === 'Files') {
       const docTypes = 'filetype:pdf OR filetype:doc OR filetype:docx OR filetype:xls OR filetype:xlsx OR filetype:csv OR filetype:ppt OR filetype:pptx OR filetype:txt OR filetype:rtf OR filetype:msg OR filetype:zip';
       const filesFilter = `IsDocument:1 AND (${docTypes})`;
@@ -178,7 +236,7 @@ export class GraphSearchService {
       ]
     };
 
-    if (sortBy && sortBy !== 'relevance') {
+    if (sortBy && sortBy !== 'relevance' && rawQuery.trim() === '') {
       let sortField = 'lastModifiedDateTime';
       let desc = true;
       if (sortBy === 'dateAsc') {

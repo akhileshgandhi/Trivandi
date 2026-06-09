@@ -97,7 +97,11 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
         resultsLength: res.results.length,
         totalCount: res.totalCount
       });
-      const reranked = rerankResults(res.results, SearchAnalyticsService.getClickCount.bind(SearchAnalyticsService));
+      const reranked = rerankResults(
+        res.results,
+        SearchAnalyticsService.getClickCount.bind(SearchAnalyticsService),
+        queryToSearch
+      );
       setResults(reranked);
 
       // Artificially cap results to 200 for completely blank wildcard searches to reduce pagination overload

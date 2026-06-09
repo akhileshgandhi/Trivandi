@@ -1,5 +1,20 @@
 import * as React from 'react';
-import { SlidersHorizontal, History as HistoryIcon, Star, ChevronLeft, ChevronRight, X, ImageIcon, FileSpreadsheet, FileText, Video, ChevronDown } from 'lucide-react';
+import { SlidersHorizontal, History as HistoryIcon, Star, ChevronLeft, ChevronRight, X, ChevronDown } from 'lucide-react';
+import { BsFiletypeXls, BsFiletypeXlsx, BsFiletypePpt, BsFiletypePptx, BsFiletypeDoc, BsFiletypeDocx, BsFileEarmarkText, BsFilePlay } from 'react-icons/bs';
+import { IoMdImages } from 'react-icons/io';
+import { FaFolderOpen, FaRegFilePdf } from 'react-icons/fa6';
+
+const IconXls = BsFiletypeXls as any;
+const IconXlsx = BsFiletypeXlsx as any;
+const IconPpt = BsFiletypePpt as any;
+const IconPptx = BsFiletypePptx as any;
+const IconPdf = FaRegFilePdf as any;
+const IconDoc = BsFiletypeDoc as any;
+const IconDocx = BsFiletypeDocx as any;
+const IconFolder = FaFolderOpen as any;
+const IconPlay = BsFilePlay as any;
+const IconText = BsFileEarmarkText as any;
+const IconImages = IoMdImages as any;
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { FileActionMenu } from './FileActionMenu';
@@ -35,21 +50,36 @@ const SearchResultThumbnail: React.FC<ISearchResultThumbnailProps> = ({ result }
   // Fallback to standard icons
   const ft = result.fileType ? result.fileType.toLowerCase() : '';
   if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) {
-    return <ImageIcon size={22} strokeWidth={2} />;
+    return <IconImages size={22} />;
   }
-  if (['xls', 'xlsx'].includes(ft)) {
-    return <FileSpreadsheet size={22} strokeWidth={2} />;
+  if (ft === 'xls') {
+    return <IconXls size={22} />;
   }
-  if (['pdf'].includes(ft)) {
-    return <FileText size={22} strokeWidth={2} />;
+  if (ft === 'xlsx') {
+    return <IconXlsx size={22} />;
   }
-  if (['doc', 'docx'].includes(ft)) {
-    return <FileText size={22} strokeWidth={2} />;
+  if (ft === 'ppt') {
+    return <IconPpt size={22} />;
+  }
+  if (ft === 'pptx') {
+    return <IconPptx size={22} />;
+  }
+  if (ft === 'pdf') {
+    return <IconPdf size={22} />;
+  }
+  if (ft === 'doc') {
+    return <IconDoc size={22} />;
+  }
+  if (ft === 'docx') {
+    return <IconDocx size={22} />;
+  }
+  if (ft === 'folder') {
+    return <IconFolder size={22} />;
   }
   if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ft)) {
-    return <Video size={22} strokeWidth={2} />;
+    return <IconPlay size={22} />;
   }
-  return <FileText size={22} strokeWidth={2} />;
+  return <IconText size={22} />;
 };
 
 export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
@@ -262,7 +292,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
             let accentColor = '#1a73e8';
             if (ft === 'pdf') {
               typeClass = styles.type_pdf;
-              accentColor = '#00acc1';
+              accentColor = '#d93025';
             } else if (['xls', 'xlsx'].includes(ft)) {
               typeClass = styles.type_xlsx;
               accentColor = '#00796b';

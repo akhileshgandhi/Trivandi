@@ -1,8 +1,58 @@
 import * as React from 'react';
-import { X, FileText, GripVertical } from 'lucide-react';
+import { X, GripVertical } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { IDocumentAnalysisProps } from '../interface/IDocumentAnalysisProps';
 import { DetailPanel } from './DetailPanel';
+import { BsFiletypeXls, BsFiletypeXlsx, BsFiletypePpt, BsFiletypePptx, BsFiletypeDoc, BsFiletypeDocx, BsFileEarmarkText, BsFilePlay } from 'react-icons/bs';
+import { IoMdImages } from 'react-icons/io';
+import { FaFolderOpen, FaRegFilePdf } from 'react-icons/fa6';
+
+const IconXls = BsFiletypeXls as any;
+const IconXlsx = BsFiletypeXlsx as any;
+const IconPpt = BsFiletypePpt as any;
+const IconPptx = BsFiletypePptx as any;
+const IconPdf = FaRegFilePdf as any;
+const IconDoc = BsFiletypeDoc as any;
+const IconDocx = BsFiletypeDocx as any;
+const IconFolder = FaFolderOpen as any;
+const IconPlay = BsFilePlay as any;
+const IconText = BsFileEarmarkText as any;
+const IconImages = IoMdImages as any;
+
+const getPreviewIcon = (type: string) => {
+  const ft = type ? type.toLowerCase() : '';
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) {
+    return <IconImages size={20} />;
+  }
+  if (ft === 'xls') {
+    return <IconXls size={20} />;
+  }
+  if (ft === 'xlsx') {
+    return <IconXlsx size={20} />;
+  }
+  if (ft === 'ppt') {
+    return <IconPpt size={20} />;
+  }
+  if (ft === 'pptx') {
+    return <IconPptx size={20} />;
+  }
+  if (ft === 'pdf') {
+    return <IconPdf size={20} />;
+  }
+  if (ft === 'doc') {
+    return <IconDoc size={20} />;
+  }
+  if (ft === 'docx') {
+    return <IconDocx size={20} />;
+  }
+  if (ft === 'folder') {
+    return <IconFolder size={20} />;
+  }
+  if (['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ft)) {
+    return <IconPlay size={20} />;
+  }
+  return <IconText size={20} />;
+};
 
 export const PreviewPane: React.FC<IDocumentAnalysisProps> = ({
   selectedFile,
@@ -38,7 +88,7 @@ export const PreviewPane: React.FC<IDocumentAnalysisProps> = ({
               backgroundColor: selectedFile.color + '15'
             }}
           >
-            <FileText size={20} />
+            {getPreviewIcon(selectedFile.type)}
           </div>
           <div>
             <h3 className={styles.previewHeaderTitle}>Document Preview</h3>

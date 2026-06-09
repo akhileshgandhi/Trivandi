@@ -966,20 +966,20 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .type_pdf {
-  border-left-color: #00acc1 !important;
+  border-left-color: #d93025 !important;
   &:hover {
-    border-color: rgba(0, 172, 193, 0.2) rgba(0, 172, 193, 0.2) rgba(0, 172, 193, 0.2) #00acc1 !important;
-    background: linear-gradient(90deg, rgba(0, 172, 193, 0.015) 0%, #ffffff 100%) !important;
+    border-color: rgba(217, 48, 37, 0.2) rgba(217, 48, 37, 0.2) rgba(217, 48, 37, 0.2) #d93025 !important;
+    background: linear-gradient(90deg, rgba(217, 48, 37, 0.015) 0%, #ffffff 100%) !important;
   }
   .cardIconBox {
-    background-color: rgba(0, 172, 193, 0.08) !important;
-    color: #00acc1 !important;
+    background-color: rgba(217, 48, 37, 0.08) !important;
+    color: #d93025 !important;
   }
   .cardTitleSelected {
-    color: #00acc1 !important;
+    color: #d93025 !important;
   }
   .projectHubValue {
-    color: #00acc1 !important;
+    color: #d93025 !important;
   }
 }
 

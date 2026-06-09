@@ -1,5 +1,19 @@
 import * as React from 'react';
-import { Image as ImageIcon, FileSpreadsheet, FileText, FileBox, Folder, Video } from 'lucide-react';
+import { BsFiletypeXls, BsFiletypeXlsx, BsFiletypePpt, BsFiletypePptx, BsFiletypeDoc, BsFiletypeDocx, BsFileEarmarkText, BsFilePlay } from 'react-icons/bs';
+import { IoMdImages } from 'react-icons/io';
+import { FaFolderOpen, FaRegFilePdf } from 'react-icons/fa6';
+
+const IconXls = BsFiletypeXls as any;
+const IconXlsx = BsFiletypeXlsx as any;
+const IconPpt = BsFiletypePpt as any;
+const IconPptx = BsFiletypePptx as any;
+const IconPdf = FaRegFilePdf as any;
+const IconDoc = BsFiletypeDoc as any;
+const IconDocx = BsFiletypeDocx as any;
+const IconFolder = FaFolderOpen as any;
+const IconPlay = BsFilePlay as any;
+const IconText = BsFileEarmarkText as any;
+const IconImages = IoMdImages as any;
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { IResultCardProps } from '../interface/IResultCardProps';
@@ -19,7 +33,7 @@ const CARD_COLORS = [
 
 const getFileColor = (fileType: string) => {
   const ft = fileType ? fileType.toLowerCase() : '';
-  if (ft === 'pdf') return { color: '#00acc1', bg: '#e0f7fa' };
+  if (ft === 'pdf') return { color: '#d93025', bg: '#fde7e9' };
   if (['xls', 'xlsx'].includes(ft)) return { color: '#00796b', bg: '#e0f2f1' };
   if (['ppt', 'pptx'].includes(ft)) return { color: '#e52592', bg: '#fce4ec' };
   if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ft)) return { color: '#9334e6', bg: '#f3e5f5' };
@@ -90,13 +104,17 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
               className={styles.cardThumbnailImage}
             />
           ) : (
-            ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase() || '') ? <ImageIcon size={22} strokeWidth={2} /> : 
-            ['xls', 'xlsx'].includes(result.fileType?.toLowerCase() || '') ? <FileSpreadsheet size={22} strokeWidth={2} /> :
-            ['pdf'].includes(result.fileType?.toLowerCase() || '') ? <FileText size={22} strokeWidth={2} /> :
-            ['doc', 'docx'].includes(result.fileType?.toLowerCase() || '') ? <FileText size={22} strokeWidth={2} /> :
-            ['folder'].includes(result.fileType?.toLowerCase() || '') ? <Folder size={22} strokeWidth={2} /> :
-            ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(result.fileType?.toLowerCase() || '') ? <Video size={22} strokeWidth={2} /> :
-            <FileBox size={22} strokeWidth={2} />
+            ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase() || '') ? <IconImages size={22} /> : 
+            result.fileType?.toLowerCase() === 'xls' ? <IconXls size={22} /> :
+            result.fileType?.toLowerCase() === 'xlsx' ? <IconXlsx size={22} /> :
+            result.fileType?.toLowerCase() === 'ppt' ? <IconPpt size={22} /> :
+            result.fileType?.toLowerCase() === 'pptx' ? <IconPptx size={22} /> :
+            result.fileType?.toLowerCase() === 'pdf' ? <IconPdf size={22} /> :
+            result.fileType?.toLowerCase() === 'doc' ? <IconDoc size={22} /> :
+            result.fileType?.toLowerCase() === 'docx' ? <IconDocx size={22} /> :
+            ['folder'].includes(result.fileType?.toLowerCase() || '') ? <IconFolder size={22} /> :
+            ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(result.fileType?.toLowerCase() || '') ? <IconPlay size={22} /> :
+            <IconText size={22} />
           )}
         </div>
       </div>

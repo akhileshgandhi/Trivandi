@@ -7,11 +7,12 @@ const FILE_TYPE_OPTIONS = ['All', 'PDF', 'DOC', 'XLS', 'PPT'];
 const DATE_OPTIONS = ['Today', 'Yesterday', 'This Week', 'This Month', 'This Year'];
 
 const SITES = [
-  { label: 'Intranet',   siteId: 'TrivandiHub' },
-  { label: 'People',     siteId: 'PeopleHub' },
-  { label: 'Company',    siteId: 'CompanyHub' },
-  { label: 'Marketing',  siteId: 'BrandingMarketing' },
-  { label: 'Projects',   siteId: 'Projects' },
+  { label: 'Intranet',        siteId: 'TrivandiHub' },
+  { label: 'People',          siteId: 'PeopleHub' },
+  { label: 'Company',         siteId: 'CompanyHub' },
+  { label: 'Marketing',       siteId: 'BrandingMarketing' },
+  { label: 'Projects',        siteId: 'Projects' },
+  { label: 'Trivandi London', siteId: 'TrivandiLondon' },
 ];
 
 export const Sidebar: React.FC<IFiltersPanelProps> = ({
