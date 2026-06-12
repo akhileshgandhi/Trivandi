@@ -3,10 +3,24 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import SearchModal from './components/SearchModal';
 import '../../styles/PremiumSearch.module.scss';
+import { checkPermissions } from '../Permission/PermissionService';
 
 export interface IGlobalSearchCustomizerApplicationCustomizerProperties {
   testMessage: string;
 }
+
+const ALLOWED_SITES = [
+  'TrivandiHub',
+  'PeopleHub',
+  'CompanyHub',
+  'BrandingMarketing',
+  'Projects',
+  'TrivandiLondon',
+  'TDMCC',
+  'TrivandiUSA',
+  'TrivandiAustralia',
+  'TrivandiKSA'
+];
 
 export default class GlobalSearchCustomizerApplicationCustomizer
   extends BaseApplicationCustomizer<IGlobalSearchCustomizerApplicationCustomizerProperties> {
@@ -20,9 +34,18 @@ export default class GlobalSearchCustomizerApplicationCustomizer
     this._createModalContainer();
     this._interceptSearchBar();
 
+    // Trigger permission check on app start
+    checkPermissions(this.context).catch(err => {
+      console.error("[GlobalSearchCustomizer] Error checking permissions on load:", err);
+    });
+
     const wasOpen = sessionStorage.getItem('trivandi_search_modal_open') === 'true';
     if (wasOpen) {
-      this._openModal();
+      const currentUrl = window.location.href.toLowerCase();
+      const isAllowedSite = ALLOWED_SITES.some(site => currentUrl.includes(site.toLowerCase()));
+      if (isAllowedSite) {
+        this._openModal();
+      }
     }
 
     return Promise.resolve();
@@ -58,6 +81,16 @@ export default class GlobalSearchCustomizerApplicationCustomizer
           if (this._attached.has(el)) return;
           this._attached.add(el);
           const handler = (e: Event): void => {
+            const currentUrl = window.location.href.toLowerCase();
+            const isAllowedSite = ALLOWED_SITES.some(site => currentUrl.includes(site.toLowerCase()));
+            
+            console.log(`[GlobalSearchCustomizer] Search box clicked. Current URL: ${currentUrl}`);
+            console.log(`[GlobalSearchCustomizer] Is Allowed Site? ${isAllowedSite}`);
+
+            if (!isAllowedSite) {
+              return; // Let default SharePoint search handle it natively
+            }
+
             e.preventDefault();
             e.stopImmediatePropagation();
             if (!this._isModalOpen) this._openModal();

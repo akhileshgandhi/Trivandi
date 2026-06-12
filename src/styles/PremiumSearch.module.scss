@@ -509,6 +509,13 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
 }
 
+.fileTypeGrid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px 8px !important;
+  width: 100% !important;
+}
+
 .dateFilterButton {
   width: 100%;
   text-align: left;
@@ -1284,7 +1291,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -3472,4 +3479,205 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 13px;
   }
 }
+
+.customDatePickerContainer {
+  position: relative;
+  width: 100%;
+}
+
+.dateRangePickerBox {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+}
+
+.dateRangeInput {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 10px 40px 10px 14px !important;
+  background: $slate-50 !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: $slate-700 !important;
+  outline: none !important;
+  cursor: pointer !important;
+  transition: all $transition-fast !important;
+
+  &:hover {
+    background: #ffffff !important;
+    border-color: rgba(26, 115, 232, 0.3) !important;
+  }
+
+  &:focus {
+    background: #ffffff !important;
+    border-color: $trivandi-blue !important;
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1) !important;
+  }
+}
+
+.dateRangeCalendarIcon {
+  position: absolute !important;
+  right: 14px !important;
+  left: auto !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: $slate-400 !important;
+  pointer-events: none !important;
+  display: flex !important;
+  align-items: center !important;
+  z-index: 2 !important;
+}
+
+.calendarPopup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 520px;
+  margin-top: 8px;
+  background: #ffffff;
+  border: 1px solid $slate-200;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  padding: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendarMonthsContainer {
+  display: flex;
+  gap: 24px;
+}
+
+.calendarSingleMonth {
+  flex: 1;
+  min-width: 220px;
+}
+
+.calendarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.calendarNavBtn {
+  background: transparent;
+  border: none;
+  color: $slate-500;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $slate-100;
+    color: $slate-800;
+  }
+}
+
+.calendarMonthTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: $slate-800;
+}
+
+.calendarWeekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.calendarWeekdayLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: $slate-400;
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendarEmptyCell {
+  aspect-ratio: 1;
+}
+
+.calendarDayCell {
+  aspect-ratio: 1;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: $slate-700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $slate-100;
+    color: $slate-900;
+  }
+}
+
+.calendarDayDisabled {
+  color: $slate-300 !important;
+  cursor: not-allowed !important;
+  background: transparent !important;
+  pointer-events: none !important;
+
+  &:hover {
+    background: transparent !important;
+    color: $slate-300 !important;
+  }
+}
+
+.calendarDaySelected {
+  background: $trivandi-blue !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+}
+
+.calendarDayInRange {
+  background: rgba(26, 115, 232, 0.08) !important;
+  color: $trivandi-blue !important;
+  border-radius: 0 !important;
+}
+
+.calendarFooter {
+  margin-top: 12px;
+  border-top: 1px solid $slate-100;
+  padding-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.calendarClearBtn {
+  background: transparent;
+  border: none;
+  color: $slate-400;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: #ef4444;
+  }
+}
+
 

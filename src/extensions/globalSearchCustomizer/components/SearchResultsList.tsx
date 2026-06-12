@@ -20,6 +20,7 @@ import { ISearchResult } from '../../../models/ISearchResult';
 import { FileActionMenu } from './FileActionMenu';
 import { renderFormattedSummary, getSharePointThumbnailUrl } from '../../../utils/SearchHelpers';
 import { SkeletonLoader } from '../Common/SkeletonLoader';
+import { Loader } from '../Common/Loader';
 import { PaginationComponent } from '../Common/PaginationComponent';
 
 import { ISearchResultsListProps } from '../interface/ISearchResultsListProps';
@@ -164,7 +165,15 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
             )}
             {filters.date && (
               <div className={styles.filterBadge}>
-                Date: {filters.date}
+                Date: {(() => {
+                  if (filters.date.includes('_')) {
+                    const [start, end] = filters.date.split('_');
+                    if (start && end) return `${start} to ${end}`;
+                    if (start) return `After ${start}`;
+                    if (end) return `Before ${end}`;
+                  }
+                  return filters.date;
+                })()}
                 <button onClick={() => setFilters({ ...filters, date: '' })} className={styles.filterBadgeClose}><X size={12} /></button>
               </div>
             )}
@@ -261,7 +270,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
         {/* Promoted Results feature has been removed as per user request */}
 
         {isLoading ? (
-          <SkeletonLoader count={4} />
+          <Loader variant="content" />
         ) : resultsToRender.length === 0 ? (
           <div className={styles.emptyState}>
             <SlidersHorizontal size={40} />
@@ -354,11 +363,19 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                     <span>{sizeLabel}</span>
                   </div>
 
-                  <p className={styles.cardDescription}>{renderFormattedSummary(result.summary, '', accentColor)}</p>
+                  <p className={styles.cardDescription}>
+                    {result.fileType === 'folder'
+                      ? '📁 Folder — Click to explore contents'
+                      : (result.summary && result.summary !== 'No description preview available.'
+                         ? renderFormattedSummary(result.summary, '', accentColor)
+                         : 'No preview available for this file.'
+                        )
+                    }
+                  </p>
                   
                   <div className={styles.cardProjectHubRow}>
-                    <span>PROJECT HUB: </span>
-                    <span className={styles.projectHubValue}>{result.siteName}</span>
+                    <span>SITE: </span>
+                    <span className={styles.projectHubValue}>{result.siteName ? result.siteName.replace(/([a-z])([A-Z])/g, '$1 $2') : ''}</span>
                   </div>
                 </div>
               </div>

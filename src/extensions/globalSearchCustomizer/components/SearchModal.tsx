@@ -7,6 +7,7 @@ import { useDynamicBrandTerms } from '../hooks/useDynamicBrandTerms';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { useDebounce } from 'use-debounce';
 import { useSearchStore } from '../store/useSearchStore';
+import { usePermissionStore } from '../../Permission/PermissionStore';
 
 // Import services
 
@@ -54,6 +55,27 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     selectedSites: [] as string[],
     date: ''
   });
+
+  const allowedSites = usePermissionStore((state) => state.allowedSites);
+  const isPermissionsLoading = usePermissionStore((state) => state.isLoading);
+
+  // Pre-select current site filter if user has Owner/Contributor permissions on it
+  useEffect(() => {
+    if (!isPermissionsLoading && allowedSites && allowedSites.length > 0) {
+      const currentUrl = context.pageContext?.web?.absoluteUrl || "";
+      let currentSiteKey = "";
+      if (currentUrl.includes("/sites/")) {
+        currentSiteKey = currentUrl.split("/sites/")[1].split("/")[0];
+      }
+      
+      if (currentSiteKey && allowedSites.includes(currentSiteKey)) {
+        setFilters(prev => ({
+          ...prev,
+          selectedSites: [currentSiteKey]
+        }));
+      }
+    }
+  }, [isPermissionsLoading, allowedSites, context]);
 
   const [activeTopTab, setActiveTopTab] = useState('All');
   const [bottomTab, setBottomTab] = useState<'Search Results' | 'Recent Activities' | 'Starred Assets'>('Search Results');
@@ -259,7 +281,8 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         authorPhotoUrl: res.authorPhotoUrl,
         authorEmail: res.authorEmail,
         driveId: res.driveId,
-        itemId: res.itemId
+        itemId: res.itemId,
+        libraryUrl: res.libraryUrl
       } as ISearchResult;
     });
   }, [liveResults, starredIds]);
@@ -396,7 +419,9 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
       lastModified: file.lastModified,
       libraryUrl: file.libraryUrl || '',
       thumbnailUrl: file.thumbnailUrl || '',
-      thumbnailUrlLarge: file.thumbnailUrlLarge || ''
+      thumbnailUrlLarge: file.thumbnailUrlLarge || '',
+      driveId: file.driveId || '',
+      itemId: file.itemId || ''
     };
   }, [selectedFileId, resultsToRender]);
 

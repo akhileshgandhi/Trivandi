@@ -144,11 +144,19 @@ export const ResultCard: React.FC<IResultCardProps> = ({ result, idx, onClick })
           <span>{formattedSize}</span>
         </div>
 
-        <p className={styles.cardDescription}>{renderFormattedSummary(result.summary, '', color.accent)}</p>
+        <p className={styles.cardDescription}>
+          {result.fileType === 'folder'
+            ? '📁 Folder — Click to explore contents'
+            : (result.summary && result.summary !== 'No description preview available.'
+               ? renderFormattedSummary(result.summary, '', color.accent)
+               : 'No preview available for this file.'
+              )
+          }
+        </p>
         
         <div className={styles.cardProjectHubRow}>
-          <span>PROJECT HUB: </span>
-          <span className={styles.projectHubValue} style={{ color: color.accent }}>{result.siteName || 'SharePoint Site'}</span>
+          <span>SITE: </span>
+          <span className={styles.projectHubValue} style={{ color: color.accent }}>{result.siteName ? result.siteName.replace(/([a-z])([A-Z])/g, '$1 $2') : 'SharePoint Site'}</span>
         </div>
       </div>
     </div>

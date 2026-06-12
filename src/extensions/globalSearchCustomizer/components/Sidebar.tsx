@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { User, Calendar, GripVertical } from 'lucide-react';
+import * as ReactDOM from 'react-dom';
+import { User, Calendar, GripVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { IFiltersPanelProps } from '../interface/IFiltersPanelProps';
 
 const FILE_TYPE_OPTIONS = ['All', 'PDF', 'DOC', 'XLS', 'PPT'];
-const DATE_OPTIONS = ['Today', 'Yesterday', 'This Week', 'This Month', 'This Year'];
+const DATE_OPTIONS = ['Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days', 'This Year'];
 
 const SITES = [
   { label: 'Intranet',        siteId: 'TrivandiHub' },
@@ -13,6 +14,10 @@ const SITES = [
   { label: 'Marketing',       siteId: 'BrandingMarketing' },
   { label: 'Projects',        siteId: 'Projects' },
   { label: 'Trivandi London', siteId: 'TrivandiLondon' },
+  { label: 'TDMCC', siteId: 'TDMCC' },
+  { label: 'Trivandi USA', siteId: 'TrivandiUSA' },
+  { label: 'Trivandi Australia', siteId: 'TrivandiAustralia' },
+  { label: 'Trivandi KSA', siteId: 'TrivandiKSA' },
 ];
 
 export const Sidebar: React.FC<IFiltersPanelProps> = ({
@@ -91,6 +96,38 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
     setFilters({ fileTypes, selectedAuthors: updated, selectedSites, date });
   };
 
+  const [startDate, endDate] = React.useMemo(() => {
+    if (date && !DATE_OPTIONS.includes(date) && date.includes('_')) {
+      const [s, e] = date.split('_');
+      const startObj = s ? new Date(s + 'T00:00:00') : null;
+      const endObj = e ? new Date(e + 'T00:00:00') : null;
+      return [
+        startObj && !isNaN(startObj.getTime()) ? startObj : null,
+        endObj && !isNaN(endObj.getTime()) ? endObj : null
+      ];
+    }
+    return [null, null];
+  }, [date]);
+
+  const handleDateRangeChange = (update: [Date | null, Date | null]) => {
+    const [start, end] = update;
+    const formatDate = (d: Date | null) => {
+      if (!d) return '';
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    const startStr = formatDate(start);
+    const endStr = formatDate(end);
+    setFilters({
+      fileTypes,
+      selectedAuthors,
+      selectedSites,
+      date: startStr || endStr ? `${startStr}_${endStr}` : ''
+    });
+  };
+
   // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -115,7 +152,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
           <div>
             <h3 className={styles.sidebarTitle}>Filter by Type</h3>
             
-            <div className={styles.sidebarOptionList}>
+            <div className={styles.fileTypeGrid}>
               {FILE_TYPE_OPTIONS.map(type => {
                 const isActive = fileTypes.includes(type);
                 return (
@@ -171,7 +208,9 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                 className={styles.authorDropdownTrigger}
                 onClick={() => setIsDropdownOpen(true)}
               >
-                <User className={styles.authorIcon} size={16} />
+                <div className={styles.authorIcon}>
+                  <User size={18} strokeWidth={2.5} />
+                </div>
                 <input 
                   type="text" 
                   placeholder="Find an author..."
@@ -226,6 +265,13 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
             {/* Filter by Date */}
             <h3 className={styles.sidebarSectionHeader}>Modified</h3>
             <div className={styles.sidebarOptionList}>
+              <CustomDateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={handleDateRangeChange}
+              />
+
+              <div className={styles.datePickerLabel} style={{ marginTop: '12px' }}>Or choose a preset</div>
               <div className={styles.dateFilterGrid}>
                 {DATE_OPTIONS.map(opt => {
                   const isActive = date === opt;
@@ -239,19 +285,6 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                     </button>
                   );
                 })}
-              </div>
-
-              <div className={styles.datePickerLabel}>Or pick a specific date</div>
-              <div className={styles.datePickerBox}>
-                <div className={styles.datePickerIcon}>
-                  <Calendar size={18} strokeWidth={2.5} />
-                </div>
-                <input 
-                  type="date"
-                  value={date && !DATE_OPTIONS.includes(date) ? date : ''}
-                  onChange={(e) => setFilters({ fileTypes, selectedAuthors, selectedSites, date: e.target.value })}
-                  className={styles.dateInput}
-                />
               </div>
             </div>
           </div>
@@ -285,3 +318,219 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
     </>
   );
 };
+
+const CustomDateRangePicker: React.FC<{
+  startDate: Date | null;
+  endDate: Date | null;
+  onChange: (update: [Date | null, Date | null]) => void;
+}> = ({ startDate, endDate, onChange }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [currentMonth, setCurrentMonth] = React.useState(new Date());
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const boxRef = React.useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = React.useState({ top: 0, left: 0 });
+
+  React.useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      // If clicking inside the calendar popup portal, don't close
+      const popupEl = document.getElementById('trivandi-calendar-portal-popup');
+      if (
+        containerRef.current && containerRef.current.contains(e.target as Node) ||
+        popupEl && popupEl.contains(e.target as Node)
+      ) {
+        return;
+      }
+      setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  React.useEffect(() => {
+    const updatePosition = () => {
+      if (boxRef.current) {
+        const rect = boxRef.current.getBoundingClientRect();
+        setCoords({
+          top: rect.bottom + window.pageYOffset,
+          left: rect.left + window.pageXOffset
+        });
+      }
+    };
+
+    if (isOpen) {
+      updatePosition();
+      // Listen on capture phase to capture scroll inside any scrollable container
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen]);
+
+  const displayValue = React.useMemo(() => {
+    if (!startDate) return '';
+    const format = (d: Date) => {
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const y = d.getFullYear();
+      return `${m}/${day}/${y}`;
+    };
+    if (!endDate) return `${format(startDate)} – MM/DD/YYYY`;
+    return `${format(startDate)} – ${format(endDate)}`;
+  }, [startDate, endDate]);
+
+  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const startDayOfWeek = (year: number, month: number) => new Date(year, month, 1).getDay();
+
+  const handleDayClick = (clickedDate: Date) => {
+    if (!startDate || (startDate && endDate)) {
+      onChange([clickedDate, null]);
+    } else if (startDate && !endDate) {
+      if (clickedDate < startDate) {
+        onChange([clickedDate, null]);
+      } else {
+        onChange([startDate, clickedDate]);
+        setIsOpen(false);
+      }
+    }
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+  };
+  const prevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  };
+
+  const renderMonthCalendar = (monthDate: Date, showPrevBtn: boolean, showNextBtn: boolean) => {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const totalDays = daysInMonth(year, month);
+    const startDay = startDayOfWeek(year, month);
+    const cells = [];
+
+    for (let i = 0; i < startDay; i++) {
+      cells.push(<div key={`empty-${i}`} className={styles.calendarEmptyCell} />);
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let day = 1; day <= totalDays; day++) {
+      const dateObj = new Date(year, month, day);
+      const isFuture = dateObj > today;
+
+      const isStart = startDate && dateObj.toDateString() === startDate.toDateString();
+      const isEnd = endDate && dateObj.toDateString() === endDate.toDateString();
+      const isInRange = startDate && endDate && dateObj > startDate && dateObj < endDate;
+
+      let cellClass = styles.calendarDayCell;
+      if (isFuture) {
+        cellClass += ` ${styles.calendarDayDisabled}`;
+      } else if (isStart || isEnd) {
+        cellClass += ` ${styles.calendarDaySelected}`;
+      } else if (isInRange) {
+        cellClass += ` ${styles.calendarDayInRange}`;
+      }
+
+      cells.push(
+        <button
+          key={`day-${day}`}
+          type="button"
+          disabled={isFuture}
+          onClick={() => !isFuture && handleDayClick(dateObj)}
+          className={cellClass}
+        >
+          {day}
+        </button>
+      );
+    }
+
+    return (
+      <div className={styles.calendarSingleMonth}>
+        <div className={styles.calendarHeader}>
+          {showPrevBtn ? (
+            <button type="button" onClick={prevMonth} className={styles.calendarNavBtn}>
+              <ChevronLeft size={16} />
+            </button>
+          ) : (
+            <div style={{ width: 24 }} />
+          )}
+          <span className={styles.calendarMonthTitle}>
+            {monthDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+          </span>
+          {showNextBtn ? (
+            <button type="button" onClick={nextMonth} className={styles.calendarNavBtn}>
+              <ChevronRight size={16} />
+            </button>
+          ) : (
+            <div style={{ width: 24 }} />
+          )}
+        </div>
+
+        <div className={styles.calendarWeekdays}>
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(w => (
+            <span key={w} className={styles.calendarWeekdayLabel}>{w}</span>
+          ))}
+        </div>
+
+        <div className={styles.calendarGrid}>
+          {cells}
+        </div>
+      </div>
+    );
+  };
+
+  const leftMonth = currentMonth;
+  const rightMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+
+  return (
+    <div className={styles.customDatePickerContainer} ref={containerRef}>
+      <div className={styles.dateRangePickerBox} ref={boxRef} onClick={() => setIsOpen(!isOpen)}>
+        <input
+          type="text"
+          readOnly
+          placeholder="MM/DD/YYYY – MM/DD/YYYY"
+          value={displayValue}
+          className={styles.dateRangeInput}
+        />
+        <Calendar size={18} strokeWidth={2.5} className={styles.dateRangeCalendarIcon} />
+      </div>
+
+      {isOpen && ReactDOM.createPortal(
+        <div 
+          id="trivandi-calendar-portal-popup"
+          className={styles.calendarPopup}
+          style={{
+            position: 'absolute',
+            top: coords.top + 8,
+            left: coords.left,
+            zIndex: 99999
+          }}
+        >
+          <div className={styles.calendarMonthsContainer}>
+            {renderMonthCalendar(leftMonth, true, false)}
+            {renderMonthCalendar(rightMonth, false, true)}
+          </div>
+          
+          {(startDate || endDate) && (
+            <div className={styles.calendarFooter}>
+              <button 
+                type="button" 
+                onClick={() => { onChange([null, null]); setIsOpen(false); }}
+                className={styles.calendarClearBtn}
+              >
+                Clear Range
+              </button>
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+

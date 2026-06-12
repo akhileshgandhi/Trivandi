@@ -1,6 +1,7 @@
 import { MSGraphClientFactory, MSGraphClient } from '@microsoft/sp-http';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { expandQuery } from '../../../utils/synonymDictionary';
+import { usePermissionStore } from '../../Permission/PermissionStore';
 
 const userPhotoCache = new Map<string, string | null>();
 
@@ -18,6 +19,18 @@ export class GraphSearchService {
     this._msGraphClientFactory = msGraphClientFactory;
     this._spHttpClient = spHttpClient;
     this._siteUrl = siteUrl;
+  }
+
+  private _getTenantUrl(): string {
+    let tenantUrl = 'https://trivandildn.sharepoint.com';
+    try {
+      if (this._siteUrl) {
+        tenantUrl = new URL(this._siteUrl).origin;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return tenantUrl;
   }
 
   public async search(
@@ -152,11 +165,11 @@ export class GraphSearchService {
         const dYesterday = new Date(now);
         dYesterday.setDate(dYesterday.getDate() - 1);
         queryString += ` AND LastModifiedTime:${formatKQLDate(dYesterday)}`;
-      } else if (date === 'This Week') {
+      } else if (date === 'Last 7 Days') {
         const dWeek = new Date(now);
         dWeek.setDate(dWeek.getDate() - 7);
         queryString += ` AND LastModifiedTime:>=${formatKQLDate(dWeek)}`;
-      } else if (date === 'This Month') {
+      } else if (date === 'Last 30 Days') {
         const dMonth = new Date(now);
         dMonth.setDate(dMonth.getDate() - 30);
         queryString += ` AND LastModifiedTime:>=${formatKQLDate(dMonth)}`;
@@ -164,6 +177,15 @@ export class GraphSearchService {
         const dYear = new Date(now);
         dYear.setDate(dYear.getDate() - 365);
         queryString += ` AND LastModifiedTime:>=${formatKQLDate(dYear)}`;
+      } else if (date.includes('_')) {
+        const [start, end] = date.split('_');
+        if (start && end) {
+          queryString += ` AND LastModifiedTime:>=${start} AND LastModifiedTime:<=${end}`;
+        } else if (start) {
+          queryString += ` AND LastModifiedTime:>=${start}`;
+        } else if (end) {
+          queryString += ` AND LastModifiedTime:<=${end}`;
+        }
       } else if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
         queryString += ` AND LastModifiedTime:${date}`;
       } else {
@@ -183,23 +205,43 @@ export class GraphSearchService {
       queryString += ` AND (${authorQueries.join(' OR ')})`;
     }
 
-    // Add site filter if selected sites exist
-    if (selectedSites && selectedSites.length > 0) {
-      let tenantUrl = 'https://trivandildn.sharepoint.com';
-      try {
-        if (this._siteUrl) {
-          tenantUrl = new URL(this._siteUrl).origin;
-        }
-      } catch (e) {
-        // ignore
-      }
-      const siteQueries = selectedSites.map(s => `SPSiteUrl:"${tenantUrl}/sites/${s}"`);
+    // Enforce global site scope: Search only these 10 sites if no specific filter is chosen
+    const tenantUrl = this._getTenantUrl();
+    const defaultSites = [
+      'TrivandiHub',
+      'PeopleHub',
+      'CompanyHub',
+      'BrandingMarketing',
+      'Projects',
+      'TrivandiLondon',
+      'TDMCC',
+      'TrivandiUSA',
+      'TrivandiAustralia',
+      'TrivandiKSA'
+    ];
+
+    let activeSites = (selectedSites && selectedSites.length > 0) ? selectedSites : defaultSites;
+
+    // Filter activeSites by allowedSites from the permission store (security trimming)
+    const allowedSites = usePermissionStore.getState().allowedSites || [];
+    if (allowedSites.length > 0) {
+      activeSites = activeSites.filter(s => allowedSites.includes(s));
+    }
+
+    if (activeSites.length > 0) {
+      const siteQueries = activeSites.map(s => `SPSiteUrl:"${tenantUrl}/sites/${s}"`);
       queryString += ` AND (${siteQueries.join(' OR ')})`;
+    } else {
+      // Exclude all results safely if no sites are allowed
+      queryString += ` AND SPSiteUrl:"https://nonexistent.sharepoint.com/sites/none"`;
     }
 
     // Globally exclude developer and system files from all searches
     const excludedTypes = ['md', 'ts', 'jsx', 'json', 'cmd', 'js', 'java', 'css', 'html', 'scss', 'xml', 'yml', 'yaml', 'env', 'sh', 'bat', 'py', 'sql'];
     queryString += ` ${excludedTypes.map(ext => `-filetype:${ext}`).join(' ')}`;
+
+    // Globally exclude OneDrive personal sites
+    queryString += ` -Path:"https://*-my.sharepoint.com/*"`;
 
     const expandedQuery = expandQuery(queryString);
     // console.log('--- [DEBUG] Expanded Query ---', expandedQuery);
@@ -287,18 +329,38 @@ export class GraphSearchService {
     let results: ISearchResult[] = hits.map((hit: any) => {
       const resource = hit.resource || {};
       
-      // Determine file extension cleanly
+      // Determine file extension cleanlyssss
       let fileType = 'doc';
       const name = resource.name || '';
       const rawUrl = resource.webUrl || '';
       
-      const hasExtension = name.includes('.') && name.split('.').pop()?.toLowerCase() !== name.toLowerCase();
-      const ext = hasExtension ? name.split('.').pop()?.toLowerCase() : '';
+      // Extract potential extension and validate it looks like a real file extension
+      // Real extensions: 2-5 alphanumeric chars, no spaces (e.g., "pdf", "xlsx", "docx")
+      // Fake extensions: longer than 5 chars OR contain spaces (e.g., "Working Document" from "6.Working Document")
+      let potentialExt = '';
+      if (name.includes('.')) {
+        potentialExt = name.split('.').pop()?.toLowerCase() || '';
+      }
+      const isRealExtension = potentialExt && potentialExt.length >= 2 && potentialExt.length <= 5 && /^[a-z0-9]+$/.test(potentialExt);
+      const ext = isRealExtension ? potentialExt : '';
+      const hasExtension = ext.length > 0;
       
       const isFolder = 
         !!resource.folder || 
         rawUrl.includes('/:f:/') || 
         !hasExtension; // No extension means it is a folder
+
+      // DEBUG: Log folder detection for items that appear to be folders
+      if (isFolder) {
+        console.log('--- [DEBUG] FOLDER DETECTED ---', {
+          name: name,
+          hasResourceFolder: !!resource.folder,
+          urlHasFolder: rawUrl.includes('/:f:/'),
+          hasExtension: hasExtension,
+          ext: ext,
+          finalType: 'folder'
+        });
+      }
 
       if (isFolder) {
         fileType = 'folder';
@@ -388,10 +450,34 @@ export class GraphSearchService {
         origAuthor = potentialOriginal.trim();
       }
 
+        let cleanWebUrl = getCleanSharePointUrl(resource.webUrl || '', resource.name || '');
+        const isMediaFile = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'mp4', 'mov', 'avi'].includes(fileType);
+        
+        if (isMediaFile && cleanWebUrl.includes('DispForm.aspx')) {
+          const parentPath = resource.parentReference?.path || '';
+          const pathParts = parentPath.split('/drive/root:');
+          const subPath = pathParts.length > 1 && pathParts[1] ? pathParts[1] : '';
+          
+          let libUrl = '';
+          try {
+            const urlObj = new URL(cleanWebUrl);
+            const segments = urlObj.pathname.split('/').filter(Boolean);
+            if (segments.length >= 3 && segments[0].toLowerCase() === 'sites') {
+              libUrl = `${urlObj.origin}/${segments[0]}/${segments[1]}/${segments[2]}`;
+            } else {
+              libUrl = urlObj.origin;
+            }
+          } catch (e) {}
+
+          if (libUrl && resource.name) {
+            cleanWebUrl = `${libUrl}${subPath}/${resource.name}`;
+          }
+        }
+
       return {
         id: resource.id || hit.hitId || Math.random().toString(),
         title: resource.name || 'Untitled Document',
-        webUrl: getCleanSharePointUrl(resource.webUrl || '', resource.name || ''),
+        webUrl: cleanWebUrl,
         fileType: fileType,
         lastModified: resource.lastModifiedDateTime || new Date().toISOString(),
         author: finalAuthor,
@@ -407,93 +493,46 @@ export class GraphSearchService {
       };
     });
 
-    // Fetch thumbnails + library URL for each result using MS Graph.
-    // driveUrlCache avoids duplicate /drives/{driveId} calls within a single search.
-    const driveUrlCache = new Map<string, string>();
-
-    results = await Promise.all(results.map(async (res) => {
-      if (res.driveId) {
-        // ── Library URL (needed for correct AllItems.aspx viewer links) ──────────
-        if (!driveUrlCache.has(res.driveId)) {
-          try {
-            const driveInfo = await client.api(`/drives/${res.driveId}`).select('webUrl').get();
-            driveUrlCache.set(res.driveId, driveInfo?.webUrl || '');
-          } catch (e) {
-            driveUrlCache.set(res.driveId, ''); // cache the failure so we don't retry
-          }
-        }
-        res.libraryUrl = driveUrlCache.get(res.driveId) || '';
-
-        const isMedia = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'mp4', 'mov', 'avi'].includes(res.fileType?.toLowerCase() || '');
-        const hasGraphThumbnail = isMedia || ['pdf', 'ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx'].includes(res.fileType?.toLowerCase() || '');
-        
-        if (hasGraphThumbnail && res.itemId) {
-          try {
-            // Only rewrite webUrl to a direct physical link for images and videos.
-            // Documents MUST keep their SharePoint viewer links (e.g., DispForm / Doc.aspx).
-            if (isMedia) {
-              const itemResponse = await client.api(`/drives/${res.driveId}/items/${res.itemId}`).select('webUrl,name,parentReference').get();
-              if (itemResponse) {
-                if (itemResponse.webUrl && !itemResponse.webUrl.includes('DispForm.aspx')) {
-                  res.webUrl = itemResponse.webUrl;
-                } else if (res.libraryUrl && itemResponse.name && itemResponse.parentReference?.path) {
-                  // If webUrl is the ugly DispForm properties page, mathematically reconstruct the true file URL
-                  const pathParts = itemResponse.parentReference.path.split('/drive/root:');
-                  const subPath = pathParts.length > 1 && pathParts[1] ? pathParts[1] : '';
-                  res.webUrl = `${res.libraryUrl}${subPath}/${itemResponse.name}`;
-                }
-              }
-            }
-
-            // Request large explicitly to force Graph to generate it if it's not cached
-            const thumbResponse = await client.api(`/drives/${res.driveId}/items/${res.itemId}/thumbnails/0/large`).get();
-            if (thumbResponse?.url) {
-              res.thumbnailUrlLarge = thumbResponse.url;
-              res.thumbnailUrl = thumbResponse.url;
-            }
-          } catch (e) {
-            try {
-              const smallThumb = await client.api(`/drives/${res.driveId}/items/${res.itemId}/thumbnails/0/small`).get();
-              if (smallThumb?.url) {
-                res.thumbnailUrl = smallThumb.url;
-                res.thumbnailUrlLarge = smallThumb.url;
-              }
-            } catch (e2) {
-              console.warn(`[GraphSearchService] Thumbnail fetch failed for ${res.itemId}`, e2);
-            }
-          }
-        }
+    // Block 1 - Thumbnail + LibraryUrl (no API)
+    results = results.map((res) => {
+      // Thumbnail URLs via native SharePoint v2.0 API (Cookie Authenticated)
+      // This is bulletproof because it relies on exact IDs, not string-math paths.
+      if (res.fileType !== 'folder' && res.driveId && res.itemId) {
+        const previewUrl = `${tenantUrl}/_api/v2.0/drives/${res.driveId}/items/${res.itemId}/thumbnails/0/large/content`;
+        res.thumbnailUrl = previewUrl;
+        res.thumbnailUrlLarge = previewUrl;
       }
-      return res;
-    }));
 
-    // Fetch author photo as blob to avoid browser-level 404 noise
-    results = await Promise.all(results.map(async (res) => {
+      // Extract Library URL from webUrl without API call
+      try {
+        if (res.webUrl) {
+          const urlObj = new URL(res.webUrl);
+          const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+          if (pathSegments.length >= 3 && pathSegments[0].toLowerCase() === 'sites') {
+            const libPath = `/${pathSegments[0]}/${pathSegments[1]}/${pathSegments[2]}`;
+            res.libraryUrl = `${urlObj.origin}${libPath}`;
+          } else {
+            res.libraryUrl = urlObj.origin;
+          }
+        }
+      } catch (e) {
+        res.libraryUrl = '';
+      }
+
+      return res;
+    });
+
+    // Block 2 - Author Photo (no API)
+    results = results.map((res) => {
       if (res.authorEmail) {
-        const cachedPhoto = userPhotoCache.get(res.authorEmail);
-        if (cachedPhoto !== undefined) {
-          res.authorPhotoUrl = cachedPhoto || undefined;
-        } else {
-          try {
-            const photoResponse = await client
-              .api(`/users/${res.authorEmail}/photo/$value`)
-              .responseType('blob' as any)
-              .get();
-            if (photoResponse) {
-              const blobUrl = URL.createObjectURL(photoResponse);
-              userPhotoCache.set(res.authorEmail, blobUrl);
-              res.authorPhotoUrl = blobUrl;
-            } else {
-              userPhotoCache.set(res.authorEmail, null);
-            }
-          } catch {
-            userPhotoCache.set(res.authorEmail, null);
-            // No photo — ResultCard will show initials
-          }
+        if (userPhotoCache.get(res.authorEmail) !== null) {
+          const photoUrl = `${tenantUrl}/_layouts/15/userphoto.aspx?size=S&accountname=${encodeURIComponent(res.authorEmail)}`;
+          userPhotoCache.set(res.authorEmail, photoUrl);
+          res.authorPhotoUrl = photoUrl;
         }
       }
       return res;
-    }));
+    });
 
     // console.log('--- [DEBUG] Mapped results array returning to caller ---');
     // console.log('--- [DEBUG] Results before re-ranking ---', results.map(r => ({ id: r.id, title: r.title, relevanceScore: r.relevanceScore })));

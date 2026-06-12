@@ -20,6 +20,8 @@ export interface IDetailPanelProps {
     libraryUrl?: string;
     thumbnailUrl?: string;
     thumbnailUrlLarge?: string;
+    driveId?: string;
+    itemId?: string;
   };
   searchQuery: string;
 }
