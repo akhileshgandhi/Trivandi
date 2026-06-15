@@ -62,7 +62,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   // Pre-select current site filter if user has Owner/Contributor permissions on it
   useEffect(() => {
     if (!isPermissionsLoading && allowedSites && allowedSites.length > 0) {
-      const currentUrl = context.pageContext?.web?.absoluteUrl || "";
+      const currentUrl = context?.pageContext?.web?.absoluteUrl || "";
       let currentSiteKey = "";
       if (currentUrl.includes("/sites/")) {
         currentSiteKey = currentUrl.split("/sites/")[1].split("/")[0];

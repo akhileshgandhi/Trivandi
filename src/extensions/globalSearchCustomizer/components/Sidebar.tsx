@@ -20,6 +20,13 @@ const SITES = [
   { label: 'Trivandi KSA', siteId: 'TrivandiKSA' },
 ];
 
+// const SITES = [
+//   { label: 'Operations Hub', siteId: 'OperationsHub' },
+//   { label: 'Freudiger', siteId: 'Freudiger' },
+//   { label: 'MoreYeahs Departments DMS', siteId: 'moreYeahsdepartmentsDMS' },
+//   { label: 'Pembe Portal', siteId: 'PembePortal' }
+// ];
+
 export const Sidebar: React.FC<IFiltersPanelProps> = ({
   sidebarWidth,
   fileTypes,
@@ -484,8 +491,12 @@ const CustomDateRangePicker: React.FC<{
     );
   };
 
-  const leftMonth = currentMonth;
-  const rightMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+  const rightMonth = currentMonth;
+  const leftMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+
+  const todayDate = new Date();
+  const isRightMonthCurrentOrFuture = rightMonth.getFullYear() > todayDate.getFullYear() || 
+    (rightMonth.getFullYear() === todayDate.getFullYear() && rightMonth.getMonth() >= todayDate.getMonth());
 
   return (
     <div className={styles.customDatePickerContainer} ref={containerRef}>
@@ -513,7 +524,7 @@ const CustomDateRangePicker: React.FC<{
         >
           <div className={styles.calendarMonthsContainer}>
             {renderMonthCalendar(leftMonth, true, false)}
-            {renderMonthCalendar(rightMonth, false, true)}
+            {renderMonthCalendar(rightMonth, false, !isRightMonthCurrentOrFuture)}
           </div>
           
           {(startDate || endDate) && (

@@ -3,7 +3,6 @@ import { ISearchResult } from '../../../models/ISearchResult';
 import { expandQuery } from '../../../utils/synonymDictionary';
 import { usePermissionStore } from '../../Permission/PermissionStore';
 
-const userPhotoCache = new Map<string, string | null>();
 
 import { CacheService } from './CacheService';
 import { RetryService } from './RetryService';
@@ -23,6 +22,7 @@ export class GraphSearchService {
 
   private _getTenantUrl(): string {
     let tenantUrl = 'https://trivandildn.sharepoint.com';
+    // let tenantUrl = 'https://moreyahs.sharepoint.com';
     try {
       if (this._siteUrl) {
         tenantUrl = new URL(this._siteUrl).origin;
@@ -73,9 +73,8 @@ export class GraphSearchService {
 
       if (!isCompleteQuery) {
         // ── PARTIAL QUERY (short, single word, still typing) ──
-        // Loose prefix matching — cast wide net
-        // e.g. "4 bi" → finds "4 Bids", "4 Bills", "Bids folder"
-        boostedQuery = `(title:${trimmed}* OR ${trimmed}*)`;
+        // Title-only prefix matching — avoids content wildcard false positives
+        boostedQuery = `(title:${trimmed}*)`;
 
       } else {
         // ── COMPLETE QUERY (multi-word or long or space-ended) ──
@@ -101,11 +100,12 @@ export class GraphSearchService {
           
         } else {
           // Single long word (6+ chars)
+          // Wildcard only on title — NOT on content — prevents site-name false matches
+          // e.g. "brand" must not match all docs in "BrandingMarketing" site via content wildcard
           boostedQuery = [
             `title:"${trimmed}"`,
             `"${trimmed}"`,
             `title:${trimmed}*`,
-            `${trimmed}*`,
           ].join(' OR ');
           
           boostedQuery = `(${boostedQuery})`;
@@ -121,7 +121,25 @@ export class GraphSearchService {
       boostedQuery = `(${boostedQuery} OR title:"${escapedAlt}" OR "${escapedAlt}")`;
     }
 
-    let queryString = boostedQuery || 'IsDocument:1';
+    let queryString = boostedQuery;
+    if (!queryString) {
+      if (activeTopTab === 'All') {
+        // IsDocument:1 covers files; IsContainer:true only when boostedQuery present
+        // Without a query, showing all folders is too noisy
+        queryString = '(IsDocument:1 OR filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg OR filetype:mp4 OR filetype:mov OR filetype:avi)';
+      } else {
+        queryString = 'IsDocument:1';
+      }
+    }
+
+    if (activeTopTab === 'All' && boostedQuery) {
+      // In "All" tab with an active query:
+      // Files + folders that actually match the query in title OR content
+      // Folders must have title match — prevents site-name-only folder bleed
+      const folderMatch = `(IsContainer:true AND (${boostedQuery.replace(/\bfiletype:[^\s)]+/g, '')}))`;
+      const fileMatch = `(IsDocument:1 OR filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg OR filetype:mp4 OR filetype:mov OR filetype:avi)`;
+      queryString = `(${boostedQuery}) AND (${fileMatch} OR ${folderMatch})`;
+    }
 
     if (activeTopTab === 'Folders') {
       queryString = boostedQuery 
@@ -205,7 +223,7 @@ export class GraphSearchService {
       queryString += ` AND (${authorQueries.join(' OR ')})`;
     }
 
-    // Enforce global site scope: Search only these 10 sites if no specific filter is chosen
+    // Enforce global site scope: Search only these 4 MoreYahs sites if no specific filter is chosen
     const tenantUrl = this._getTenantUrl();
     const defaultSites = [
       'TrivandiHub',
@@ -219,6 +237,13 @@ export class GraphSearchService {
       'TrivandiAustralia',
       'TrivandiKSA'
     ];
+
+    // const defaultSites = [
+    //   'OperationsHub',
+    //   'Freudiger',
+    //   'moreYeahsdepartmentsDMS',
+    //   'PembePortal'
+    // ];
 
     let activeSites = (selectedSites && selectedSites.length > 0) ? selectedSites : defaultSites;
 
@@ -522,12 +547,16 @@ export class GraphSearchService {
       return res;
     });
 
-    // Block 2 - Author Photo (no API)
+    // Block 2 - Author Photo (CacheService with USER_PHOTOS TTL)
     results = results.map((res) => {
       if (res.authorEmail) {
-        if (userPhotoCache.get(res.authorEmail) !== null) {
+        const photoCacheKey = `photo|${res.authorEmail}`;
+        const cachedPhoto = CacheService.get(photoCacheKey);
+        if (cachedPhoto) {
+          res.authorPhotoUrl = cachedPhoto;
+        } else {
           const photoUrl = `${tenantUrl}/_layouts/15/userphoto.aspx?size=S&accountname=${encodeURIComponent(res.authorEmail)}`;
-          userPhotoCache.set(res.authorEmail, photoUrl);
+          CacheService.set(photoCacheKey, photoUrl, CacheService.TTL.USER_PHOTOS);
           res.authorPhotoUrl = photoUrl;
         }
       }
@@ -537,21 +566,11 @@ export class GraphSearchService {
     // console.log('--- [DEBUG] Mapped results array returning to caller ---');
     // console.log('--- [DEBUG] Results before re-ranking ---', results.map(r => ({ id: r.id, title: r.title, relevanceScore: r.relevanceScore })));
 
-    const alteration = searchResponse?.queryAlterationResponse?.queryAlteration;
-    let suggestedQuery = alteration?.alteredQueryString || undefined;
+    let suggestedQuery: string | undefined = undefined;
 
-    if (suggestedQuery) {
-      // Clean up programmatically appended filters from the suggested query
-      suggestedQuery = suggestedQuery.split(' -filetype:')[0];
-      suggestedQuery = suggestedQuery.split(' AND (')[0];
-      suggestedQuery = suggestedQuery.split(' AND LastModifiedTime')[0];
-      suggestedQuery = suggestedQuery.replace(/^\((.*)\)$/, '$1');
-      suggestedQuery = suggestedQuery.trim();
-    }
-
-    // Fallback: If MS Graph did not return a spelling suggestion, but we have 0 results, 
-    // try fetching suggestions from the native SharePoint Search API.
-    if (!suggestedQuery && totalCount === 0 && this._spHttpClient && this._siteUrl && rawQuery) {
+    // Fetch clean, user-friendly spelling suggestions from the native SharePoint Search API
+    // when the search yields 0 results. This completely avoids leaking KQL code.
+    if (totalCount === 0 && this._spHttpClient && this._siteUrl && rawQuery && rawQuery.trim() !== '') {
       try {
         const restUrl = `${this._siteUrl}/_api/search/query?querytext='${rawQuery.replace(/'/g, "''")}'&enablequerysuggestions=true&selectproperties='Title'`;
         const restResponse = await this._spHttpClient.get(restUrl, {
@@ -564,7 +583,6 @@ export class GraphSearchService {
           const spellingSuggestion = json.SpellingSuggestion || json.d?.query?.SpellingSuggestion;
           if (spellingSuggestion) {
             suggestedQuery = spellingSuggestion;
-            // console.log('--- [DEBUG] Native SharePoint Search Spelled Suggestion ---', suggestedQuery);
           }
         }
       } catch (err) {

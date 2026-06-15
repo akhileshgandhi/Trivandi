@@ -78,7 +78,7 @@ export const Header: React.FC<IHeaderProps> = ({
       {/* Logo */}
       <div className={styles.logoWrapper}>
         <img 
-          src={require('../Assets/Trivandi Logo.png')} 
+          src={require('../Assets/TrivandiLogo.png')} 
           alt="Trivandi Logo" 
           className={styles.logoImage} 
         />

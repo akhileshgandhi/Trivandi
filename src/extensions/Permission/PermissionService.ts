@@ -65,10 +65,64 @@ const SITE_PERMISSIONS_CONFIG = [
     aadGroupId: "21448698-f734-4f99-b8a3-e64c8a5de658"
   }
 ];
+
+// export const OWNER_GROUP = ["OperationsHub Owners", "Freudiger Owners", "moreYeahsdepartmentsDMS Owners", "PembePortal Owners"];
+// export const CONTRIBUTOR_GROUP = ["OperationsHub Members", "Freudiger Members", "moreYeahsdepartmentsDMS Members", "PembePortal Members"];
+// export const VIEWER_GROUP = ["OperationsHub Visitors", "Freudiger Visitors", "moreYeahsdepartmentsDMS Visitors", "PembePortal Visitors"];
+// export const AAD_VIEWER_GROUP_ID = ["00000000-0000-0000-0000-000000000000"];
+// 
+// const SITE_PERMISSIONS_CONFIG = [
+//   {
+//     siteKey: "OperationsHub",
+//     siteUrlPart: "OperationsHub",
+//     ownerGroup: "OperationsHub Owners",
+//     contributorGroup: "OperationsHub Members",
+//     viewerGroup: "OperationsHub Visitors",
+//     aadGroupId: "00000000-0000-0000-0000-000000000000"
+//   },
+//   {
+//     siteKey: "Freudiger",
+//     siteUrlPart: "Freudiger",
+//     ownerGroup: "Freudiger Owners",
+//     contributorGroup: "Freudiger Members",
+//     viewerGroup: "Freudiger Visitors",
+//     aadGroupId: "00000000-0000-0000-0000-000000000000"
+//   },
+//   {
+//     siteKey: "moreYeahsdepartmentsDMS",
+//     siteUrlPart: "moreYeahsdepartmentsDMS",
+//     ownerGroup: "moreYeahsdepartmentsDMS Owners",
+//     contributorGroup: "moreYeahsdepartmentsDMS Members",
+//     viewerGroup: "moreYeahsdepartmentsDMS Visitors",
+//     aadGroupId: "00000000-0000-0000-0000-000000000000"
+//   },
+//   {
+//     siteKey: "PembePortal",
+//     siteUrlPart: "PembePortal",
+//     ownerGroup: "PembePortal Owners",
+//     contributorGroup: "PembePortal Members",
+//     viewerGroup: "PembePortal Visitors",
+//     aadGroupId: "00000000-0000-0000-0000-000000000000"
+//   }
+// ];
  
 // 🔹 Check if any AAD group is inside any of the SP groups
-const isAnyAADGroupInSPGroups = async (sp: any, groupNames: string[]): Promise<boolean> => {
+const isAnyAADGroupInSPGroups = async (sp: any, groupNames: string[], siteGroupTitles?: Set<string>): Promise<boolean> => {
+    let titles = siteGroupTitles;
+    if (!titles) {
+        try {
+            const groups = await sp.web.siteGroups.select("Title")();
+            titles = new Set(groups.map((g: any) => g.Title.toLowerCase()));
+        } catch (e) {
+            titles = new Set();
+        }
+    }
+
     for (const groupName of groupNames) {
+        if (!titles.has(groupName.toLowerCase())) {
+            // Group doesn't exist on this site, skip to avoid 404 error in console
+            continue;
+        }
         try {
             const users = await sp.web.siteGroups.getByName(groupName).users();
             const exists = users.some((u: any) =>
@@ -87,7 +141,22 @@ const isAnyAADGroupInSPGroups = async (sp: any, groupNames: string[]): Promise<b
 };
 
 // 🔹 Check if specific AAD group is nested in a specific SP group
-const isAADGroupInSPGroupSingle = async (sp: any, groupName: string, aadGroupId: string): Promise<boolean> => {
+const isAADGroupInSPGroupSingle = async (sp: any, groupName: string, aadGroupId: string, siteGroupTitles?: Set<string>): Promise<boolean> => {
+    let titles = siteGroupTitles;
+    if (!titles) {
+        try {
+            const groups = await sp.web.siteGroups.select("Title")();
+            titles = new Set(groups.map((g: any) => g.Title.toLowerCase()));
+        } catch (e) {
+            titles = new Set();
+        }
+    }
+
+    if (!titles.has(groupName.toLowerCase())) {
+        // Group doesn't exist on this site, skip to avoid 404 error in console
+        return false;
+    }
+
     try {
         const users = await sp.web.siteGroups.getByName(groupName).users();
         return users.some((u: any) =>
@@ -180,9 +249,10 @@ export const checkPermissions = async (context?: any): Promise<void> => {
         }
 
         // 🔹 1. Direct SharePoint membership
-        const [currentUser, groups] = await Promise.all([
+        const [currentUser, groups, allSiteGroups] = await Promise.all([
             sp.web.currentUser(),
-            sp.web.currentUser.groups()
+            sp.web.currentUser.groups(),
+            sp.web.siteGroups.select("Title")().catch(() => [])
         ]);
 
         // Validate responses
@@ -191,6 +261,8 @@ export const checkPermissions = async (context?: any): Promise<void> => {
             store.setPermissions({ isLoading: false, role: "None", canView: false, canAdd: false, canEdit: false, canDelete: false, isOwner: false, isContributor: false, isViewer: false });
             return;
         }
+
+        const siteGroupTitles = new Set((allSiteGroups || []).map((g: any) => (g?.Title || "").toLowerCase()).filter(Boolean));
 
         const groupNames = (groups || []).map((g: any) => (g?.Title || "").toLowerCase()).filter(Boolean);
         const isSiteAdmin = currentUser?.IsSiteAdmin || false;
@@ -223,9 +295,9 @@ export const checkPermissions = async (context?: any): Promise<void> => {
 
         // 🔹 2. AAD → SP group mapping (Check Nesting First)
         const [inOwner, inContributor, inViewer] = await Promise.all([
-            isAnyAADGroupInSPGroups(sp, OWNER_GROUP),
-            isAnyAADGroupInSPGroups(sp, CONTRIBUTOR_GROUP),
-            isAnyAADGroupInSPGroups(sp, VIEWER_GROUP)
+            isAnyAADGroupInSPGroups(sp, OWNER_GROUP, siteGroupTitles),
+            isAnyAADGroupInSPGroups(sp, CONTRIBUTOR_GROUP, siteGroupTitles),
+            isAnyAADGroupInSPGroups(sp, VIEWER_GROUP, siteGroupTitles)
         ]);
 
         const hasNesting = inOwner || inContributor || inViewer;
@@ -278,14 +350,19 @@ export const checkPermissions = async (context?: any): Promise<void> => {
             let matchedSPGroup = "";
             let matchedAADGroup = "";
             let siteGroupNames: string[] = [];
+            let siteGroupTitlesForBreakdown = new Set<string>();
 
             const siteUrl = `${tenantBaseUrl}/sites/${site.siteUrlPart}`;
             const siteSp = spfi(siteUrl).using(SPFx(ctx));
 
             try {
                 // Get user's SharePoint groups on the target site collection
-                const groups = await siteSp.web.currentUser.groups();
+                const [groups, allSiteGroups] = await Promise.all([
+                    siteSp.web.currentUser.groups(),
+                    siteSp.web.siteGroups.select("Title")().catch(() => [])
+                ]);
                 siteGroupNames = groups.map((g: any) => g.Title.toLowerCase());
+                siteGroupTitlesForBreakdown = new Set((allSiteGroups || []).map((g: any) => (g?.Title || "").toLowerCase()).filter(Boolean));
             } catch (e) {
                 // Ignore if unable to access site
             }
@@ -307,9 +384,9 @@ export const checkPermissions = async (context?: any): Promise<void> => {
 
             // 2. AAD Nesting membership
             const [inOwnerG, inContributorG, inViewerG] = await Promise.all([
-                isAADGroupInSPGroupSingle(siteSp, site.ownerGroup, site.aadGroupId),
-                isAADGroupInSPGroupSingle(siteSp, site.contributorGroup, site.aadGroupId),
-                isAADGroupInSPGroupSingle(siteSp, site.viewerGroup, site.aadGroupId)
+                isAADGroupInSPGroupSingle(siteSp, site.ownerGroup, site.aadGroupId, siteGroupTitlesForBreakdown),
+                isAADGroupInSPGroupSingle(siteSp, site.contributorGroup, site.aadGroupId, siteGroupTitlesForBreakdown),
+                isAADGroupInSPGroupSingle(siteSp, site.viewerGroup, site.aadGroupId, siteGroupTitlesForBreakdown)
             ]);
 
             const userInAAD = allUserAADGroups.some(g => g.id === site.aadGroupId);
@@ -379,6 +456,13 @@ export const checkPermissions = async (context?: any): Promise<void> => {
             const unrestrictedSites = ['TrivandiLondon', 'TDMCC', 'TrivandiUSA', 'TrivandiAustralia', 'TrivandiKSA'];
             finalAllowedSites = [...allowedSites, ...unrestrictedSites];
         }
+
+        // const finalAllowedSites = [
+        //     'OperationsHub',
+        //     'Freudiger',
+        //     'moreYeahsdepartmentsDMS',
+        //     'PembePortal'
+        // ];
 
         const permissions = {
             role,

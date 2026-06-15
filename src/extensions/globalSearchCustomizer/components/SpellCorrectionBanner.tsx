@@ -12,6 +12,7 @@ export const SpellCorrectionBanner: React.FC<ISpellCorrectionBannerProps> = ({
   originalQuery,
   onUseOriginal
 }) => {
+  if (!originalQuery || !originalQuery.trim()) return null;
   if (!correctedQuery) return null;
   
   const cleanOriginal = originalQuery.trim();

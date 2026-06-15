@@ -3,9 +3,9 @@
   "solution": {
     "name": "global-search-extension-client-side-solution",
     "id": "5250d9e1-d72f-4f8d-b118-e70c0e691387",
-    "version": "1.0.0.0",
+    "version": "1.0.0.1",
     "includeClientSideAssets": true,
-    "skipFeatureDeployment": true,
+    "skipFeatureDeployment": false,
     "isDomainIsolated": false,
     "developer": {
       "name": "",
@@ -30,7 +30,7 @@
         "title": "Application Extension - Deployment of custom action",
         "description": "Deploys a custom action with ClientSideComponentId association",
         "id": "4c3d2b70-35fe-4e46-a1d3-364866b44060",
-        "version": "1.0.0.0",
+        "version": "1.0.0.1",
         "assets": {
           "elementManifests": [
             "elements.xml",

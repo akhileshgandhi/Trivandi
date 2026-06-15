@@ -5,6 +5,8 @@ import SearchModal from './components/SearchModal';
 import '../../styles/PremiumSearch.module.scss';
 import { checkPermissions } from '../Permission/PermissionService';
 
+import { CacheService } from './services/CacheService';
+
 export interface IGlobalSearchCustomizerApplicationCustomizerProperties {
   testMessage: string;
 }
@@ -22,6 +24,15 @@ const ALLOWED_SITES = [
   'TrivandiKSA'
 ];
 
+// const ALLOWED_SITES = [
+//   'OperationsHub',
+//   'Freudiger',
+//   'moreYeahsdepartmentsDMS',
+//   'PembePortal'
+// ];
+
+let g_context: any = null;
+
 export default class GlobalSearchCustomizerApplicationCustomizer
   extends BaseApplicationCustomizer<IGlobalSearchCustomizerApplicationCustomizerProperties> {
 
@@ -31,11 +42,12 @@ export default class GlobalSearchCustomizerApplicationCustomizer
   private _isModalOpen: boolean = false;
 
   public onInit(): Promise<void> {
+    g_context = this.context;
     this._createModalContainer();
     this._interceptSearchBar();
 
     // Trigger permission check on app start
-    checkPermissions(this.context).catch(err => {
+    checkPermissions(this.context || g_context).catch(err => {
       console.error("[GlobalSearchCustomizer] Error checking permissions on load:", err);
     });
 
@@ -43,11 +55,13 @@ export default class GlobalSearchCustomizerApplicationCustomizer
     if (wasOpen) {
       const currentUrl = window.location.href.toLowerCase();
       const isAllowedSite = ALLOWED_SITES.some(site => currentUrl.includes(site.toLowerCase()));
-      if (isAllowedSite) {
+      const isLibraryOrDocPage = currentUrl.includes('/forms/') || currentUrl.includes('/allitems.aspx');
+      if (isAllowedSite && !isLibraryOrDocPage) {
         this._openModal();
       }
     }
 
+    CacheService.startCleanup();
     return Promise.resolve();
   }
 
@@ -83,12 +97,18 @@ export default class GlobalSearchCustomizerApplicationCustomizer
           const handler = (e: Event): void => {
             const currentUrl = window.location.href.toLowerCase();
             const isAllowedSite = ALLOWED_SITES.some(site => currentUrl.includes(site.toLowerCase()));
+            const isLibraryOrDocPage = currentUrl.includes('/forms/') || currentUrl.includes('/allitems.aspx');
             
             console.log(`[GlobalSearchCustomizer] Search box clicked. Current URL: ${currentUrl}`);
             console.log(`[GlobalSearchCustomizer] Is Allowed Site? ${isAllowedSite}`);
 
             if (!isAllowedSite) {
               return; // Let default SharePoint search handle it natively
+            }
+
+            // On library pages, only allow opening search modal on actual CLICK, not on auto-focus
+            if (isLibraryOrDocPage && e.type === 'focus') {
+              return;
             }
 
             e.preventDefault();
@@ -107,7 +127,7 @@ export default class GlobalSearchCustomizerApplicationCustomizer
     this._isModalOpen = true;
     sessionStorage.setItem('trivandi_search_modal_open', 'true');
     const element = React.createElement(SearchModal, {
-      context: this.context,
+      context: this.context || g_context,
       isOpen: true,
       onDismiss: () => this._closeModal(),
     });
@@ -130,5 +150,6 @@ export default class GlobalSearchCustomizerApplicationCustomizer
       ReactDOM.unmountComponentAtNode(this._modalContainer);
       this._modalContainer.remove();
     }
+    CacheService.stopCleanup();
   }
 }
