@@ -33,6 +33,67 @@ export class GraphSearchService {
     return tenantUrl;
   }
 
+  private _buildBoostedQuery(rawQuery: string): string {
+    // Reusable KQL builder for both search() and searchFileSuggestions()
+    // Ensures suggestions and results use the same matching logic
+    let boostedQuery = '';
+    if (!rawQuery || !rawQuery.trim()) {
+      return boostedQuery;
+    }
+    
+    const escaped = rawQuery.replace(/["\\]/g, '\\$&');
+    const trimmed = escaped.trim();
+    const words = trimmed.split(/\s+/);
+    const hasTrailingSpace = rawQuery.endsWith(' ');
+    const isMultiWord = words.length >= 2;
+    const isLongEnough = trimmed.length >= 6;
+    
+    const isCompleteQuery = hasTrailingSpace || isMultiWord || isLongEnough;
+
+    if (!isCompleteQuery) {
+      // ── PARTIAL QUERY (short, single word, still typing) ──
+      boostedQuery = `(title:${trimmed}* OR Filename:${trimmed}* OR name:${trimmed}*)`;
+    } else {
+      // ── COMPLETE QUERY (multi-word or long or space-ended) ──
+      if (isMultiWord) {
+        const lastWord = words[words.length - 1];
+        const withoutLast = words.slice(0, -1).join(' ');
+        
+        boostedQuery = [
+          `title:"${trimmed}"`,
+          `Filename:"${trimmed}"`,
+          `"${trimmed}"`,
+          `title:"${withoutLast} ${lastWord}*"`,
+          `Filename:"${withoutLast} ${lastWord}*"`,
+          `"${withoutLast} ${lastWord}*"`,
+          `Filename:${withoutLast} ${lastWord}*`
+        ].join(' OR ');
+        
+        boostedQuery = `(${boostedQuery})`;
+      } else {
+        // Single long word (6+ chars)
+        boostedQuery = [
+          `title:"${trimmed}"`,
+          `Filename:"${trimmed}"`,
+          `"${trimmed}"`,
+          `title:${trimmed}*`,
+          `Filename:${trimmed}*`,
+        ].join(' OR ');
+        
+        boostedQuery = `(${boostedQuery})`;
+      }
+    }
+
+    // Handle leading zero variants
+    if (rawQuery.match(/^0\d/)) {
+      const withoutLeadingZero = rawQuery.replace(/^0+/, '').trim();
+      const escapedAlt = withoutLeadingZero.replace(/["\\]/g, '\\$&');
+      boostedQuery = `(${boostedQuery} OR title:"${escapedAlt}" OR "${escapedAlt}")`;
+    }
+
+    return boostedQuery;
+  }
+
   public async search(
     query: string, 
     pageSize: number = 20, 
@@ -58,68 +119,7 @@ export class GraphSearchService {
 
     const rawQuery = query.trim();
     // Build the query string using a safer KQL fallback and server-side Title boosting via XRANK
-    let boostedQuery = '';
-    if (rawQuery) {
-      const escaped = rawQuery.replace(/["\\]/g, '\\$&');
-      const trimmed = escaped.trim();
-      const words = trimmed.split(/\s+/);
-      const hasTrailingSpace = query.endsWith(' ');
-      const isMultiWord = words.length >= 2;
-      const isLongEnough = trimmed.length >= 6;
-      
-      const isCompleteQuery = hasTrailingSpace 
-                              || isMultiWord 
-                              || isLongEnough;
-
-      if (!isCompleteQuery) {
-        // ── PARTIAL QUERY (short, single word, still typing) ──
-        // Title-only prefix matching — avoids content wildcard false positives
-        boostedQuery = `(title:${trimmed}*)`;
-
-      } else {
-        // ── COMPLETE QUERY (multi-word or long or space-ended) ──
-        // Tight matching — title exact match gets highest priority
-        // e.g. "4 Bids" → "4 Bids" folder must be #1
-        
-        if (isMultiWord) {
-          const lastWord = words[words.length - 1];
-          const withoutLast = words.slice(0, -1).join(' ');
-          
-          boostedQuery = [
-            // Highest priority — exact title match
-            `title:"${trimmed}"`,
-            // Second — exact phrase anywhere
-            `"${trimmed}"`,
-            // Third — title with last word as prefix
-            `title:"${withoutLast} ${lastWord}*"`,
-            // Fourth — phrase with last word as prefix
-            `"${withoutLast} ${lastWord}*"`,
-          ].join(' OR ');
-          
-          boostedQuery = `(${boostedQuery})`;
-          
-        } else {
-          // Single long word (6+ chars)
-          // Wildcard only on title — NOT on content — prevents site-name false matches
-          // e.g. "brand" must not match all docs in "BrandingMarketing" site via content wildcard
-          boostedQuery = [
-            `title:"${trimmed}"`,
-            `"${trimmed}"`,
-            `title:${trimmed}*`,
-          ].join(' OR ');
-          
-          boostedQuery = `(${boostedQuery})`;
-        }
-      }
-    }
-
-    // If query starts with leading zero like "04 Bids",
-    // also search "4 Bids" — both folders may exist
-    if (rawQuery.match(/^0\d/)) {
-      const withoutLeadingZero = rawQuery.replace(/^0+/, '').trim();
-      const escapedAlt = withoutLeadingZero.replace(/["\\]/g, '\\$&');
-      boostedQuery = `(${boostedQuery} OR title:"${escapedAlt}" OR "${escapedAlt}")`;
-    }
+    const boostedQuery = this._buildBoostedQuery(rawQuery);
 
     let queryString = boostedQuery;
     if (!queryString) {
@@ -341,8 +341,14 @@ export class GraphSearchService {
     // console.log('--- [DEBUG] File Type Filters ---', fileTypes);
     // console.log('--- [DEBUG] Date Filter ---', date);
     // console.log('--- [DEBUG] Final Constructed KQL QueryString ---', queryString);
-    // console.log('--- [DEBUG] Full MS Graph Search Request Payload ---');
-    // console.log(JSON.stringify(searchPayload, null, 2));
+    // DEBUG: dump the final Graph Search payload so we can inspect why suggestions vs results differ
+    try {
+      // avoid throwing in production if JSON stringify fails
+      // @ts-ignore
+      console.log('--- [DEBUG] Full MS Graph Search Request Payload ---', JSON.stringify(searchPayload, null, 2));
+    } catch (e) {
+      console.log('--- [DEBUG] Full MS Graph Search Request Payload (truncated) ---', searchPayload);
+    }
 
     let response: any;
     try {
@@ -352,8 +358,11 @@ export class GraphSearchService {
           .version('v1.0')
           .post(searchPayload)
       );
-      // console.log('--- [DEBUG] Raw MS Graph Search Response ---');
-      // console.log(JSON.stringify(response, null, 2));
+      try {
+        console.log('--- [DEBUG] Raw MS Graph Search Response ---', JSON.stringify(response, null, 2));
+      } catch (e) {
+        console.log('--- [DEBUG] Raw MS Graph Search Response (object) ---', response);
+      }
     } catch (error) {
       console.error('--- [DEBUG] Error in MS Graph API Call ---', error);
       throw error;
@@ -364,6 +373,27 @@ export class GraphSearchService {
     const hitsContainer = searchResponse?.hitsContainers?.[0];
     const totalCount = hitsContainer?.total || 0;
     const hits = hitsContainer?.hits || [];
+    // If we got zero results, probe with a fallback query that removes site-scoping
+    if (totalCount === 0) {
+      try {
+        const expandedQueryNoSite = expandedQuery.replace(/\s+AND\s+\([^)]*SPSiteUrl:[^)]*\)/gi, '');
+        if (expandedQueryNoSite && expandedQueryNoSite !== expandedQuery) {
+          const probePayload = { ...searchPayload, requests: [{ ...searchPayload.requests[0], query: { queryString: expandedQueryNoSite } }] };
+          try {
+            const probeResp = await client.api('/search/query').version('v1.0').post(probePayload);
+            try {
+              console.log('--- [DEBUG] Probe (no-site-filter) MS Graph Search Response ---', JSON.stringify(probeResp, null, 2));
+            } catch (e) {
+              console.log('--- [DEBUG] Probe (no-site-filter) MS Graph Search Response (object) ---', probeResp);
+            }
+          } catch (e) {
+            console.log('--- [DEBUG] Probe search failed ---', e);
+          }
+        }
+      } catch (e) {
+        console.log('--- [DEBUG] Error constructing probe query (no-site-filter) ---', e);
+      }
+    }
     // console.log('--- [DEBUG] Parsed Hits Count from MS Graph ---', hits.length);
     // console.log('--- [DEBUG] Total Results Count from MS Graph Index ---', totalCount);
 
@@ -738,18 +768,29 @@ export class GraphSearchService {
     }
   }
 
-  public async searchFileSuggestions(query: string): Promise<string[]> {
+  public async searchFileSuggestions(query: string, selectedSites: string[] = []): Promise<Array<{ label: string; url: string }>> {
     if (!query || query.length < 2) return [];
     
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const client: any = await this._msGraphClientFactory.getClient('3');
+      // Use the same boosted KQL as main search so suggestions match main results
+      let boostedQuery = this._buildBoostedQuery(query);
+      if (!boostedQuery) return [];
+      
+      // Apply site filtering if selectedSites provided (filter to selected site only)
+      if (selectedSites && selectedSites.length > 0) {
+        const tenantUrl = this._getTenantUrl();
+        const siteQueries = selectedSites.map(s => `SPSiteUrl:"${tenantUrl}/sites/${s}"`);
+        boostedQuery += ` AND (${siteQueries.join(' OR ')})`;
+      }
+      
       const searchPayload = {
         requests: [
           {
             entityTypes: ['driveItem'],
-            query: { queryString: query },
-            fields: ['name', 'title'],
+            query: { queryString: boostedQuery },
+            fields: ['name', 'title', 'webUrl'],
             size: 5
           }
         ]
@@ -758,34 +799,60 @@ export class GraphSearchService {
       const response = await client.api('/search/query').version('v1.0').post(searchPayload);
       const hits = response.value?.[0]?.hitsContainers?.[0]?.hits || [];
       
-      const suggestions = new Set<string>();
+      const suggestions: Array<{ label: string; url: string }> = [];
+      const seen = new Set<string>();
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       hits.forEach((hit: any) => {
         const resource = hit.resource || {};
         const filename = resource.name || resource.title || '';
-        if (filename) {
-          // Strip extensions
+        const url = resource.webUrl || '';
+        if (filename && url) {
           let cleanName = filename.replace(/\.(pdf|docx?|xlsx?|pptx?|png|jpg|jpeg|gif|zip|txt|csv|md)$/i, '');
-          // Replace underscores and hyphens with spaces
           cleanName = cleanName.replace(/[_-]/g, ' ').trim();
           
           if (cleanName && cleanName.length > 1) {
-            // Deduplicate by lowercased value but store original case
             const lower = cleanName.toLowerCase();
-            const exists = Array.from(suggestions).some(s => s.toLowerCase() === lower);
-            if (!exists) {
-              suggestions.add(cleanName);
+            if (!seen.has(lower)) {
+              seen.add(lower);
+              suggestions.push({ label: cleanName, url });
             }
           }
         }
       });
       
-      return Array.from(suggestions).slice(0, 5);
+      return suggestions.slice(0, 5);
     } catch (error) {
       console.error('Error fetching file suggestions:', error);
       return [];
     }
+  }
+
+  public async getTitleForUrl(webUrl: string): Promise<string | null> {
+    if (!webUrl) return null;
+
+    // First try: query ProjectsNew list for exact URL match in known columns
+    if (this._spHttpClient && this._siteUrl) {
+      try {
+        const listTitle = 'ProjectsNew';
+        const encoded = webUrl.replace(/'/g, "''");
+        const filter = `(BidDocumentsUrl eq '${encoded}' or ProjectDocumentsUrl eq '${encoded}' or ContractsDocumentsUrl eq '${encoded}')`;
+        const restUrl = `${this._siteUrl}/_api/web/lists/getbytitle('${listTitle}')/items?$select=Title&$filter=${filter}&$top=1`;
+        const response = await this._spHttpClient.get(restUrl, SPHttpClient.configurations.v1, { headers: { 'Accept': 'application/json;odata=nometadata' } });
+        if (response.ok) {
+          const json = await response.json();
+          const items = json.value || json.d?.results || [];
+          if (items && items.length > 0) {
+            return items[0].Title || null;
+          }
+        }
+      } catch (err) {
+        console.error('Error querying ProjectsNew for URL title:', err);
+      }
+    }
+
+    // Not found in ProjectsNew or SPHttpClient unavailable
+    return null;
   }
 }
 

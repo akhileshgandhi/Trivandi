@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { SlidersHorizontal, History as HistoryIcon, Star, ChevronLeft, ChevronRight, X, ChevronDown } from 'lucide-react';
+import { SlidersHorizontal, History as HistoryIcon, Star, ChevronLeft, ChevronRight, X, ChevronDown, Link } from 'lucide-react';
 import { BsFiletypeXls, BsFiletypeXlsx, BsFiletypePpt, BsFiletypePptx, BsFiletypeDoc, BsFiletypeDocx, BsFileEarmarkText, BsFilePlay } from 'react-icons/bs';
 import { IoMdImages } from 'react-icons/io';
 import { FaFolderOpen, FaRegFilePdf } from 'react-icons/fa6';
@@ -24,6 +24,7 @@ import { Loader } from '../Common/Loader';
 import { PaginationComponent } from '../Common/PaginationComponent';
 
 import { ISearchResultsListProps } from '../interface/ISearchResultsListProps';
+import { SearchResultUrl } from './SearchResultUrl';
 
 interface ISearchResultThumbnailProps {
   result: ISearchResult;
@@ -106,7 +107,8 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
   openMenuId,
   searchHistory,
   sortBy,
-  setSortBy
+  setSortBy,
+  searchService
 }) => {
   const [isSortOpen, setIsSortOpen] = React.useState(false);
   const sortRef = React.useRef<HTMLDivElement>(null);
@@ -377,6 +379,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                     <span>SITE: </span>
                     <span className={styles.projectHubValue}>{result.siteName ? result.siteName.replace(/([a-z])([A-Z])/g, '$1 $2') : ''}</span>
                   </div>
+                  <SearchResultUrl url={result.webUrl} searchService={searchService} />
                 </div>
               </div>
             );

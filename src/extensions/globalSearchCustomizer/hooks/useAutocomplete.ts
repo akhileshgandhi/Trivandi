@@ -7,9 +7,10 @@ import { useSearchStore } from '../store/useSearchStore';
 export interface ISuggestion {
   label: string;
   type: 'history' | 'file' | 'suggested';
+  url?: string;
 }
 
-export function useAutocomplete(query: string, service: GraphSearchService | null) {
+export function useAutocomplete(query: string, service: GraphSearchService | null, selectedSites: string[] = []) {
   const [suggestions, setSuggestions] = useState<ISuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,7 +64,7 @@ export function useAutocomplete(query: string, service: GraphSearchService | nul
     // 2. Async source (Files)
     setLoading(true);
     const timeoutId = setTimeout(() => {
-      service.searchFileSuggestions(cleanQuery).then(files => {
+      service.searchFileSuggestions(cleanQuery, selectedSites).then(files => {
         setSuggestions(prev => {
           const newSuggestions: ISuggestion[] = [];
           const currentSeen = new Set<string>();
@@ -77,10 +78,10 @@ export function useAutocomplete(query: string, service: GraphSearchService | nul
 
           // Add files (second priority)
           for (const file of files) {
-            const lowerFile = file.toLowerCase();
+            const lowerFile = file.label.toLowerCase();
             if (!currentSeen.has(lowerFile)) {
               currentSeen.add(lowerFile);
-              newSuggestions.push({ label: file, type: 'file' });
+              newSuggestions.push({ label: file.label, type: 'file', url: file.url });
             }
           }
 
@@ -104,7 +105,7 @@ export function useAutocomplete(query: string, service: GraphSearchService | nul
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [query, searchHistory, service]);
+  }, [query, searchHistory, service, selectedSites]);
 
   return { suggestions, loading, clearSuggestions };
 }

@@ -25,6 +25,7 @@ export interface ISearchResultsListProps {
     date: string;
   };
   setFilters: (filters: { fileTypes: string[]; selectedAuthors: string[]; selectedSites: string[]; date: string }) => void;
+  searchService?: any;
   setOpenMenuId: (id: string | null) => void;
   openMenuId: string | null;
   searchHistory?: string[];

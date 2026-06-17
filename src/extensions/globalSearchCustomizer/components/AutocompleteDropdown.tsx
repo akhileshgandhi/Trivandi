@@ -55,18 +55,24 @@ export const AutocompleteDropdown: React.FC<IAutocompleteDropdownProps> = ({
         }
 
         return (
-          <div
+          <button
+            type="button"
             key={`${suggestion.type}-${suggestion.label}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onSelect(suggestion.label);
+            }}
             onClick={() => onSelect(suggestion.label)}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLDivElement).style.backgroundColor = '#F0F4FF';
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#F0F4FF';
             }}
             onMouseLeave={(e) => {
               if (!isHighlighted) {
-                (e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent';
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
               }
             }}
             style={{
+              width: '100%',
               height: '36px',
               padding: '12px 16px',
               display: 'flex',
@@ -77,8 +83,10 @@ export const AutocompleteDropdown: React.FC<IAutocompleteDropdownProps> = ({
               fontFamily: 'sans-serif',
               backgroundColor: isHighlighted ? '#F0F4FF' : 'transparent',
               transition: 'background-color 0.2s ease',
+              border: 'none',
               borderBottom: idx < suggestions.length - 1 ? '1px solid #f1f5f9' : 'none',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              textAlign: 'left'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -98,7 +106,7 @@ export const AutocompleteDropdown: React.FC<IAutocompleteDropdownProps> = ({
             }}>
               {pillLabel}
             </div>
-          </div>
+          </button>
         );
       })}
     </div>

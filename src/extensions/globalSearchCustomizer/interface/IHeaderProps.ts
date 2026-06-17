@@ -14,4 +14,5 @@ export interface IHeaderProps {
   storeIsOwner?: boolean;
   isAdminPanelOpen?: boolean;
   setIsAdminPanelOpen?: (open: boolean) => void;
+  selectedSites?: string[];
 }

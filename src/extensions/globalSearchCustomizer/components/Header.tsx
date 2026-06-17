@@ -21,8 +21,9 @@ export const Header: React.FC<IHeaderProps> = ({
   storeIsOwner,
   isAdminPanelOpen,
   setIsAdminPanelOpen,
+  selectedSites = [],
 }) => {
-  const { suggestions, clearSuggestions } = useAutocomplete(searchQuery, service);
+  const { suggestions, clearSuggestions } = useAutocomplete(searchQuery, service, selectedSites);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [showDropdown, setShowDropdown] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);

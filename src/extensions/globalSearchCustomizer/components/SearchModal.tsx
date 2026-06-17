@@ -632,6 +632,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           storeIsOwner={storeIsOwner}
           isAdminPanelOpen={isAdminPanelOpen}
           setIsAdminPanelOpen={setIsAdminPanelOpen}
+          selectedSites={filters.selectedSites}
         />
 
 
@@ -706,6 +707,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                 searchHistory={searchHistory}
                 sortBy={sortBy}
                 setSortBy={setSortBy}
+                searchService={searchService}
 
               />
             </div>
