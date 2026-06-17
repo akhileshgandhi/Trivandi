@@ -12,4 +12,5 @@ export interface IFiltersPanelProps {
   isResizingSidebar: boolean;
   authorsList: string[];
   searchService?: any;
+  adminConfig?: any;
 }

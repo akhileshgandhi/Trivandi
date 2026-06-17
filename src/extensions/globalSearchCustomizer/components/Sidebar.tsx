@@ -3,22 +3,23 @@ import * as ReactDOM from 'react-dom';
 import { User, Calendar, GripVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { IFiltersPanelProps } from '../interface/IFiltersPanelProps';
+import { loadAdminConfig } from '../interface/IAdminPanelProps';
 
-const FILE_TYPE_OPTIONS = ['All', 'PDF', 'DOC', 'XLS', 'PPT'];
-const DATE_OPTIONS = ['Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days', 'This Year'];
-
-const SITES = [
-  { label: 'Intranet',        siteId: 'TrivandiHub' },
-  { label: 'People',          siteId: 'PeopleHub' },
-  { label: 'Company',         siteId: 'CompanyHub' },
-  { label: 'Marketing',       siteId: 'BrandingMarketing' },
-  { label: 'Projects',        siteId: 'Projects' },
-  { label: 'Trivandi London', siteId: 'TrivandiLondon' },
-  { label: 'TDMCC', siteId: 'TDMCC' },
-  { label: 'Trivandi USA', siteId: 'TrivandiUSA' },
-  { label: 'Trivandi Australia', siteId: 'TrivandiAustralia' },
-  { label: 'Trivandi KSA', siteId: 'TrivandiKSA' },
-];
+const getSiteId = (label: string): string => {
+  const mapping: { [key: string]: string } = {
+    'Intranet': 'TrivandiHub',
+    'People': 'PeopleHub',
+    'Company': 'CompanyHub',
+    'Marketing': 'BrandingMarketing',
+    'Projects': 'Projects',
+    'Trivandi London': 'TrivandiLondon',
+    'TDMCC': 'TDMCC',
+    'Trivandi USA': 'TrivandiUSA',
+    'Trivandi Australia': 'TrivandiAustralia',
+    'Trivandi KSA': 'TrivandiKSA',
+  };
+  return mapping[label] || label.replace(/\s+/g, '');
+};
 
 // const SITES = [
 //   { label: 'Operations Hub', siteId: 'OperationsHub' },
@@ -38,8 +39,17 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
   startResizingSidebar,
   isResizingSidebar,
   authorsList,
-  searchService
+  searchService,
+  adminConfig: propAdminConfig
 }) => {
+  const adminConfig = propAdminConfig || loadAdminConfig();
+  const FILE_TYPE_OPTIONS = React.useMemo(() => ['All', ...adminConfig.fileTypes], [adminConfig.fileTypes]);
+  const DATE_OPTIONS = adminConfig.dateFilters;
+  const SITES = React.useMemo(() => adminConfig.sites.map(s => ({
+    label: s,
+    siteId: getSiteId(s)
+  })), [adminConfig.sites]);
+
   const [authorSearchQuery, setAuthorSearchQuery] = React.useState('');
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
@@ -504,7 +514,7 @@ const CustomDateRangePicker: React.FC<{
         <input
           type="text"
           readOnly
-          placeholder="MM/DD/YYYY – MM/DD/YYYY"
+          placeholder="Select date range..."
           value={displayValue}
           className={styles.dateRangeInput}
         />

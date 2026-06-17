@@ -10,4 +10,8 @@ export interface IHeaderProps {
   totalCountToRender: number;
   onDismiss: () => void;
   service: GraphSearchService | null;
+  isAdmin?: boolean;
+  storeIsOwner?: boolean;
+  isAdminPanelOpen?: boolean;
+  setIsAdminPanelOpen?: (open: boolean) => void;
 }

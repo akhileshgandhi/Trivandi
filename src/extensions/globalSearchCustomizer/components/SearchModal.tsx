@@ -8,10 +8,12 @@ import { ISearchResult } from '../../../models/ISearchResult';
 import { useDebounce } from 'use-debounce';
 import { useSearchStore } from '../store/useSearchStore';
 import { usePermissionStore } from '../../Permission/PermissionStore';
+import { SPHttpClient } from '@microsoft/sp-http';
 
 // Import services
 
 import { SearchAnalyticsService } from '../services/SearchAnalyticsService';
+import { AdminConfigService } from '../services/AdminConfigService';
 
 // Import modular subcomponents
 import { Sidebar } from './Sidebar';
@@ -21,6 +23,11 @@ import { HistoryPane } from './HistoryPane';
 import { Header } from './Header';
 import { SearchResultsList } from './SearchResultsList';
 import { SpellCorrectionBanner } from './SpellCorrectionBanner';
+import { AdminPanel } from './AdminPanel';
+import { 
+  IAdminConfig,
+  loadAdminConfig 
+} from '../interface/IAdminPanelProps';
 
 import { ISearchModalProps } from '../interface/ISearchModalProps';
 
@@ -58,6 +65,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
 
   const allowedSites = usePermissionStore((state) => state.allowedSites);
   const isPermissionsLoading = usePermissionStore((state) => state.isLoading);
+  const storeIsOwner = usePermissionStore((state) => state.isOwner);
 
   // Pre-select current site filter if user has Owner/Contributor permissions on it
   useEffect(() => {
@@ -134,6 +142,45 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const [copyFileDialogFile, setCopyFileDialogFile] = useState<ISearchResult | null>(null);
   const [appCopyCopied, setAppCopyCopied] = useState(false);
 
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = 
+    useState<boolean>(false);
+  const [adminConfig, setAdminConfig] = 
+    useState<IAdminConfig>(loadAdminConfig);
+  const [isAdmin, setIsAdmin] = 
+    useState<boolean>(false);
+
+  useEffect(() => {
+    if (!context?.spHttpClient || !context?.pageContext) return;
+    
+    const checkAdmin = async (): Promise<void> => {
+      try {
+        const siteUrl = context.pageContext.web.absoluteUrl;
+        const url = `${siteUrl}/_api/web/effectivebasePermissions`;
+        const response = await context.spHttpClient.get(
+          url,
+          SPHttpClient.configurations.v1,
+          { headers: { 'Accept': 'application/json;odata=nometadata' } }
+        );
+        if (response.ok) {
+          const json = await response.json();
+          console.log("[DEBUG ADMIN] json:", json);
+          const permissions = json.EffectiveBasePermissions || json.d?.EffectiveBasePermissions || json;
+          console.log("[DEBUG ADMIN] permissions:", permissions);
+          const high = permissions.High ? parseInt(permissions.High) : 0;
+          console.log("[DEBUG ADMIN] high parsed:", high, "isAdmin set to:", high >= 432);
+          setIsAdmin(high >= 432);
+        } else {
+          console.log("[DEBUG ADMIN] response not ok:", response.status);
+        }
+      } catch (e) {
+        console.error("[DEBUG ADMIN] error checking admin status:", e);
+        setIsAdmin(false);
+      }
+    };
+    
+    checkAdmin();
+  }, [context]);
+
   // --- Zustand Store for Search History ---
   const { searchHistory, addHistoryItem, removeHistoryItem, clearHistory } = useSearchStore();
 
@@ -149,6 +196,65 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     }
     return null;
   }, [context]);
+
+  // --- Admin Config Service Setup ---
+  const adminConfigService = useMemo(() => {
+    if (context && context.spHttpClient && context.pageContext?.web?.absoluteUrl) {
+      const origin = new URL(context.pageContext.web.absoluteUrl).origin;
+      const hubUrl = `${origin}/sites/TrivandiHub`;
+      return new AdminConfigService(
+        context.spHttpClient,
+        hubUrl
+      );
+    }
+    return null;
+  }, [context]);
+
+  // Load custom site and file type filters from SharePoint lists if available
+  useEffect(() => {
+    if (!adminConfigService) return;
+
+    const loadConfigData = async () => {
+      try {
+        const spSites = await adminConfigService.getSites();
+        if (spSites && spSites.length > 0) {
+          const siteLabels = spSites.map(s => s.title);
+          setAdminConfig(prev => ({
+            ...prev,
+            sites: siteLabels
+          }));
+        }
+      } catch (e) {
+        console.error('[SearchModal] Failed to load sites from SP list, falling back', e);
+      }
+
+      try {
+        const spFileTypes = await adminConfigService.getFileTypes();
+        if (spFileTypes && spFileTypes.length > 0) {
+          setAdminConfig(prev => ({
+            ...prev,
+            fileTypes: spFileTypes
+          }));
+        }
+      } catch (e) {
+        console.error('[SearchModal] Failed to load file types from SP list, falling back', e);
+      }
+
+      try {
+        const spDateFilters = await adminConfigService.getDateFilters();
+        if (spDateFilters && spDateFilters.length > 0) {
+          setAdminConfig(prev => ({
+            ...prev,
+            dateFilters: spDateFilters
+          }));
+        }
+      } catch (e) {
+        console.error('[SearchModal] Failed to load date filters from SP list, falling back', e);
+      }
+    };
+
+    loadConfigData();
+  }, [adminConfigService]);
 
   // Handle drag mousemove event
   useEffect(() => {
@@ -522,6 +628,10 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           totalCountToRender={totalCountToRender}
           onDismiss={onDismiss}
           service={searchService}
+          isAdmin={isAdmin}
+          storeIsOwner={storeIsOwner}
+          isAdminPanelOpen={isAdminPanelOpen}
+          setIsAdminPanelOpen={setIsAdminPanelOpen}
         />
 
 
@@ -544,6 +654,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                 isResizingSidebar={isResizingSidebar}
                 authorsList={authorsList}
                 searchService={searchService}
+                adminConfig={adminConfig}
               />
             )}
 
@@ -700,6 +811,16 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           </div>
         </div>
       )}
+
+      <AdminPanel
+        isOpen={isAdminPanelOpen}
+        onClose={() => setIsAdminPanelOpen(false)}
+        config={adminConfig}
+        onConfigChange={(newConfig: IAdminConfig) => {
+          setAdminConfig(newConfig);
+        }}
+        adminConfigService={adminConfigService}
+      />
     </div>
   );
 }

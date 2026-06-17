@@ -1,4 +1,4 @@
-import { MSGraphClientFactory, MSGraphClient } from '@microsoft/sp-http';
+import { MSGraphClientFactory, MSGraphClient, SPHttpClient } from '@microsoft/sp-http';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { expandQuery } from '../../../utils/synonymDictionary';
 import { usePermissionStore } from '../../Permission/PermissionStore';
@@ -162,9 +162,21 @@ export class GraphSearchService {
     if (actualTypes.length > 0 && activeTopTab !== 'Folders') {
       const typeQueries = actualTypes.map(t => {
         const lowerT = t.toLowerCase();
-        if (lowerT === 'xls') return '(filetype:xls OR filetype:xlsx OR filetype:csv)';
-        if (lowerT === 'doc') return '(filetype:doc OR filetype:docx)';
-        if (lowerT === 'ppt') return '(filetype:ppt OR filetype:pptx)';
+        if (lowerT === 'xls' || lowerT === 'xlsx' || lowerT === 'excel') {
+          return '(filetype:xls OR filetype:xlsx OR filetype:csv)';
+        }
+        if (lowerT === 'doc' || lowerT === 'docx' || lowerT === 'word') {
+          return '(filetype:doc OR filetype:docx)';
+        }
+        if (lowerT === 'ppt' || lowerT === 'pptx' || lowerT === 'powerpoint') {
+          return '(filetype:ppt OR filetype:pptx)';
+        }
+        if (lowerT === 'text' || lowerT === 'txt') {
+          return '(filetype:txt OR filetype:rtf)';
+        }
+        if (lowerT === 'image' || lowerT === 'img') {
+          return '(filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg)';
+        }
         return `filetype:${lowerT}`;
       });
       queryString += ` AND (${typeQueries.join(' OR ')})`;
@@ -266,7 +278,8 @@ export class GraphSearchService {
     queryString += ` ${excludedTypes.map(ext => `-filetype:${ext}`).join(' ')}`;
 
     // Globally exclude OneDrive personal sites
-    queryString += ` -Path:"https://*-my.sharepoint.com/*"`;
+    const mySiteUrl = tenantUrl.replace('.sharepoint.com', '-my.sharepoint.com');
+    queryString += ` -Path:"${mySiteUrl}*"`;
 
     const expandedQuery = expandQuery(queryString);
     // console.log('--- [DEBUG] Expanded Query ---', expandedQuery);
@@ -303,7 +316,9 @@ export class GraphSearchService {
       ]
     };
 
-    if (sortBy && sortBy !== 'relevance' && rawQuery.trim() === '') {
+    if (sortBy && sortBy !== 'relevance') {
+      // Apply server-side sort whenever user explicitly selects a sort option.
+      // When sortBy === 'relevance', skip sortProperties so Graph API uses its own ranking.
       let sortField = 'lastModifiedDateTime';
       let desc = true;
       if (sortBy === 'dateAsc') {
@@ -319,6 +334,7 @@ export class GraphSearchService {
         }
       ];
     }
+
 
     // console.log('--- [DEBUG] Raw Search Query input ---', query);
     // console.log('--- [DEBUG] Active Top Tab ---', activeTopTab);
@@ -652,55 +668,52 @@ export class GraphSearchService {
   }
 
   public async fetchIndexedTerms(): Promise<string[]> {
+    if (!this._spHttpClient || !this._siteUrl) return [];
     try {
-      const client: any = await this._msGraphClientFactory.getClient('3');
-      const searchPayload = {
-        requests: [
-          {
-            entityTypes: ['driveItem', 'listItem'],
-            query: {
-              queryString: '*'
-            },
-            fields: ['title', 'filename'],
-            size: 200
+      const url = `${this._siteUrl}/_api/search/query?querytext='*'&selectproperties='Title,Filename'&rowlimit=100`;
+      const response = await this._spHttpClient.get(
+        url,
+        SPHttpClient.configurations.v1,
+        { headers: { 'Accept': 'application/json;odata=nometadata' } }
+      );
+      if (response.ok) {
+        const json = await response.json();
+        const rows = json.PrimaryQueryResult?.RelevantResults?.Table?.Rows || 
+                     json.d?.query?.PrimaryQueryResult?.RelevantResults?.Table?.Rows || [];
+        
+        const wordsSet = new Set<string>();
+        rows.forEach((row: any) => {
+          const cells = row.Cells || [];
+          let title = '';
+          let filename = '';
+          cells.forEach((cell: any) => {
+            if (cell.Key === 'Title') title = cell.Value;
+            if (cell.Key === 'Filename') filename = cell.Value;
+          });
+          
+          if (title) {
+            title.split(/[\s\-_().]+/).forEach((word: string) => {
+              const cleanWord = word.trim();
+              if (cleanWord.length >= 3) {
+                wordsSet.add(cleanWord);
+              }
+            });
           }
-        ]
-      };
-      
-      const response = await client.api('/search/query').version('v1.0').post(searchPayload);
-      const hits = response.value?.[0]?.hitsContainers?.[0]?.hits || [];
-      
-      const wordsSet = new Set<string>();
-      
-      hits.forEach((hit: any) => {
-        const resource = hit.resource || {};
-        const title = resource.title || '';
-        const filename = resource.filename || resource.name || '';
-        
-        const titleParts = title.split(/[\s\-_().]+/);
-        const fileParts = filename.split(/[\s\-_().]+/);
-        
-        titleParts.forEach((word: string) => {
-          const cleanWord = word.trim();
-          if (cleanWord.length >= 3) {
-            wordsSet.add(cleanWord);
-          }
-        });
-        
-        fileParts.forEach((word: string) => {
-          const cleanWord = word.trim();
-          if (cleanWord.length >= 3) {
-            wordsSet.add(cleanWord);
+          if (filename) {
+            filename.split(/[\s\-_().]+/).forEach((word: string) => {
+              const cleanWord = word.trim();
+              if (cleanWord.length >= 3) {
+                wordsSet.add(cleanWord);
+              }
+            });
           }
         });
-      });
-      
-      // console.log('--- [DEBUG] Dynamic terms built ---', wordsSet.size, Array.from(wordsSet).slice(0, 20));
-      return Array.from(wordsSet);
+        return Array.from(wordsSet);
+      }
     } catch (error) {
       console.error('Error fetching indexed terms:', error);
-      return [];
     }
+    return [];
   }
 
   public async fetchPeopleNames(): Promise<string[]> {
