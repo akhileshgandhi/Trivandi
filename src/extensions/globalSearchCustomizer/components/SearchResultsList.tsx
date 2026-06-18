@@ -379,7 +379,15 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                     <span>SITE: </span>
                     <span className={styles.projectHubValue}>{result.siteName ? result.siteName.replace(/([a-z])([A-Z])/g, '$1 $2') : ''}</span>
                   </div>
-                  <SearchResultUrl url={result.webUrl} searchService={searchService} />
+                  
+                  {result.matchedProjectTitle && (
+                    <div className={styles.cardProjectHubRow} style={{ marginTop: '6px' }}>
+                      <span>PROJECT: </span>
+                      <span className={styles.projectHubValue} style={{ fontWeight: '500', color: accentColor }}>
+                        {result.matchedProjectTitle}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
