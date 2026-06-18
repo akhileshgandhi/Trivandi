@@ -1,4 +1,4 @@
-import { MSGraphClientFactory, MSGraphClient, SPHttpClient } from '@microsoft/sp-http';
+﻿import { MSGraphClientFactory, MSGraphClient, SPHttpClient } from '@microsoft/sp-http';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { expandQuery } from '../../../utils/synonymDictionary';
 import { usePermissionStore } from '../../Permission/PermissionStore';
@@ -51,10 +51,10 @@ export class GraphSearchService {
     const isCompleteQuery = hasTrailingSpace || isMultiWord || isLongEnough;
 
     if (!isCompleteQuery) {
-      // ── PARTIAL QUERY (short, single word, still typing) ──
+      // â”€â”€ PARTIAL QUERY (short, single word, still typing) â”€â”€
       boostedQuery = `(title:${trimmed}* OR Filename:${trimmed}* OR name:${trimmed}*)`;
     } else {
-      // ── COMPLETE QUERY (multi-word or long or space-ended) ──
+      // â”€â”€ COMPLETE QUERY (multi-word or long or space-ended) â”€â”€
       if (isMultiWord) {
         const lastWord = words[words.length - 1];
         const withoutLast = words.slice(0, -1).join(' ');
@@ -184,7 +184,7 @@ export class GraphSearchService {
     if (activeTopTab === 'All' && boostedQuery) {
       // In "All" tab with an active query:
       // Files + folders that actually match the query in title OR content
-      // Folders must have title match — prevents site-name-only folder bleed
+      // Folders must have title match â€” prevents site-name-only folder bleed
       const folderMatch = `(IsContainer:true AND (${boostedQuery.replace(/\bfiletype:[^\s)]+/g, '')}))`;
       const fileMatch = `(IsDocument:1 OR filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg OR filetype:mp4 OR filetype:mov OR filetype:avi)`;
       queryString = `(${boostedQuery}) AND (${fileMatch} OR ${folderMatch})`;
@@ -1042,7 +1042,14 @@ export class GraphSearchService {
             title === 'code';
         })
         .map((field: IListFieldInfo) => field.InternalName)
-        .filter((name: string) => !!name);
+        .filter((name: string) => !!name)
+        .concat([
+          'UncategorisedDocumentsUrl',
+          'NonCmap',
+          'ContractsDocumentsUrl',
+          'ProjectDocumentsUrl',
+          'BidDocumentsUrl'
+        ]);
 
       const candidateFields = fields
         .filter((field: IListFieldInfo) => {
@@ -1064,7 +1071,14 @@ export class GraphSearchService {
           );
         })
         .map((field: IListFieldInfo) => field.InternalName)
-        .filter((name: string) => !!name);
+        .filter((name: string) => !!name)
+        .concat([
+          'UncategorisedDocumentsUrl',
+          'NonCmap',
+          'ContractsDocumentsUrl',
+          'ProjectDocumentsUrl',
+          'BidDocumentsUrl'
+        ]);
 
       if (candidateFields.length === 0 && idFields.length === 0) return null;
 
@@ -1103,7 +1117,7 @@ export class GraphSearchService {
               ? 'URL' 
               : 'ProjectID';
             const shortUrl = webUrl.replace(/^https?:\/\/[^/]+/, '').substring(0, 50);
-            console.log(`✓ "${item.Title}" - matched by ${matchType} (${shortUrl})`);
+            console.log(`âœ“ "${item.Title}" - matched by ${matchType} (${shortUrl})`);
             try {
               const cacheKeyForUrl = `projectTitle|${normalizeUrl(absoluteUrl || '')}`;
               CacheService.set(cacheKeyForUrl, item.Title, CacheService.TTL.SITE_META);
@@ -1119,8 +1133,9 @@ export class GraphSearchService {
     }
 
     const shortUrl = webUrl.replace(/^https?:\/\/[^/]+/, '').substring(0, 50);
-    console.log(`✗ No match for URL: ${shortUrl}`);
+    console.log(`âœ— No match for URL: ${shortUrl}`);
     return null;
   }
 }
+
 
