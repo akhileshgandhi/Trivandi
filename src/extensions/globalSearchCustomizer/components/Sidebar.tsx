@@ -33,12 +33,14 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
   fileTypes,
   selectedAuthors,
   selectedSites,
+  selectedProjects,
   date,
   setFilters,
   toggleFileType,
   startResizingSidebar,
   isResizingSidebar,
   authorsList,
+  projectsList,
   searchService,
   adminConfig: propAdminConfig
 }) => {
@@ -110,7 +112,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
     const updated = selectedAuthors.includes(name)
       ? selectedAuthors.filter(a => a !== name)
       : [...selectedAuthors, name];
-    setFilters({ fileTypes, selectedAuthors: updated, selectedSites, date });
+    setFilters({ fileTypes, selectedAuthors: updated, selectedSites, selectedProjects, date });
   };
 
   const [startDate, endDate] = React.useMemo(() => {
@@ -141,6 +143,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
       fileTypes,
       selectedAuthors,
       selectedSites,
+      selectedProjects,
       date: startStr || endStr ? `${startStr}_${endStr}` : ''
     });
   };
@@ -206,7 +209,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                         const updated = current.includes(site.siteId)
                           ? current.filter(s => s !== site.siteId)
                           : [...current, site.siteId];
-                        setFilters({ fileTypes, selectedAuthors, selectedSites: updated, date });
+                        setFilters({ fileTypes, selectedAuthors, selectedSites: updated, selectedProjects, date });
                       }}
                       className={styles.checkboxInput}
                     />
@@ -215,6 +218,39 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                 );
               })}
             </div>
+
+            {/* Project Filter */}
+            {projectsList.length > 0 && (
+              <>
+                <h3 className={`${styles.sidebarSectionHeader}`} style={{ marginTop: '16px' }}>
+                  Projects <span className={styles.countLabel}>({selectedProjects.length} selected)</span>
+                </h3>
+                <div className={styles.sidebarOptionList}>
+                  {projectsList.map(project => {
+                    const isActive = selectedProjects.includes(project);
+                    return (
+                      <label 
+                        key={project} 
+                        className={`${styles.checkboxLabel} ${isActive ? styles.checkboxActive : ''}`}
+                      >
+                        <input 
+                          type="checkbox" 
+                          checked={isActive}
+                          onChange={() => {
+                            const updated = selectedProjects.includes(project)
+                              ? selectedProjects.filter(p => p !== project)
+                              : [...selectedProjects, project];
+                            setFilters({ fileTypes, selectedAuthors, selectedSites, selectedProjects: updated, date });
+                          }}
+                          className={styles.checkboxInput}
+                        />
+                        <span>{project}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             {/* Filter by Author Dropdown */}
             <h3 className={`${styles.sidebarSectionHeader} ${styles.authorDropdownHeader}`}>
@@ -295,7 +331,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                   return (
                     <button 
                       key={opt}
-                      onClick={() => setFilters({ fileTypes, selectedAuthors, selectedSites, date: isActive ? '' : opt })}
+                      onClick={() => setFilters({ fileTypes, selectedAuthors, selectedSites, selectedProjects, date: isActive ? '' : opt })}
                       className={`${styles.dateFilterButton} ${isActive ? styles.dateFilterActive : ''}`}
                     >
                       {opt}
@@ -309,14 +345,14 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
           {/* Action Row */}
           <div className={styles.sidebarActionWrapper}>
             <button 
-              onClick={() => setFilters({ fileTypes, selectedAuthors, selectedSites, date })}
+              onClick={() => setFilters({ fileTypes, selectedAuthors, selectedSites, selectedProjects, date })}
               className={styles.applyButton}
             >
               Apply Filters
             </button>
             <div 
               style={{ textAlign: 'center', fontSize: '10px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '6px', cursor: 'pointer' }}
-              onClick={() => setFilters({ fileTypes: ['All'], selectedAuthors: [], selectedSites: [], date: '' })}
+              onClick={() => setFilters({ fileTypes: ['All'], selectedAuthors: [], selectedSites: [], selectedProjects: [], date: '' })}
             >
               Clear All Filters
             </div>

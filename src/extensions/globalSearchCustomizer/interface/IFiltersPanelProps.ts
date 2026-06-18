@@ -5,12 +5,14 @@ export interface IFiltersPanelProps {
   fileTypes: string[];
   selectedAuthors: string[];
   selectedSites: string[];
+  selectedProjects: string[];
   date: string;
-  setFilters: (filters: { fileTypes: string[]; selectedAuthors: string[]; selectedSites: string[]; date: string }) => void;
+  setFilters: (filters: { fileTypes: string[]; selectedAuthors: string[]; selectedSites: string[]; selectedProjects: string[]; date: string }) => void;
   toggleFileType: (type: string) => void;
   startResizingSidebar: (e: React.MouseEvent) => void;
   isResizingSidebar: boolean;
   authorsList: string[];
+  projectsList: string[];
   searchService?: any;
   adminConfig?: any;
 }

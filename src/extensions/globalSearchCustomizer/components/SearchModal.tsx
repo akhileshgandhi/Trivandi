@@ -60,6 +60,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     fileTypes: ['All'],
     selectedAuthors: [] as string[],
     selectedSites: [] as string[],
+    selectedProjects: [] as string[],
     date: ''
   });
 
@@ -300,6 +301,8 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     setSelectedAuthors: hookSetSelectedAuthors,
     selectedSites,
     setSelectedSites: hookSetSelectedSites,
+    selectedProjects,
+    setSelectedProjects: hookSetSelectedProjects,
     from,
     setFrom,
     sortBy,
@@ -346,6 +349,11 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   useEffect(() => {
     hookSetSelectedSites(filters.selectedSites || []);
   }, [filters.selectedSites, hookSetSelectedSites]);
+
+  // Track selectedProjects changes to synchronize hook
+  useEffect(() => {
+    hookSetSelectedProjects(filters.selectedProjects || []);
+  }, [filters.selectedProjects, hookSetSelectedProjects]);
 
 
   // Helper to generate deterministic, realistic file sizes for visual excellence when size is missing
@@ -425,22 +433,40 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     return [...alphabetic, ...nonAlphabetic];
   }, [mappedLiveResults]);
 
+  // Dynamic unique list of projects
+  const projectsList = useMemo(() => {
+    const collected = new Set<string>();
+    mappedLiveResults.forEach(r => {
+      if (r.matchedProjectTitle && r.matchedProjectTitle.trim()) {
+        collected.add(r.matchedProjectTitle.trim());
+      }
+    });
+    const uniqueProjects = Array.from(collected);
+    uniqueProjects.sort((a, b) => a.localeCompare(b));
+    return uniqueProjects;
+  }, [mappedLiveResults]);
+
   // Robust live results are filtered on the server side natively, with client-side safeguards
   const filteredLiveResults = useMemo(() => {
+    let results = mappedLiveResults;
     if (activeTopTab === 'Folders') {
-      return mappedLiveResults.filter(r => r.fileType === 'folder');
+      results = results.filter(r => r.fileType === 'folder');
     }
     if (activeTopTab === 'Files') {
-      return mappedLiveResults.filter(r => r.fileType !== 'folder');
+      results = results.filter(r => r.fileType !== 'folder');
     }
     if (activeTopTab === 'Images') {
-      return mappedLiveResults.filter(r => ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(r.fileType?.toLowerCase()));
+      results = results.filter(r => ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(r.fileType?.toLowerCase()));
     }
     if (activeTopTab === 'Videos') {
-      return mappedLiveResults.filter(r => ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(r.fileType?.toLowerCase()));
+      results = results.filter(r => ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(r.fileType?.toLowerCase()));
     }
-    return mappedLiveResults;
-  }, [mappedLiveResults, activeTopTab]);
+    // Apply project filter
+    if (filters.selectedProjects && filters.selectedProjects.length > 0) {
+      results = results.filter(r => r.matchedProjectTitle && filters.selectedProjects.includes(r.matchedProjectTitle));
+    }
+    return results;
+  }, [mappedLiveResults, activeTopTab, filters.selectedProjects]);
 
   // Set the final target results and states based on current Mode (Live vs Mock)
   const resultsToRender = useMemo(() => {
@@ -592,6 +618,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
       fileTypes: ['All'],
       selectedAuthors: [],
       selectedSites: [],
+      selectedProjects: [],
       date: ''
     });
     setActiveTopTab('All');
@@ -644,22 +671,24 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           <div className={styles.mainLayout}>
             
             {/* Sidebar Filters */}
-            {bottomTab === 'Search Results' && (
-              <Sidebar 
-                sidebarWidth={sidebarWidth}
-                fileTypes={filters.fileTypes}
-                selectedAuthors={filters.selectedAuthors}
-                selectedSites={filters.selectedSites}
-                date={filters.date}
-                setFilters={setFilters}
-                toggleFileType={toggleFileType}
-                startResizingSidebar={startResizingSidebar}
-                isResizingSidebar={isResizingSidebar}
-                authorsList={authorsList}
-                searchService={searchService}
-                adminConfig={adminConfig}
-              />
-            )}
+          {bottomTab === 'Search Results' && (
+            <Sidebar 
+              sidebarWidth={sidebarWidth}
+              fileTypes={filters.fileTypes}
+              selectedAuthors={filters.selectedAuthors}
+              selectedSites={filters.selectedSites}
+              selectedProjects={filters.selectedProjects}
+              date={filters.date}
+              setFilters={setFilters}
+              toggleFileType={toggleFileType}
+              startResizingSidebar={startResizingSidebar}
+              isResizingSidebar={isResizingSidebar}
+              authorsList={authorsList}
+              projectsList={projectsList}
+              searchService={searchService}
+              adminConfig={adminConfig}
+            />
+          )}
 
             {/* Main Center Panel (Tabs & Listing Pane) */}
             <div className={styles.centerContainer}>

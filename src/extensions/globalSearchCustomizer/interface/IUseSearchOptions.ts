@@ -7,4 +7,5 @@ export interface IUseSearchOptions {
   pageSize?: number;
   dynamicTerms?: string[];
   selectedSites?: string[];
+  initialSelectedProjects?: string[];
 }

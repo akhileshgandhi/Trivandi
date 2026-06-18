@@ -34,61 +34,33 @@ export class GraphSearchService {
   }
 
   private _buildBoostedQuery(rawQuery: string): string {
-    // Reusable KQL builder for both search() and searchFileSuggestions()
-    // Ensures suggestions and results use the same matching logic
-    let boostedQuery = '';
     if (!rawQuery || !rawQuery.trim()) {
-      return boostedQuery;
+      return '';
     }
     
     const escaped = rawQuery.replace(/["\\]/g, '\\$&');
     const trimmed = escaped.trim();
-    const words = trimmed.split(/\s+/);
-    const hasTrailingSpace = rawQuery.endsWith(' ');
-    const isMultiWord = words.length >= 2;
-    const isLongEnough = trimmed.length >= 6;
     
-    const isCompleteQuery = hasTrailingSpace || isMultiWord || isLongEnough;
-
-    if (!isCompleteQuery) {
-      // â”€â”€ PARTIAL QUERY (short, single word, still typing) â”€â”€
-      boostedQuery = `(title:${trimmed}* OR Filename:${trimmed}* OR name:${trimmed}*)`;
-    } else {
-      // â”€â”€ COMPLETE QUERY (multi-word or long or space-ended) â”€â”€
-      if (isMultiWord) {
-        const lastWord = words[words.length - 1];
-        const withoutLast = words.slice(0, -1).join(' ');
-        
-        boostedQuery = [
-          `title:"${trimmed}"`,
-          `Filename:"${trimmed}"`,
-          `"${trimmed}"`,
-          `title:"${withoutLast} ${lastWord}*"`,
-          `Filename:"${withoutLast} ${lastWord}*"`,
-          `"${withoutLast} ${lastWord}*"`,
-          `Filename:${withoutLast} ${lastWord}*`
-        ].join(' OR ');
-        
-        boostedQuery = `(${boostedQuery})`;
-      } else {
-        // Single long word (6+ chars)
-        boostedQuery = [
-          `title:"${trimmed}"`,
-          `Filename:"${trimmed}"`,
-          `"${trimmed}"`,
-          `title:${trimmed}*`,
-          `Filename:${trimmed}*`,
-        ].join(' OR ');
-        
-        boostedQuery = `(${boostedQuery})`;
-      }
-    }
+    // For any query (short or long), search across multiple fields:
+    // Title, Filename, Path, Content, Description, etc.
+    // This makes search much more comprehensive
+    let boostedQuery = [
+      `title:${trimmed}*`,
+      `Filename:${trimmed}*`,
+      `name:${trimmed}*`,
+      `path:${trimmed}*`,
+      `description:${trimmed}*`,
+      `${trimmed}*` // Free-text search across all content
+    ].join(' OR ');
+    
+    // Also add exact phrase matching for better precision
+    boostedQuery = `(${boostedQuery}) OR ("${trimmed}")`;
 
     // Handle leading zero variants
     if (rawQuery.match(/^0\d/)) {
       const withoutLeadingZero = rawQuery.replace(/^0+/, '').trim();
       const escapedAlt = withoutLeadingZero.replace(/["\\]/g, '\\$&');
-      boostedQuery = `(${boostedQuery} OR title:"${escapedAlt}" OR "${escapedAlt}")`;
+      boostedQuery = `(${boostedQuery}) OR title:"${escapedAlt}" OR "${escapedAlt}"`;
     }
 
     return boostedQuery;

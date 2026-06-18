@@ -26,9 +26,10 @@ export interface ISearchResultsListProps {
     fileTypes: string[];
     selectedAuthors: string[];
     selectedSites: string[];
+    selectedProjects: string[];
     date: string;
   };
-  setFilters: (filters: { fileTypes: string[]; selectedAuthors: string[]; selectedSites: string[]; date: string }) => void;
+  setFilters: (filters: { fileTypes: string[]; selectedAuthors: string[]; selectedSites: string[]; selectedProjects: string[]; date: string }) => void;
   searchService?: ISearchService;
   setOpenMenuId: (id: string | null) => void;
   openMenuId: string | null;
