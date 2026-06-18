@@ -220,7 +220,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
             </div>
 
             {/* Project Filter */}
-            {projectsList.length > 0 && (
+            {/* {projectsList.length > 0 && (
               <>
                 <h3 className={`${styles.sidebarSectionHeader}`} style={{ marginTop: '16px' }}>
                   Projects <span className={styles.countLabel}>({selectedProjects.length} selected)</span>
@@ -250,7 +250,7 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
                   })}
                 </div>
               </>
-            )}
+            )} */}
 
             {/* Filter by Author Dropdown */}
             <h3 className={`${styles.sidebarSectionHeader} ${styles.authorDropdownHeader}`}>

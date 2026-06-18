@@ -166,8 +166,8 @@ export const Header: React.FC<IHeaderProps> = ({
         
         {(isAdmin || storeIsOwner) && (
           <>
-            <div className={styles.metaDivider} />
-            <button 
+            {/* <div className={styles.metaDivider} /> */}
+            {/* <button 
               className={`${styles.adminHeaderGearBtn} ${isAdminPanelOpen ? styles.adminHeaderGearBtnActive : ''}`} 
               onClick={() => setIsAdminPanelOpen && setIsAdminPanelOpen(!isAdminPanelOpen)} 
               title="Admin Portal"
@@ -190,9 +190,9 @@ export const Header: React.FC<IHeaderProps> = ({
                   19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09
                   a1.65 1.65 0 0 0-1.51 1z"/>
               </svg>
-            </button>
+            </button> */}
           </>
-        )}
+        )}  
 
         <div className={styles.metaDivider} />
         
