@@ -21,4 +21,5 @@ export interface ISearchResult {
   itemId?: string;
   authorPhotoUrl?: string;
   libraryUrl?: string;   // Document library root URL e.g. https://tenant.sharepoint.com/sites/Site/Shared%20Documents
+  matchedProjectTitle?: string;  // Project title from ProjectsNew list if matched
 }

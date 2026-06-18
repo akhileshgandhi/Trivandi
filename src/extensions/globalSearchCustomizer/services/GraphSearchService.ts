@@ -94,6 +94,55 @@ export class GraphSearchService {
     return boostedQuery;
   }
 
+  private _cleanPathSegment(segment: string): string {
+    const withoutExtension = segment.replace(/\.[a-z0-9]{2,5}$/i, '');
+    return withoutExtension
+      .replace(/^\d{4,}\s*/, '')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private _getFolderContextTitle(webUrl: string, folderName: string): string {
+    if (!webUrl || !folderName) return folderName || 'Untitled Folder';
+
+    try {
+      const parsed = new URL(webUrl);
+      const pathSegments = parsed.pathname
+        .split('/')
+        .filter(Boolean)
+        .map(segment => this._cleanPathSegment(decodeURIComponent(segment)))
+        .filter(Boolean);
+
+      const folderTitle = this._cleanPathSegment(folderName);
+      const folderIndex = pathSegments.map(segment => segment.toLowerCase()).lastIndexOf(folderTitle.toLowerCase());
+      const siteIndex = pathSegments.findIndex(segment => segment.toLowerCase() === 'sites');
+      const siteName = siteIndex >= 0 && pathSegments[siteIndex + 1] ? pathSegments[siteIndex + 1] : '';
+      const excludedSegments = new Set([
+        'sites',
+        siteName.toLowerCase(),
+        'shared documents',
+        'documents',
+        'forms',
+        'allitems.aspx',
+        'bids'
+      ].filter(Boolean));
+
+      const contextSegments = pathSegments
+        .slice(siteIndex >= 0 ? siteIndex + 2 : 0, folderIndex >= 0 ? folderIndex : pathSegments.length - 1)
+        .filter(segment => !excludedSegments.has(segment.toLowerCase()));
+
+      const projectContext = contextSegments[0] || contextSegments[contextSegments.length - 1];
+      if (!projectContext || projectContext.toLowerCase() === folderTitle.toLowerCase()) {
+        return folderTitle || folderName;
+      }
+
+      return `${folderTitle || folderName} in ${projectContext}`;
+    } catch (e) {
+      return folderName || 'Untitled Folder';
+    }
+  }
+
   public async search(
     query: string, 
     pageSize: number = 20, 
@@ -341,14 +390,7 @@ export class GraphSearchService {
     // console.log('--- [DEBUG] File Type Filters ---', fileTypes);
     // console.log('--- [DEBUG] Date Filter ---', date);
     // console.log('--- [DEBUG] Final Constructed KQL QueryString ---', queryString);
-    // DEBUG: dump the final Graph Search payload so we can inspect why suggestions vs results differ
-    try {
-      // avoid throwing in production if JSON stringify fails
-      // @ts-ignore
-      console.log('--- [DEBUG] Full MS Graph Search Request Payload ---', JSON.stringify(searchPayload, null, 2));
-    } catch (e) {
-      console.log('--- [DEBUG] Full MS Graph Search Request Payload (truncated) ---', searchPayload);
-    }
+
 
     let response: any;
     try {
@@ -358,13 +400,8 @@ export class GraphSearchService {
           .version('v1.0')
           .post(searchPayload)
       );
-      try {
-        console.log('--- [DEBUG] Raw MS Graph Search Response ---', JSON.stringify(response, null, 2));
-      } catch (e) {
-        console.log('--- [DEBUG] Raw MS Graph Search Response (object) ---', response);
-      }
+
     } catch (error) {
-      console.error('--- [DEBUG] Error in MS Graph API Call ---', error);
       throw error;
     }
 
@@ -381,17 +418,12 @@ export class GraphSearchService {
           const probePayload = { ...searchPayload, requests: [{ ...searchPayload.requests[0], query: { queryString: expandedQueryNoSite } }] };
           try {
             const probeResp = await client.api('/search/query').version('v1.0').post(probePayload);
-            try {
-              console.log('--- [DEBUG] Probe (no-site-filter) MS Graph Search Response ---', JSON.stringify(probeResp, null, 2));
-            } catch (e) {
-              console.log('--- [DEBUG] Probe (no-site-filter) MS Graph Search Response (object) ---', probeResp);
-            }
           } catch (e) {
-            console.log('--- [DEBUG] Probe search failed ---', e);
+            // probe search failed
           }
         }
       } catch (e) {
-        console.log('--- [DEBUG] Error constructing probe query (no-site-filter) ---', e);
+        // error constructing probe query
       }
     }
     // console.log('--- [DEBUG] Parsed Hits Count from MS Graph ---', hits.length);
@@ -421,16 +453,8 @@ export class GraphSearchService {
         rawUrl.includes('/:f:/') || 
         !hasExtension; // No extension means it is a folder
 
-      // DEBUG: Log folder detection for items that appear to be folders
       if (isFolder) {
-        console.log('--- [DEBUG] FOLDER DETECTED ---', {
-          name: name,
-          hasResourceFolder: !!resource.folder,
-          urlHasFolder: rawUrl.includes('/:f:/'),
-          hasExtension: hasExtension,
-          ext: ext,
-          finalType: 'folder'
-        });
+        // folder detected
       }
 
       if (isFolder) {
@@ -547,7 +571,9 @@ export class GraphSearchService {
 
       return {
         id: resource.id || hit.hitId || Math.random().toString(),
-        title: resource.name || 'Untitled Document',
+        title: isFolder
+          ? this._getFolderContextTitle(cleanWebUrl || resource.webUrl || '', resource.name || 'Untitled Folder')
+          : (resource.name || 'Untitled Document'),
         webUrl: cleanWebUrl,
         fileType: fileType,
         lastModified: resource.lastModifiedDateTime || new Date().toISOString(),
@@ -632,8 +658,24 @@ export class GraphSearchService {
           }
         }
       } catch (err) {
-        console.error('--- [DEBUG] Error fetching native SP spelling suggestions ---', err);
+        // error fetching spelling suggestions
       }
+    }
+
+    // Fetch matched project titles for each result in parallel (with per-URL caching inside getTitleForUrl)
+    try {
+      await Promise.all(results.map(async (res) => {
+        try {
+          const matchedTitle = await this.getTitleForUrl(res.webUrl);
+          if (matchedTitle) {
+            res.matchedProjectTitle = matchedTitle;
+          }
+        } catch (itemErr) {
+          // ignore per-item errors
+        }
+      }));
+    } catch (e) {
+      // ignore errors fetching project titles
     }
 
     CacheService.set(cacheKey, { results, totalCount, suggestedQuery });
@@ -669,7 +711,6 @@ export class GraphSearchService {
         
       return this.sortAuthorsList(names);
     } catch (error) {
-      console.error('Error fetching authors from Graph:', error);
       // Graceful fallback to search for people using MS Graph Search query API
       try {
         const client: any = await this._msGraphClientFactory.getClient('3');
@@ -691,7 +732,6 @@ export class GraphSearchService {
           .filter((name: string) => name && name.trim().length > 0);
         return this.sortAuthorsList(names);
       } catch (e) {
-        console.error('Fallback author search failed:', e);
         return [];
       }
     }
@@ -741,7 +781,7 @@ export class GraphSearchService {
         return Array.from(wordsSet);
       }
     } catch (error) {
-      console.error('Error fetching indexed terms:', error);
+      // error fetching indexed terms
     }
     return [];
   }
@@ -763,7 +803,6 @@ export class GraphSearchService {
         
       return names;
     } catch (error) {
-      console.error('Error fetching people names:', error);
       return [];
     }
   }
@@ -823,35 +862,264 @@ export class GraphSearchService {
       
       return suggestions.slice(0, 5);
     } catch (error) {
-      console.error('Error fetching file suggestions:', error);
       return [];
     }
   }
 
   public async getTitleForUrl(webUrl: string): Promise<string | null> {
+
     if (!webUrl) return null;
 
-    // First try: query ProjectsNew list for exact URL match in known columns
-    if (this._spHttpClient && this._siteUrl) {
-      try {
-        const listTitle = 'ProjectsNew';
-        const encoded = webUrl.replace(/'/g, "''");
-        const filter = `(BidDocumentsUrl eq '${encoded}' or ProjectDocumentsUrl eq '${encoded}' or ContractsDocumentsUrl eq '${encoded}')`;
-        const restUrl = `${this._siteUrl}/_api/web/lists/getbytitle('${listTitle}')/items?$select=Title&$filter=${filter}&$top=1`;
-        const response = await this._spHttpClient.get(restUrl, SPHttpClient.configurations.v1, { headers: { 'Accept': 'application/json;odata=nometadata' } });
-        if (response.ok) {
-          const json = await response.json();
-          const items = json.value || json.d?.results || [];
-          if (items && items.length > 0) {
-            return items[0].Title || null;
-          }
-        }
-      } catch (err) {
-        console.error('Error querying ProjectsNew for URL title:', err);
-      }
+    if (!this._spHttpClient) {
+      return null;
     }
 
-    // Not found in ProjectsNew or SPHttpClient unavailable
+    try {
+      const tenantUrl = this._getTenantUrl();
+      const projectsSiteUrl = `${tenantUrl}/sites/Projects`;
+      const listTitle = 'ProjectsNew';
+      const absoluteUrl = webUrl.trim();
+      let serverRelativeUrl = absoluteUrl;
+      let urlWithoutQuery = absoluteUrl;
+      const encodedAbsoluteUrl = encodeURI(absoluteUrl);
+      const tryDecode = (value: string): string => {
+        try {
+          return decodeURIComponent(value);
+        } catch (_err) {
+          return value;
+        }
+      };
+      const decodedAbsoluteUrl = tryDecode(absoluteUrl);
+
+      try {
+        const parsed = new URL(absoluteUrl);
+        serverRelativeUrl = `${parsed.pathname}${parsed.search}`;
+        urlWithoutQuery = `${parsed.origin}${parsed.pathname}`;
+      } catch (e) {
+        // If url is already relative, keep as-is
+      }
+
+      const decodedServerRelativeUrl = tryDecode(serverRelativeUrl);
+      const decodedUrlWithoutQuery = tryDecode(urlWithoutQuery);
+      const siteSuffix = serverRelativeUrl.replace(/^\/sites\/[^/]+/, '');
+      const decodedSiteSuffix = tryDecode(siteSuffix);
+      const pathAfterSites = siteSuffix.replace(/^\/+/, '');
+      const decodedPathAfterSites = tryDecode(pathAfterSites);
+      const pathAfterSharedDocuments = pathAfterSites.replace(/^Shared Documents\//i, 'Shared Documents/');
+      const decodedPathAfterSharedDocuments = tryDecode(pathAfterSharedDocuments);
+
+      const normalizeUrl = (value: string): string => {
+        let normalized = tryDecode(value || '').trim().toLowerCase();
+        normalized = normalized.split('#')[0].split('?')[0];
+        normalized = normalized.replace(/^https?:\/\/[^/]+/i, '');
+        normalized = normalized.replace(/\/forms\/allitems\.aspx$/i, '');
+        normalized = normalized.replace(/\/+$/, '');
+        normalized = normalized.replace(/%20/g, ' ');
+        return normalized;
+      };
+
+      // Check per-URL cache to avoid repeated Projects list queries
+      try {
+        const cacheKeyForUrl = `projectTitle|${normalizeUrl(absoluteUrl || '')}`;
+        const cachedTitle = CacheService.get(cacheKeyForUrl);
+        if (cachedTitle) {
+          return String(cachedTitle);
+        }
+      } catch (_cacheErr) {
+        // ignore cache errors and continue
+      }
+
+      const exactMatchUrls = [
+        absoluteUrl,
+        encodedAbsoluteUrl,
+        decodedAbsoluteUrl,
+        urlWithoutQuery,
+        decodedUrlWithoutQuery,
+        serverRelativeUrl,
+        decodedServerRelativeUrl,
+        serverRelativeUrl.replace(/\/+$/, ''),
+        urlWithoutQuery.replace(/\/+$/, '')
+      ];
+
+      const suffixMatchUrls = [
+        siteSuffix,
+        decodedSiteSuffix,
+        pathAfterSites,
+        decodedPathAfterSites,
+        pathAfterSharedDocuments,
+        decodedPathAfterSharedDocuments,
+        `/${pathAfterSites}`,
+        `/${decodedPathAfterSites}`,
+        `/${pathAfterSharedDocuments}`,
+        `/${decodedPathAfterSharedDocuments}`
+      ];
+
+      const targetMatches = Array.from(new Set(exactMatchUrls.concat(suffixMatchUrls)))
+        .filter(Boolean)
+        .map(normalizeUrl)
+        .filter(Boolean) as string[];
+
+      const projectIdMatches = Array.from(new Set(targetMatches.reduce((ids: string[], target) => {
+        const projectsFolderMatch = target.match(/\/sites\/projects\/([^/]+)/i);
+        const firstProjectFolderToken = projectsFolderMatch ? projectsFolderMatch[1].match(/^(\d{4,})/) : null;
+        if (firstProjectFolderToken) {
+          ids.push(firstProjectFolderToken[1]);
+        }
+
+        const numericPathTokens = target.match(/(?:^|\/)(\d{4,})(?=[\s/_-]|\/|$)/g) || [];
+        numericPathTokens.forEach((token) => {
+          const id = token.replace(/^\//, '').match(/^(\d{4,})/);
+          if (id) ids.push(id[1]);
+        });
+
+        return ids;
+      }, [])));
+
+      const isMatchingUrl = (candidate: string): boolean => {
+        const normalizedCandidate = normalizeUrl(candidate);
+        if (!normalizedCandidate) return false;
+
+        return targetMatches.some((target) => {
+          if (!target) return false;
+          return normalizedCandidate === target ||
+            normalizedCandidate.indexOf(target) !== -1 ||
+            target.indexOf(normalizedCandidate) !== -1;
+        });
+      };
+
+      interface IListFieldInfo {
+        InternalName?: string;
+        Title?: string;
+        TypeAsString?: string;
+      }
+
+      interface IListItemValueMap {
+        [key: string]: unknown;
+        Title?: string;
+      }
+
+      const getUrlValues = (value: unknown): string[] => {
+        if (!value) return [];
+        if (typeof value === 'string') return [value];
+        if (Array.isArray(value)) {
+          return value.reduce((acc: string[], item: unknown) => acc.concat(getUrlValues(item)), []);
+        }
+        if (typeof value === 'object') {
+          const urlValue = value as { Url?: string; url?: string; Description?: string; description?: string };
+          const values: string[] = [];
+          if (urlValue.Url) values.push(urlValue.Url);
+          if (urlValue.url) values.push(urlValue.url);
+          if (urlValue.Description) values.push(urlValue.Description);
+          if (urlValue.description) values.push(urlValue.description);
+          return values;
+        }
+        return [];
+      };
+
+      const fieldsUrl = `${projectsSiteUrl}/_api/web/lists/getbytitle('${listTitle}')/fields?$select=InternalName,Title,TypeAsString,Hidden&$filter=Hidden eq false`;
+      const fieldsResponse = await this._spHttpClient.get(
+        fieldsUrl,
+        SPHttpClient.configurations.v1,
+        {
+          headers: {
+            'Accept': 'application/json;odata=nometadata'
+          }
+        }
+      );
+
+      if (!fieldsResponse.ok) return null;
+
+      const fieldsJson = await fieldsResponse.json();
+      const fields = fieldsJson.value || fieldsJson.d?.results || [];
+      const idFields = fields
+        .filter((field: IListFieldInfo) => {
+          const internalName = (field.InternalName || '').toLowerCase();
+          const title = (field.Title || '').toLowerCase();
+          return internalName === 'projectid' ||
+            title === 'projectid' ||
+            title === 'project id' ||
+            internalName === 'code' ||
+            title === 'code';
+        })
+        .map((field: IListFieldInfo) => field.InternalName)
+        .filter((name: string) => !!name);
+
+      const candidateFields = fields
+        .filter((field: IListFieldInfo) => {
+          const internalName = (field.InternalName || '').toLowerCase();
+          const title = (field.Title || '').toLowerCase();
+          const type = (field.TypeAsString || '').toLowerCase();
+          const isSupportedType = type === 'url' || type === 'text' || type === 'note';
+
+          return isSupportedType && (
+            type === 'url' ||
+            internalName.indexOf('url') !== -1 ||
+            title.indexOf('url') !== -1 ||
+            internalName.indexOf('document') !== -1 ||
+            title.indexOf('document') !== -1 ||
+            internalName.indexOf('noncmap') !== -1 ||
+            title.indexOf('noncmap') !== -1 ||
+            internalName.indexOf('location') !== -1 ||
+            title.indexOf('location') !== -1
+          );
+        })
+        .map((field: IListFieldInfo) => field.InternalName)
+        .filter((name: string) => !!name);
+
+      if (candidateFields.length === 0 && idFields.length === 0) return null;
+
+      const selectFields = Array.from(new Set(['Title'].concat(candidateFields).concat(idFields)));
+      const itemsUrl = `${projectsSiteUrl}/_api/web/lists/getbytitle('${listTitle}')/items?$select=${selectFields.join(',')}&$top=5000`;
+      const itemsResponse = await this._spHttpClient.get(
+        itemsUrl,
+        SPHttpClient.configurations.v1,
+        {
+          headers: {
+            'Accept': 'application/json;odata=nometadata'
+          }
+        }
+      );
+
+      if (itemsResponse.ok) {
+        const itemsJson = await itemsResponse.json();
+        const items = itemsJson.value || itemsJson.d?.results || [];
+        for (const item of items as IListItemValueMap[]) {
+          const hasMatchingUrl = candidateFields.some((fieldName: string) => {
+            const values = getUrlValues(item[fieldName]);
+            return values.some(isMatchingUrl);
+          });
+
+          const hasMatchingProjectId = projectIdMatches.length > 0 && idFields.some((fieldName: string) => {
+            const value = item[fieldName];
+            return value !== undefined &&
+              value !== null &&
+              projectIdMatches.indexOf(String(value).trim()) !== -1;
+          });
+
+          if (hasMatchingUrl || hasMatchingProjectId) {
+            const matchType = hasMatchingUrl && hasMatchingProjectId 
+              ? 'URL + ProjectID' 
+              : hasMatchingUrl 
+              ? 'URL' 
+              : 'ProjectID';
+            const shortUrl = webUrl.replace(/^https?:\/\/[^/]+/, '').substring(0, 50);
+            console.log(`✓ "${item.Title}" - matched by ${matchType} (${shortUrl})`);
+            try {
+              const cacheKeyForUrl = `projectTitle|${normalizeUrl(absoluteUrl || '')}`;
+              CacheService.set(cacheKeyForUrl, item.Title, CacheService.TTL.SITE_META);
+            } catch (_setErr) {
+              // ignore cache failures
+            }
+            return item.Title || null;
+          }
+        }
+      }
+    } catch (err) {
+      // error querying ProjectsNew
+    }
+
+    const shortUrl = webUrl.replace(/^https?:\/\/[^/]+/, '').substring(0, 50);
+    console.log(`✗ No match for URL: ${shortUrl}`);
     return null;
   }
 }

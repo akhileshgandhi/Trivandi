@@ -1,6 +1,10 @@
 import * as React from 'react';
 import { ISearchResult } from '../../../models/ISearchResult';
 
+export interface ISearchService {
+  getTitleForUrl(webUrl: string): Promise<string | null>;
+}
+
 export interface ISearchResultsListProps {
   resultsToRender: ISearchResult[];
   totalCountToRender: number;
@@ -25,7 +29,7 @@ export interface ISearchResultsListProps {
     date: string;
   };
   setFilters: (filters: { fileTypes: string[]; selectedAuthors: string[]; selectedSites: string[]; date: string }) => void;
-  searchService?: any;
+  searchService?: ISearchService;
   setOpenMenuId: (id: string | null) => void;
   openMenuId: string | null;
   searchHistory?: string[];
