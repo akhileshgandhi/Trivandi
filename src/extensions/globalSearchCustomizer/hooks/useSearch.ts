@@ -6,13 +6,14 @@ import { fuzzyBrandMatch } from '../../../utils/brandDictionary';
 import { IUseSearchOptions } from '../interface/IUseSearchOptions';
 import { rerankResults } from '../../../utils/rerankResults';
 import { SearchAnalyticsService } from '../services/SearchAnalyticsService';
-export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTerms = [] }: IUseSearchOptions) {
+export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTerms = [], initialSelectedProjects = [] }: IUseSearchOptions) {
   const [query, setQuery] = useState(initialQuery);
   const [fileTypes, setFileTypes] = useState<string[]>(['All']);
   const [activeTopTab, setActiveTopTab] = useState<string>('All');
   const [date, setDate] = useState<string>('');
   const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
   const [selectedSites, setSelectedSites] = useState<string[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>(initialSelectedProjects);
   const [results, setResults] = useState<ISearchResult[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -187,6 +188,8 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
     setSelectedAuthors,
     selectedSites,
     setSelectedSites,
+    selectedProjects,
+    setSelectedProjects,
     results,
     totalCount,
     loading,
