@@ -138,7 +138,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
           <span className={styles.statsLabel}>
             Showing {resultsToRender.length} of {totalCountToRender.toLocaleString()} results
           </span>
-          
+
           <div className={styles.filterBadgeWrapper}>
             {activeTopTab !== 'All' && (
               <div className={styles.filterBadge}>
@@ -150,14 +150,14 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
               filters.fileTypes.map(type => (
                 <div key={type} className={styles.filterBadge}>
                   Type: {type}
-                  <button 
+                  <button
                     onClick={() => {
                       const updated = filters.fileTypes.filter(t => t !== type);
                       setFilters({
                         ...filters,
                         fileTypes: updated.length === 0 ? ['All'] : updated
                       });
-                    }} 
+                    }}
                     className={styles.filterBadgeClose}
                   >
                     <X size={12} />
@@ -183,13 +183,13 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
               filters.selectedAuthors.map(authorName => (
                 <div key={authorName} className={styles.filterBadge}>
                   Author: {authorName}
-                  <button 
+                  <button
                     onClick={() => {
                       setFilters({
                         ...filters,
                         selectedAuthors: filters.selectedAuthors.filter(a => a !== authorName)
                       });
-                    }} 
+                    }}
                     className={styles.filterBadgeClose}
                   >
                     <X size={12} />
@@ -201,13 +201,13 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
               filters.selectedSites.map(siteId => (
                 <div key={siteId} className={styles.filterBadge}>
                   Site: {siteId}
-                  <button 
+                  <button
                     onClick={() => {
                       setFilters({
                         ...filters,
                         selectedSites: filters.selectedSites.filter(s => s !== siteId)
                       });
-                    }} 
+                    }}
                     className={styles.filterBadgeClose}
                   >
                     <X size={12} />
@@ -225,8 +225,8 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
           <div className={styles.sortContainer}>
             <span className={styles.sortLabel}>SORT BY</span>
             <div className={styles.customSortWrapper} ref={sortRef}>
-              <button 
-                className={styles.customSortButton} 
+              <button
+                className={styles.customSortButton}
                 onClick={() => setIsSortOpen(!isSortOpen)}
                 title="Change search ranking criteria"
               >
@@ -255,7 +255,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
 
         <div className={styles.statsDivider} />
 
-        <button 
+        <button
           onClick={() => {
             setIsHistoryOpen(!isHistoryOpen);
             setSelectedFileId(null);
@@ -283,7 +283,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
           resultsToRender.map((result, idx) => {
             const isSelected = selectedFileId === result.id;
             const isStarred = starredIds.has(result.id);
-            
+
             const formatBytes = (bytes: number): string => {
               if (!bytes) return '---';
               const k = 1024;
@@ -329,27 +329,27 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
               >
                 {/* File action dot menu */}
                 <div className={styles.actionMenuAnchor}>
-                  <FileActionMenu 
-                    file={result} 
-                    onOpenChange={(open) => setOpenMenuId(open ? result.id : null)} 
+                  <FileActionMenu
+                    file={result}
+                    onOpenChange={(open) => setOpenMenuId(open ? result.id : null)}
                   />
                 </div>
 
                 <div className={styles.cardLeftBlock}>
-                  <div 
+                  <div
                     className={`${styles.cardIconBox} ${['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(result.fileType?.toLowerCase()) ? styles.cardIconBoxImage : ''}`}
                   >
                     <SearchResultThumbnail result={result} />
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={(e) => toggleStar(e, result.id)}
                     className={`${styles.starIconButton} ${isStarred ? styles.starIconButtonStarred : ''}`}
                   >
                     <Star size={16} fill={isStarred ? '#FBBF24' : 'transparent'} />
                   </button>
                 </div>
-                
+
                 <div className={styles.cardBody}>
                   <div className={styles.cardHeaderRow}>
                     <h4 className={`${styles.cardTitle} ${isSelected ? styles.cardTitleSelected : ''}`}>
@@ -369,17 +369,17 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                     {result.fileType === 'folder'
                       ? '📁 Folder — Click to explore contents'
                       : (result.summary && result.summary !== 'No description preview available.'
-                         ? renderFormattedSummary(result.summary, '', accentColor)
-                         : 'No preview available for this file.'
-                        )
+                        ? renderFormattedSummary(result.summary, '', accentColor)
+                        : 'No preview available for this file.'
+                      )
                     }
                   </p>
-                  
+
                   <div className={styles.cardProjectHubRow}>
                     <span>SITE: </span>
                     <span className={styles.projectHubValue}>{result.siteName ? result.siteName.replace(/([a-z])([A-Z])/g, '$1 $2') : ''}</span>
                   </div>
-                  
+
                   {result.matchedProjectTitle && (
                     <div className={styles.cardProjectHubRow} style={{ marginTop: '6px' }}>
                       <span>PROJECT: </span>
@@ -388,6 +388,16 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                       </span>
                     </div>
                   )}
+
+                  {result.parentFolder && (
+                    <div className={styles.cardProjectHubRow}>
+                      <span>ROOT FOLDER: </span>
+                      <span className={styles.projectHubValue}>{result.parentFolder}</span>
+                    </div>
+                  )}
+
+
+
                 </div>
               </div>
             );
@@ -419,7 +429,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
           {(['Search Results', 'Recent Activities', 'Starred Assets'] as const).map((tab) => {
             const isActive = bottomTab === tab;
             return (
-              <button 
+              <button
                 key={tab}
                 onClick={() => {
                   setBottomTab(tab);

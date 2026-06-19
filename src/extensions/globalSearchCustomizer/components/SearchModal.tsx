@@ -24,9 +24,9 @@ import { Header } from './Header';
 import { SearchResultsList } from './SearchResultsList';
 import { SpellCorrectionBanner } from './SpellCorrectionBanner';
 import { AdminPanel } from './AdminPanel';
-import { 
+import {
   IAdminConfig,
-  loadAdminConfig 
+  loadAdminConfig
 } from '../interface/IAdminPanelProps';
 
 import { ISearchModalProps } from '../interface/ISearchModalProps';
@@ -76,7 +76,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
       if (currentUrl.includes("/sites/")) {
         currentSiteKey = currentUrl.split("/sites/")[1].split("/")[0];
       }
-      
+
       if (currentSiteKey && allowedSites.includes(currentSiteKey)) {
         setFilters(prev => ({
           ...prev,
@@ -129,7 +129,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
       return next;
     });
     setStarredFiles(prev => {
-      const hasStar = prev.some(f => f.id === file.id);      
+      const hasStar = prev.some(f => f.id === file.id);
       const next = hasStar ? prev.filter(f => f.id !== file.id) : [...prev, { ...file, isStarred: true }];
       try { localStorage.setItem('trivandi_starred_files_data', JSON.stringify(next)); } catch (e) { /* ignored */ }
       return next;
@@ -143,16 +143,16 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const [copyFileDialogFile, setCopyFileDialogFile] = useState<ISearchResult | null>(null);
   const [appCopyCopied, setAppCopyCopied] = useState(false);
 
-  const [isAdminPanelOpen, setIsAdminPanelOpen] = 
+  const [isAdminPanelOpen, setIsAdminPanelOpen] =
     useState<boolean>(false);
-  const [adminConfig, setAdminConfig] = 
+  const [adminConfig, setAdminConfig] =
     useState<IAdminConfig>(loadAdminConfig);
-  const [isAdmin, setIsAdmin] = 
+  const [isAdmin, setIsAdmin] =
     useState<boolean>(false);
 
   useEffect(() => {
     if (!context?.spHttpClient || !context?.pageContext) return;
-    
+
     const checkAdmin = async (): Promise<void> => {
       try {
         const siteUrl = context.pageContext.web.absoluteUrl;
@@ -178,7 +178,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         setIsAdmin(false);
       }
     };
-    
+
     checkAdmin();
   }, [context]);
 
@@ -360,14 +360,14 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   const getDeterministicSize = (id: string, fileType: string): number => {
     const ft = fileType ? fileType.toLowerCase() : '';
     if (ft === 'folder') return 0;
-    
+
     // Simple deterministic hash from the unique file ID
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
       hash = id.charCodeAt(i) + ((hash << 5) - hash);
     }
     hash = Math.abs(hash);
-    
+
     // Generate a size between 120 KB and 9.4 MB
     const minBytes = 120 * 1024;
     const maxBytes = 9.4 * 1024 * 1024;
@@ -397,8 +397,8 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         driveId: res.driveId,
         itemId: res.itemId,
         libraryUrl: res.libraryUrl
-      ,
-      matchedProjectTitle: res.matchedProjectTitle
+        ,
+        matchedProjectTitle: res.matchedProjectTitle
       } as ISearchResult;
     });
   }, [liveResults, starredIds]);
@@ -513,7 +513,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
 
 
 
-  const totalCountToRender: number = bottomTab === 'Search Results' 
+  const totalCountToRender: number = bottomTab === 'Search Results'
     ? liveTotalCount
     : resultsToRender.length;
   const isLoading: boolean = liveLoading;
@@ -524,15 +524,15 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     const file = resultsToRender.find(f => f.id === selectedFileId);
     if (!file) return null;
     const colors = getFileColor(file.fileType);
-    
+
     // Format sizes cleanly supporting MB, KB, and Folder labels
     const sizeInMB = file.fileType?.toLowerCase() === 'folder'
       ? 'Folder'
       : (file.size ? (file.size >= 1024 * 1024
-          ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-          : `${Math.round(file.size / 1024)} KB`)
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.round(file.size / 1024)} KB`)
         : '---');
-    
+
     return {
       id: file.id,
       title: file.title,
@@ -645,9 +645,9 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
-        
+
         {/* ================= HEADER BAR ================= */}
-        <Header 
+        <Header
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           handleSearch={handleSearch}
@@ -667,34 +667,34 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
 
         {/* ================= BODY WRAPPER ================= */}
         <div className={styles.body}>
-          
+
           <div className={styles.mainLayout}>
-            
+
             {/* Sidebar Filters */}
-          {bottomTab === 'Search Results' && (
-            <Sidebar 
-              sidebarWidth={sidebarWidth}
-              fileTypes={filters.fileTypes}
-              selectedAuthors={filters.selectedAuthors}
-              selectedSites={filters.selectedSites}
-              selectedProjects={filters.selectedProjects}
-              date={filters.date}
-              setFilters={setFilters}
-              toggleFileType={toggleFileType}
-              startResizingSidebar={startResizingSidebar}
-              isResizingSidebar={isResizingSidebar}
-              authorsList={authorsList}
-              projectsList={projectsList}
-              searchService={searchService}
-              adminConfig={adminConfig}
-            />
-          )}
+            {bottomTab === 'Search Results' && (
+              <Sidebar
+                sidebarWidth={sidebarWidth}
+                fileTypes={filters.fileTypes}
+                selectedAuthors={filters.selectedAuthors}
+                selectedSites={filters.selectedSites}
+                selectedProjects={filters.selectedProjects}
+                date={filters.date}
+                setFilters={setFilters}
+                toggleFileType={toggleFileType}
+                startResizingSidebar={startResizingSidebar}
+                isResizingSidebar={isResizingSidebar}
+                authorsList={authorsList}
+                projectsList={projectsList}
+                searchService={searchService}
+                adminConfig={adminConfig}
+              />
+            )}
 
             {/* Main Center Panel (Tabs & Listing Pane) */}
             <div className={styles.centerContainer}>
               {/* Category Filter Tabs */}
               {bottomTab === 'Search Results' && (
-                <SearchTabs 
+                <SearchTabs
                   activeTab={activeTopTab}
                   onTabChange={(tab) => {
                     setActiveTopTab(tab);
@@ -714,7 +714,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
                   }}
                 />
               )}
-              <SearchResultsList 
+              <SearchResultsList
                 resultsToRender={resultsToRender}
                 totalCountToRender={totalCountToRender}
                 isLoading={isLoading}
@@ -744,7 +744,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
             </div>
 
             {/* Document preview analysis panel */}
-            <PreviewPane 
+            <PreviewPane
               selectedFile={selectedFile}
               setSelectedFile={(file) => setSelectedFileId(file ? file.id : null)}
               previewWidth={previewWidth}
@@ -754,7 +754,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
             />
 
             {/* Recent Searches history panel */}
-            <HistoryPane 
+            <HistoryPane
               isHistoryOpen={isHistoryOpen}
               setIsHistoryOpen={setIsHistoryOpen}
               previewWidth={previewWidth}
@@ -781,25 +781,25 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
            MODAL 2: Copy link SharePoint Share dialog (Top-level viewport)
          ======================================================== */}
       {copyFileDialogFile && (
-        <div 
+        <div
           className={styles.copyDialogOverlay}
           onClick={(e) => {
             e.stopPropagation();
             setCopyFileDialogFile(null);
           }}
         >
-          <div 
+          <div
             className={styles.copyDialogContent}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button top right */}
-            <button 
+            <button
               onClick={() => setCopyFileDialogFile(null)}
               className={styles.copyDialogClose}
             >
               ✕
             </button>
-            
+
             <div className={styles.copyDialogHeader}>
               <div className={styles.copyDialogCheckCircle}>
                 ✓
@@ -810,14 +810,14 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
             </div>
 
             <div className={styles.copyDialogInputRow}>
-              <input 
+              <input
                 type="text"
                 readOnly
                 className={styles.copyDialogUrlText}
                 value={getShareableUrl(copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`)}
                 onClick={(e) => e.currentTarget.select()}
               />
-              <button 
+              <button
                 onClick={async () => {
                   try {
                     const rawUrl = copyFileDialogFile.webUrl || `https://sharepoint.trivandi.com/Shared%20Documents/${copyFileDialogFile.title}`;

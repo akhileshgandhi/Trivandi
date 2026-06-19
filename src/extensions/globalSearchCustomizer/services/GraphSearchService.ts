@@ -1,4 +1,4 @@
-﻿import { MSGraphClientFactory, MSGraphClient, SPHttpClient } from '@microsoft/sp-http';
+import { MSGraphClientFactory, MSGraphClient, SPHttpClient } from '@microsoft/sp-http';
 import { ISearchResult } from '../../../models/ISearchResult';
 import { expandQuery } from '../../../utils/synonymDictionary';
 import { usePermissionStore } from '../../Permission/PermissionStore';
@@ -37,10 +37,10 @@ export class GraphSearchService {
     if (!rawQuery || !rawQuery.trim()) {
       return '';
     }
-    
+
     const escaped = rawQuery.replace(/["\\]/g, '\\$&');
     const trimmed = escaped.trim();
-    
+
     // For any query (short or long), search across multiple fields:
     // Title, Filename, Path, Content, Description, etc.
     // This makes search much more comprehensive
@@ -52,7 +52,7 @@ export class GraphSearchService {
       `description:${trimmed}*`,
       `${trimmed}*` // Free-text search across all content
     ].join(' OR ');
-    
+
     // Also add exact phrase matching for better precision
     boostedQuery = `(${boostedQuery}) OR ("${trimmed}")`;
 
@@ -75,12 +75,18 @@ export class GraphSearchService {
       .trim();
   }
 
-  private _getFolderContextTitle(webUrl: string, folderName: string): string {
-    if (!webUrl || !folderName) return folderName || 'Untitled Folder';
+  private _getFolderContext(webUrl: string, folderName: string): { folderTitle: string; parentFolderName?: string } {
+    if (!webUrl || !folderName) return { folderTitle: folderName || 'Untitled Folder' };
 
     try {
       const parsed = new URL(webUrl);
-      const pathSegments = parsed.pathname
+      let path = parsed.pathname;
+      const idParam = parsed.searchParams.get('id') || parsed.searchParams.get('RootFolder');
+      if (idParam) {
+        path = idParam;
+      }
+
+      const pathSegments = path
         .split('/')
         .filter(Boolean)
         .map(segment => this._cleanPathSegment(decodeURIComponent(segment)))
@@ -106,18 +112,18 @@ export class GraphSearchService {
 
       const projectContext = contextSegments[0] || contextSegments[contextSegments.length - 1];
       if (!projectContext || projectContext.toLowerCase() === folderTitle.toLowerCase()) {
-        return folderTitle || folderName;
+        return { folderTitle: folderTitle || folderName };
       }
 
-      return `${folderTitle || folderName} in ${projectContext}`;
+      return { folderTitle: `${folderTitle || folderName}`, parentFolderName: `${projectContext}` };
     } catch (e) {
-      return folderName || 'Untitled Folder';
+      return { folderTitle: folderName || 'Untitled Folder' };
     }
   }
 
   public async search(
-    query: string, 
-    pageSize: number = 20, 
+    query: string,
+    pageSize: number = 20,
     from: number = 0,
     fileTypes: string[] = [],
     activeTopTab: string = 'All',
@@ -163,8 +169,8 @@ export class GraphSearchService {
     }
 
     if (activeTopTab === 'Folders') {
-      queryString = boostedQuery 
-        ? `(${boostedQuery}) AND (IsContainer:true)` 
+      queryString = boostedQuery
+        ? `(${boostedQuery}) AND (IsContainer:true)`
         : 'IsContainer:true';
     } else if (activeTopTab === 'Files') {
       const docTypes = 'filetype:pdf OR filetype:doc OR filetype:docx OR filetype:xls OR filetype:xlsx OR filetype:csv OR filetype:ppt OR filetype:pptx OR filetype:txt OR filetype:rtf OR filetype:msg OR filetype:zip';
@@ -177,7 +183,7 @@ export class GraphSearchService {
       const vidFilter = '(filetype:mp4 OR filetype:mov OR filetype:avi) AND IsContainer:false AND NOT contentclass:STS_Folder';
       queryString = boostedQuery ? `(${boostedQuery}) AND (${vidFilter})` : vidFilter;
     }
-    
+
     // Add file type filters if present and not "All" (Only if not in Folders tab)
     const actualTypes = fileTypes.filter(t => t !== 'All');
     if (actualTypes.length > 0 && activeTopTab !== 'Folders') {
@@ -403,12 +409,12 @@ export class GraphSearchService {
 
     let results: ISearchResult[] = hits.map((hit: any) => {
       const resource = hit.resource || {};
-      
+
       // Determine file extension cleanlyssss
       let fileType = 'doc';
       const name = resource.name || '';
       const rawUrl = resource.webUrl || '';
-      
+
       // Extract potential extension and validate it looks like a real file extension
       // Real extensions: 2-5 alphanumeric chars, no spaces (e.g., "pdf", "xlsx", "docx")
       // Fake extensions: longer than 5 chars OR contain spaces (e.g., "Working Document" from "6.Working Document")
@@ -419,10 +425,10 @@ export class GraphSearchService {
       const isRealExtension = potentialExt && potentialExt.length >= 2 && potentialExt.length <= 5 && /^[a-z0-9]+$/.test(potentialExt);
       const ext = isRealExtension ? potentialExt : '';
       const hasExtension = ext.length > 0;
-      
-      const isFolder = 
-        !!resource.folder || 
-        rawUrl.includes('/:f:/') || 
+
+      const isFolder =
+        !!resource.folder ||
+        rawUrl.includes('/:f:/') ||
         !hasExtension; // No extension means it is a folder
 
       if (isFolder) {
@@ -456,7 +462,7 @@ export class GraphSearchService {
 
       const getSiteName = (url: string, fallbackUrl: string): string => {
         if (!url) return 'SharePoint Portal';
-        
+
         // Handle OneDrive URLs
         if (url.includes('-my.sharepoint.com') || url.includes('/personal/')) {
           return 'OneDrive';
@@ -471,7 +477,7 @@ export class GraphSearchService {
             return siteMatch[1];
           }
         }
-        
+
         // Handle Root SharePoint Site (e.g. moreyahs.sharepoint.com/Shared Documents)
         if (url.includes('.sharepoint.com')) {
           const hostname = url.split('/')[2];
@@ -488,64 +494,72 @@ export class GraphSearchService {
       if (resource.Author) {
         indexedAuthor = Array.isArray(resource.Author) ? resource.Author[0] : resource.Author;
       }
-      
+
       const createdByName = resource.createdBy?.user?.displayName || '';
       const modifiedByName = resource.lastModifiedBy?.user?.displayName || '';
-      
+
       // author is the SharePoint uploader
       const finalAuthor = createdByName || indexedAuthor || modifiedByName || 'SharePoint User';
-      
+
       // Try to find the original author from either indexedAuthor or lastModifiedBy
       let potentialOriginal = indexedAuthor || modifiedByName;
-      
+
       // Smart Fallback: If MS Graph hides the internal Author property (common for driveItems), 
       // but the user explicitly filtered by an author and this file was returned, 
       // we can deduce that the filtered author MUST be the original embedded author!
       if (selectedAuthors && selectedAuthors.length > 0) {
         const potentialMatchesFilter = potentialOriginal ? selectedAuthors.some(a => a.toLowerCase() === potentialOriginal.toLowerCase()) : false;
         const uploaderMatchesFilter = selectedAuthors.some(a => a.toLowerCase() === createdByName.toLowerCase());
-        
+
         // If neither the known potential original nor the uploader matches the filter, 
         // the filter MUST have matched the hidden embedded author.
         if (!potentialMatchesFilter && !uploaderMatchesFilter) {
           potentialOriginal = selectedAuthors[0];
         }
       }
-      
+
       let origAuthor = '';
       if (potentialOriginal && createdByName && potentialOriginal.trim().toLowerCase() !== createdByName.trim().toLowerCase()) {
         origAuthor = potentialOriginal.trim();
       }
 
-        let cleanWebUrl = getCleanSharePointUrl(resource.webUrl || '', resource.name || '');
-        const isMediaFile = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'mp4', 'mov', 'avi'].includes(fileType);
-        
-        if (isMediaFile && cleanWebUrl.includes('DispForm.aspx')) {
-          const parentPath = resource.parentReference?.path || '';
-          const pathParts = parentPath.split('/drive/root:');
-          const subPath = pathParts.length > 1 && pathParts[1] ? pathParts[1] : '';
-          
-          let libUrl = '';
-          try {
-            const urlObj = new URL(cleanWebUrl);
-            const segments = urlObj.pathname.split('/').filter(Boolean);
-            if (segments.length >= 3 && segments[0].toLowerCase() === 'sites') {
-              libUrl = `${urlObj.origin}/${segments[0]}/${segments[1]}/${segments[2]}`;
-            } else {
-              libUrl = urlObj.origin;
-            }
-          } catch (e) {}
+      let cleanWebUrl = getCleanSharePointUrl(resource.webUrl || '', resource.name || '');
+      const isMediaFile = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'mp4', 'mov', 'avi'].includes(fileType);
 
-          if (libUrl && resource.name) {
-            cleanWebUrl = `${libUrl}${subPath}/${resource.name}`;
+      if (isMediaFile && cleanWebUrl.includes('DispForm.aspx')) {
+        const parentPath = resource.parentReference?.path || '';
+        const pathParts = parentPath.split('/drive/root:');
+        const subPath = pathParts.length > 1 && pathParts[1] ? pathParts[1] : '';
+
+        let libUrl = '';
+        try {
+          const urlObj = new URL(cleanWebUrl);
+          const segments = urlObj.pathname.split('/').filter(Boolean);
+          if (segments.length >= 3 && segments[0].toLowerCase() === 'sites') {
+            libUrl = `${urlObj.origin}/${segments[0]}/${segments[1]}/${segments[2]}`;
+          } else {
+            libUrl = urlObj.origin;
           }
+        } catch (e) { }
+
+        if (libUrl && resource.name) {
+          cleanWebUrl = `${libUrl}${subPath}/${resource.name}`;
         }
+      }
+
+      let folderTitle = resource.name || 'Untitled Document';
+      let parentFolder: string | undefined = undefined;
+
+      if (isFolder) {
+        const folderCtx = this._getFolderContext(cleanWebUrl || resource.webUrl || '', resource.name || 'Untitled Folder');
+        folderTitle = folderCtx.folderTitle;
+        parentFolder = folderCtx.parentFolderName;
+      }
 
       return {
         id: resource.id || hit.hitId || Math.random().toString(),
-        title: isFolder
-          ? this._getFolderContextTitle(cleanWebUrl || resource.webUrl || '', resource.name || 'Untitled Folder')
-          : (resource.name || 'Untitled Document'),
+        title: folderTitle,
+        parentFolder: parentFolder,
         webUrl: cleanWebUrl,
         fileType: fileType,
         lastModified: resource.lastModifiedDateTime || new Date().toISOString(),
@@ -658,29 +672,29 @@ export class GraphSearchService {
     const uniqueNames = Array.from(new Set(names));
     const alphabetic = uniqueNames.filter(name => /^[a-zA-Z]/.test(name.trim().charAt(0)));
     const nonAlphabetic = uniqueNames.filter(name => !/^[a-zA-Z]/.test(name.trim().charAt(0)));
-    
+
     alphabetic.sort((a, b) => a.localeCompare(b));
     nonAlphabetic.sort((a, b) => a.localeCompare(b));
-    
+
     return [...alphabetic, ...nonAlphabetic];
   }
 
   public async getAuthors(query: string = ''): Promise<string[]> {
     try {
       const client: any = await this._msGraphClientFactory.getClient('3');
-      
+
       let url = '/users?$select=displayName&$top=999';
       if (query.trim()) {
         const cleanQuery = query.trim().replace(/'/g, "''");
         url += `&$filter=startsWith(displayName,'${cleanQuery}') or startsWith(givenName,'${cleanQuery}') or startsWith(surname,'${cleanQuery}')`;
       }
-      
+
       const response = await client.api(url).version('v1.0').get();
       const users = response.value || [];
       const names = users
         .map((u: any) => u.displayName)
         .filter((name: string) => name && name.trim().length > 0);
-        
+
       return this.sortAuthorsList(names);
     } catch (error) {
       // Graceful fallback to search for people using MS Graph Search query API
@@ -720,9 +734,9 @@ export class GraphSearchService {
       );
       if (response.ok) {
         const json = await response.json();
-        const rows = json.PrimaryQueryResult?.RelevantResults?.Table?.Rows || 
-                     json.d?.query?.PrimaryQueryResult?.RelevantResults?.Table?.Rows || [];
-        
+        const rows = json.PrimaryQueryResult?.RelevantResults?.Table?.Rows ||
+          json.d?.query?.PrimaryQueryResult?.RelevantResults?.Table?.Rows || [];
+
         const wordsSet = new Set<string>();
         rows.forEach((row: any) => {
           const cells = row.Cells || [];
@@ -732,7 +746,7 @@ export class GraphSearchService {
             if (cell.Key === 'Title') title = cell.Value;
             if (cell.Key === 'Filename') filename = cell.Value;
           });
-          
+
           if (title) {
             title.split(/[\s\-_().]+/).forEach((word: string) => {
               const cleanWord = word.trim();
@@ -767,12 +781,12 @@ export class GraphSearchService {
         .select('displayName')
         .top(100)
         .get();
-      
+
       const people = response.value || [];
       const names = people
         .map((p: any) => p.displayName)
         .filter((name: string) => name && name.trim().length > 0);
-        
+
       return names;
     } catch (error) {
       return [];
@@ -781,21 +795,21 @@ export class GraphSearchService {
 
   public async searchFileSuggestions(query: string, selectedSites: string[] = []): Promise<Array<{ label: string; url: string }>> {
     if (!query || query.length < 2) return [];
-    
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const client: any = await this._msGraphClientFactory.getClient('3');
       // Use the same boosted KQL as main search so suggestions match main results
       let boostedQuery = this._buildBoostedQuery(query);
       if (!boostedQuery) return [];
-      
+
       // Apply site filtering if selectedSites provided (filter to selected site only)
       if (selectedSites && selectedSites.length > 0) {
         const tenantUrl = this._getTenantUrl();
         const siteQueries = selectedSites.map(s => `SPSiteUrl:"${tenantUrl}/sites/${s}"`);
         boostedQuery += ` AND (${siteQueries.join(' OR ')})`;
       }
-      
+
       const searchPayload = {
         requests: [
           {
@@ -806,13 +820,13 @@ export class GraphSearchService {
           }
         ]
       };
-      
+
       const response = await client.api('/search/query').version('v1.0').post(searchPayload);
       const hits = response.value?.[0]?.hitsContainers?.[0]?.hits || [];
-      
+
       const suggestions: Array<{ label: string; url: string }> = [];
       const seen = new Set<string>();
-      
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       hits.forEach((hit: any) => {
         const resource = hit.resource || {};
@@ -821,7 +835,7 @@ export class GraphSearchService {
         if (filename && url) {
           let cleanName = filename.replace(/\.(pdf|docx?|xlsx?|pptx?|png|jpg|jpeg|gif|zip|txt|csv|md)$/i, '');
           cleanName = cleanName.replace(/[_-]/g, ' ').trim();
-          
+
           if (cleanName && cleanName.length > 1) {
             const lower = cleanName.toLowerCase();
             if (!seen.has(lower)) {
@@ -831,7 +845,7 @@ export class GraphSearchService {
           }
         }
       });
-      
+
       return suggestions.slice(0, 5);
     } catch (error) {
       return [];
@@ -1083,11 +1097,11 @@ export class GraphSearchService {
           });
 
           if (hasMatchingUrl || hasMatchingProjectId) {
-            const matchType = hasMatchingUrl && hasMatchingProjectId 
-              ? 'URL + ProjectID' 
-              : hasMatchingUrl 
-              ? 'URL' 
-              : 'ProjectID';
+            const matchType = hasMatchingUrl && hasMatchingProjectId
+              ? 'URL + ProjectID'
+              : hasMatchingUrl
+                ? 'URL'
+                : 'ProjectID';
             const shortUrl = webUrl.replace(/^https?:\/\/[^/]+/, '').substring(0, 50);
             console.log(`âœ“ "${item.Title}" - matched by ${matchType} (${shortUrl})`);
             try {
