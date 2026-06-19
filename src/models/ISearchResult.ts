@@ -10,6 +10,7 @@ export interface ISearchResult {
   summary: string;          // content snippet / description
   siteUrl: string;
   siteName: string;
+  
   isStarred?: boolean;
   thumbnailUrl?: string;       // small (96px) — for result card
   thumbnailUrlLarge?: string;  // large (800px) — for detail panel preview
@@ -22,4 +23,6 @@ export interface ISearchResult {
   authorPhotoUrl?: string;
   libraryUrl?: string;   // Document library root URL e.g. https://tenant.sharepoint.com/sites/Site/Shared%20Documents
   matchedProjectTitle?: string;  // Project title from ProjectsNew list if matched
+  parentFolder?: string;
 }
+
