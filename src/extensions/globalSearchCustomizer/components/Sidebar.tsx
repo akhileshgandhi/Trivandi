@@ -565,7 +565,7 @@ const CustomDateRangePicker: React.FC<{
           value={displayValue}
           className={styles.dateRangeInput}
         />
-        <Calendar size={18} strokeWidth={2.5} className={styles.dateRangeCalendarIcon} />
+        <Calendar size={18} strokeWidth={2.5} color="#1a73e8" className={styles.dateRangeCalendarIcon} />
       </div>
 
       {isOpen && ReactDOM.createPortal(

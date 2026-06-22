@@ -309,7 +309,8 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     setSortBy,
     suggestedQuery,
     correctedQuery,
-    setSkipCorrection
+    setSkipCorrection,
+    refresh
   } = useSearch({
     service: searchService,
     initialQuery: '',
@@ -609,6 +610,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     }
     setSearchQuery(trimmed);
     setQuery(trimmed); // Trigger instantly!
+    refresh(); // Force immediate execution even if query hasn't changed
     setIsHistoryOpen(false);
   };
 
