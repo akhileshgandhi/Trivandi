@@ -396,9 +396,9 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         authorEmail: res.authorEmail,
         driveId: res.driveId,
         itemId: res.itemId,
-        libraryUrl: res.libraryUrl
-        ,
-        matchedProjectTitle: res.matchedProjectTitle
+        libraryUrl: res.libraryUrl,
+        matchedProjectTitle: res.matchedProjectTitle,
+        parentFolder: res.parentFolder
       } as ISearchResult;
     });
   }, [liveResults, starredIds]);

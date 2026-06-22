@@ -321,6 +321,11 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
               accentColor = '#f5b041';
             }
 
+            // DEBUG LOG FOR EACH RESULT
+            if (idx === 0) {
+              console.log("first result inside SearchResultsList:", result);
+            }
+
             return (
               <div
                 key={result.id}
@@ -389,16 +394,13 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                     </div>
                   )}
 
-                  {result.parentFolder && (
-                    <div className={styles.cardProjectHubRow}>
-                      <span>ROOT FOLDER: </span>
-                      <span className={styles.projectHubValue}>{result.parentFolder}</span>
-                    </div>
-                  )}
-
-
+                  {/* <div className={styles.cardProjectHubRow}>
+                    <span>ROOT : </span>
+                    <span className={styles.projectHubValue}>{result.parentFolder || 'N/A'}</span>
+                  </div> */}
 
                 </div>
+
               </div>
             );
           })

@@ -2,6 +2,7 @@
 export const STATIC_BRAND_TERMS: string[] = ["Trivandi", "moreYeahs", "SharePoint"];
 
 
+
 export function getLevenshteinDistance(a: string, b: string): number {
   const tmp: number[][] = [];
   for (let i = 0; i <= a.length; i++) {

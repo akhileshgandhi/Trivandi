@@ -64,15 +64,8 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
     setError(null);
     try {
       let queryToSearch = query;
-      if (!skipCorrection) {
-        console.log('--- [DEBUG] dynamicTerms received in executeSearch ---', dynamicTerms.length, dynamicTerms.slice(0, 20));
-        const brandMatch = fuzzyBrandMatch(query, dynamicTerms);
-        console.log('--- [DEBUG] fuzzyBrandMatch result ---', brandMatch);
-        if (brandMatch) {
-          console.log('--- [DEBUG] Silently using corrected brand query:', brandMatch);
-          queryToSearch = brandMatch;
-        }
-      }
+      // [DISABLED AUTOCORRECT] As requested, the search will never change unexpectedly based on dynamic terms.
+
 
       const res = await service.search(queryToSearch, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, selectedSites, sortBy);
       

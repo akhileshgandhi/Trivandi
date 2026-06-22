@@ -114,7 +114,7 @@ export class GraphSearchService {
       if (!projectContext || projectContext.toLowerCase() === folderTitle.toLowerCase()) {
         return { folderTitle: folderTitle || folderName };
       }
-
+      console.log("project path ", `${folderTitle || folderName}`, `${projectContext}`)
       return { folderTitle: `${folderTitle || folderName}`, parentFolderName: `${projectContext}` };
     } catch (e) {
       return { folderTitle: folderName || 'Untitled Folder' };
@@ -135,12 +135,11 @@ export class GraphSearchService {
     const cacheKey = CacheService.buildKey(
       query, fileTypes, date, selectedAuthors, selectedSites, from, activeTopTab, sortBy
     );
-    const cachedResult = CacheService.get(cacheKey);
-    if (cachedResult) {
-      // console.log('--- [DEBUG] Cache HIT for query:', query);
-      return cachedResult;
-    }
-    // console.log('--- [DEBUG] Cache MISS for query:', query);
+    // [DISABLED CACHE AS PER USER REQUEST]
+    // const cachedResult = CacheService.get(cacheKey);
+    // if (cachedResult) {
+    //   return cachedResult;
+    // }
 
     const client: any = await this._msGraphClientFactory.getClient('3');
 
@@ -548,12 +547,13 @@ export class GraphSearchService {
       }
 
       let folderTitle = resource.name || 'Untitled Document';
-      let parentFolder: string | undefined = undefined;
+
+      // Always calculate folder context to extract the root directory for BOTH files and folders
+      const folderCtx = this._getFolderContext(cleanWebUrl || resource.webUrl || '', resource.name || 'Untitled Document');
+      let parentFolder = folderCtx.parentFolderName;
 
       if (isFolder) {
-        const folderCtx = this._getFolderContext(cleanWebUrl || resource.webUrl || '', resource.name || 'Untitled Folder');
         folderTitle = folderCtx.folderTitle;
-        parentFolder = folderCtx.parentFolderName;
       }
 
       return {
