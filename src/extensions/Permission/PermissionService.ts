@@ -440,7 +440,7 @@ export const checkPermissions = async (context?: any): Promise<void> => {
         } else {
             const allowedSites: string[] = [];
             siteBreakdown.forEach(s => {
-                if (s.role === "Owner" || s.role === "Contributor") {
+                if (s.role === "Owner" || s.role === "Contributor" || s.role === "Viewer") {
                     let mappedPath = "";
                     if (s.siteKey === "CompanyHub") mappedPath = "CompanyHub";
                     else if (s.siteKey === "Projects") mappedPath = "Projects";

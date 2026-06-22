@@ -691,7 +691,10 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
             )}
 
             {/* Main Center Panel (Tabs & Listing Pane) */}
-            <div className={styles.centerContainer}>
+            <div 
+              className={styles.centerContainer}
+              style={{ marginRight: selectedFile ? previewWidth : 0 }}
+            >
               {/* Category Filter Tabs */}
               {bottomTab === 'Search Results' && (
                 <SearchTabs

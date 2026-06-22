@@ -394,10 +394,12 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
                     </div>
                   )}
 
-                  {/* <div className={styles.cardProjectHubRow}>
-                    <span>ROOT : </span>
-                    <span className={styles.projectHubValue}>{result.parentFolder || 'N/A'}</span>
-                  </div> */}
+                  {result.parentFolder && result.parentFolder !== 'N/A' && (
+                    <div className={styles.cardProjectHubRow}>
+                      <span>ROOT : </span>
+                      <span className={styles.projectHubValue}>{result.parentFolder}</span>
+                    </div>
+                  )}
 
                 </div>
 

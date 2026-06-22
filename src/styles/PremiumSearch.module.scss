@@ -95,7 +95,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 0 32px;
   justify-content: space-between;
   flex-shrink: 0;
-  z-index: 50;
+  z-index: 150;
   box-shadow: $shadow-sm;
   position: relative;
 }
@@ -337,6 +337,8 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
   user-select: none;
   box-sizing: border-box;
+  position: relative;
+  z-index: 110;
   
   @media (max-width: 768px) {
     display: none;
@@ -2906,6 +2908,7 @@ $transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: margin-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 // ────────────────────────────────────────────────────────

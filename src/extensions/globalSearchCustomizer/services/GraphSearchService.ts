@@ -41,17 +41,31 @@ export class GraphSearchService {
     const escaped = rawQuery.replace(/["\\]/g, '\\$&');
     const trimmed = escaped.trim();
 
-    // For any query (short or long), search across multiple fields:
-    // Title, Filename, Path, Content, Description, etc.
-    // This makes search much more comprehensive
-    let boostedQuery = [
-      `title:${trimmed}*`,
-      `Filename:${trimmed}*`,
-      `name:${trimmed}*`,
-      `path:${trimmed}*`,
-      `description:${trimmed}*`,
-      `${trimmed}*` // Free-text search across all content
-    ].join(' OR ');
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    let boostedQuery = '';
+
+    if (words.length > 1) {
+      // For multi-word queries, separate terms with AND inside field parentheses to avoid KQL syntax errors.
+      const wildcardGroup = words.map(w => `${w}*`).join(' AND ');
+      boostedQuery = [
+        `title:(${wildcardGroup})`,
+        `Filename:(${wildcardGroup})`,
+        `name:(${wildcardGroup})`,
+        `path:(${wildcardGroup})`,
+        `description:(${wildcardGroup})`,
+        `(${wildcardGroup})`
+      ].join(' OR ');
+    } else {
+      // Single-word query
+      boostedQuery = [
+        `title:${trimmed}*`,
+        `Filename:${trimmed}*`,
+        `name:${trimmed}*`,
+        `path:${trimmed}*`,
+        `description:${trimmed}*`,
+        `${trimmed}*`
+      ].join(' OR ');
+    }
 
     // Also add exact phrase matching for better precision
     boostedQuery = `(${boostedQuery}) OR ("${trimmed}")`;
@@ -149,38 +163,28 @@ export class GraphSearchService {
 
     let queryString = boostedQuery;
     if (!queryString) {
-      if (activeTopTab === 'All') {
-        // IsDocument:1 covers files; IsContainer:true only when boostedQuery present
-        // Without a query, showing all folders is too noisy
-        queryString = '(IsDocument:1 OR filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg OR filetype:mp4 OR filetype:mov OR filetype:avi)';
-      } else {
-        queryString = 'IsDocument:1';
-      }
+      // Graph Search API does NOT support 'IsDocument:1' or 'IsContainer:true' managed properties.
+      // Use '*' as the base query — site Path scoping limits results to the correct sites.
+      queryString = '*';
     }
 
     if (activeTopTab === 'All' && boostedQuery) {
-      // In "All" tab with an active query:
-      // Files + folders that actually match the query in title OR content
-      // Folders must have title match â€” prevents site-name-only folder bleed
-      const folderMatch = `(IsContainer:true AND (${boostedQuery.replace(/\bfiletype:[^\s)]+/g, '')}))`;
-      const fileMatch = `(IsDocument:1 OR filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg OR filetype:mp4 OR filetype:mov OR filetype:avi)`;
-      queryString = `(${boostedQuery}) AND (${fileMatch} OR ${folderMatch})`;
+      // Search broadly across files and folders matching the query.
+      // IsContainer and IsDocument are NOT valid in Graph driveItem search — removed.
+      queryString = `(${boostedQuery})`;
     }
 
     if (activeTopTab === 'Folders') {
-      queryString = boostedQuery
-        ? `(${boostedQuery}) AND (IsContainer:true)`
-        : 'IsContainer:true';
+      queryString = boostedQuery ? `(${boostedQuery})` : '*';
     } else if (activeTopTab === 'Files') {
       const docTypes = 'filetype:pdf OR filetype:doc OR filetype:docx OR filetype:xls OR filetype:xlsx OR filetype:csv OR filetype:ppt OR filetype:pptx OR filetype:txt OR filetype:rtf OR filetype:msg OR filetype:zip';
-      const filesFilter = `IsDocument:1 AND (${docTypes})`;
-      queryString = boostedQuery ? `(${boostedQuery}) AND (${filesFilter})` : filesFilter;
+      queryString = boostedQuery ? `(${boostedQuery}) AND (${docTypes})` : `(${docTypes})`;
     } else if (activeTopTab === 'Images') {
-      const imgFilter = '(filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg) AND IsContainer:false AND NOT contentclass:STS_Folder';
-      queryString = boostedQuery ? `(${boostedQuery}) AND (${imgFilter})` : imgFilter;
+      const imgFilter = '(filetype:png OR filetype:jpg OR filetype:jpeg OR filetype:gif OR filetype:svg)';
+      queryString = boostedQuery ? `(${boostedQuery}) AND ${imgFilter}` : imgFilter;
     } else if (activeTopTab === 'Videos') {
-      const vidFilter = '(filetype:mp4 OR filetype:mov OR filetype:avi) AND IsContainer:false AND NOT contentclass:STS_Folder';
-      queryString = boostedQuery ? `(${boostedQuery}) AND (${vidFilter})` : vidFilter;
+      const vidFilter = '(filetype:mp4 OR filetype:mov OR filetype:avi)';
+      queryString = boostedQuery ? `(${boostedQuery}) AND ${vidFilter}` : vidFilter;
     }
 
     // Add file type filters if present and not "All" (Only if not in Folders tab)
@@ -286,29 +290,35 @@ export class GraphSearchService {
     let activeSites = (selectedSites && selectedSites.length > 0) ? selectedSites : defaultSites;
 
     // Filter activeSites by allowedSites from the permission store (security trimming)
-    const allowedSites = usePermissionStore.getState().allowedSites || [];
-    if (allowedSites.length > 0) {
-      activeSites = activeSites.filter(s => allowedSites.includes(s));
+    // Only apply this trimming when no specific site is selected (letting SharePoint natively handle security trimming for explicitly selected sites)
+    if (!selectedSites || selectedSites.length === 0) {
+      const allowedSites = usePermissionStore.getState().allowedSites || [];
+      if (allowedSites.length > 0) {
+        activeSites = activeSites.filter(s => allowedSites.includes(s));
+      }
     }
 
     if (activeSites.length > 0) {
-      const siteQueries = activeSites.map(s => `SPSiteUrl:"${tenantUrl}/sites/${s}"`);
+      const siteQueries = activeSites.map(s => {
+        if (s === 'TrivandiAustralia') {
+          return `(Path:"${tenantUrl}/sites/TrivandiAustralia*" OR Path:"${tenantUrl}/teams/TrivandiAustralia*" OR Path:"${tenantUrl}/sites/TrivandiAus*" OR Path:"${tenantUrl}/teams/TrivandiAus*" OR Path:"${tenantUrl}/sites/TrivandiAU*" OR Path:"${tenantUrl}/teams/TrivandiAU*" OR Path:"${tenantUrl}/sites/Australia*" OR Path:"${tenantUrl}/teams/Australia*" OR Path:"${tenantUrl}/sites/Trivandi-Australia*" OR Path:"${tenantUrl}/teams/Trivandi-Australia*")`;
+        }
+        return `(Path:"${tenantUrl}/sites/${s}*" OR Path:"${tenantUrl}/teams/${s}*")`;
+      });
       queryString += ` AND (${siteQueries.join(' OR ')})`;
     } else {
       // Exclude all results safely if no sites are allowed
-      queryString += ` AND SPSiteUrl:"https://nonexistent.sharepoint.com/sites/none"`;
+      queryString += ` AND Path:"https://nonexistent.sharepoint.com/sites/none*"`;
     }
 
-    // Globally exclude developer and system files from all searches
-    const excludedTypes = ['md', 'ts', 'jsx', 'json', 'cmd', 'js', 'java', 'css', 'html', 'scss', 'xml', 'yml', 'yaml', 'env', 'sh', 'bat', 'py', 'sql'];
-    queryString += ` ${excludedTypes.map(ext => `-filetype:${ext}`).join(' ')}`;
-
-    // Globally exclude OneDrive personal sites
-    const mySiteUrl = tenantUrl.replace('.sharepoint.com', '-my.sharepoint.com');
-    queryString += ` -Path:"${mySiteUrl}*"`;
+    // NOTE: Do NOT use -filetype: or -Path: exclusions here.
+    // The Microsoft Graph /search/query API does NOT support KQL minus-prefix exclusion syntax
+    // (e.g. -filetype:json or -Path:...). Using them causes a FanoutDownstreamContradiction 500 error.
+    // Site scoping via AND (Path:"...sites/X*") already limits results to the correct sites,
+    // which naturally excludes OneDrive and unrelated content.
 
     const expandedQuery = expandQuery(queryString);
-    // console.log('--- [DEBUG] Expanded Query ---', expandedQuery);
+    console.log('--- [DEBUG] Expanded Query ---', expandedQuery);
 
     // Build Graph Search POST payload according to Microsoft Graph Search API guidelines
     const searchPayload: any = {
@@ -334,10 +344,9 @@ export class GraphSearchService {
             'folder',
             'Author'
           ],
-          queryAlterationOptions: {
-            enableSuggestion: true,
-            enableModification: true
-          }
+          // NOTE: queryAlterationOptions (enableSuggestion/enableModification) removed intentionally.
+          // These options cause 500 FanoutDownstreamContradiction errors in Graph API
+          // when combined with site-scoped Path: filters on driveItem searches.
         }
       ]
     };
@@ -362,47 +371,39 @@ export class GraphSearchService {
     }
 
 
-    // console.log('--- [DEBUG] Raw Search Query input ---', query);
-    // console.log('--- [DEBUG] Active Top Tab ---', activeTopTab);
-    // console.log('--- [DEBUG] File Type Filters ---', fileTypes);
-    // console.log('--- [DEBUG] Date Filter ---', date);
-    // console.log('--- [DEBUG] Final Constructed KQL QueryString ---', queryString);
-
+    console.log('--- [DEBUG] Raw Search Query input ---', query);
+    console.log('--- [DEBUG] Selected Sites ---', selectedSites);
+    console.log('--- [DEBUG] Active Sites used in query ---', (selectedSites && selectedSites.length > 0) ? selectedSites : 'defaultSites');
+    console.log('--- [DEBUG] Active Top Tab ---', activeTopTab);
+    console.log('--- [DEBUG] File Type Filters ---', fileTypes);
+    console.log('--- [DEBUG] Date Filter ---', date);
+    console.log('--- [DEBUG] Final Constructed KQL QueryString ---', queryString);
+    console.log('--- [DEBUG] Expanded Query (sent to Graph) ---', expandedQuery);
+    console.log('--- [DEBUG] Search Payload ---', JSON.stringify(searchPayload, null, 2));
 
     let response: any;
     try {
-      response = await RetryService.withRetry(() =>
-        client
-          .api('/search/query')
-          .version('v1.0')
-          .post(searchPayload)
-      );
-
-    } catch (error) {
-      throw error;
+      response = await client
+        .api('/search/query')
+        .version('v1.0')
+        .post(searchPayload);
+      console.log('--- [DEBUG] Search Response ---', response);
+    } catch (error: any) {
+      // Graph Search 500 errors can occur when a site isn't indexed yet or when
+      // the search engine cannot fan out to a private M365 Group site.
+      // Return empty results instead of crashing the UI.
+      const statusCode = error?.statusCode || error?.status || 0;
+      console.warn('--- [DEBUG] Search Failed (returning empty) ---', statusCode, error?.message);
+      return { results: [], totalCount: 0 };
     }
 
+    
     // Parse response objects
     const searchResponse = response.value?.[0];
     const hitsContainer = searchResponse?.hitsContainers?.[0];
     const totalCount = hitsContainer?.total || 0;
     const hits = hitsContainer?.hits || [];
-    // If we got zero results, probe with a fallback query that removes site-scoping
-    if (totalCount === 0) {
-      try {
-        const expandedQueryNoSite = expandedQuery.replace(/\s+AND\s+\([^)]*SPSiteUrl:[^)]*\)/gi, '');
-        if (expandedQueryNoSite && expandedQueryNoSite !== expandedQuery) {
-          const probePayload = { ...searchPayload, requests: [{ ...searchPayload.requests[0], query: { queryString: expandedQueryNoSite } }] };
-          try {
-            const probeResp = await client.api('/search/query').version('v1.0').post(probePayload);
-          } catch (e) {
-            // probe search failed
-          }
-        }
-      } catch (e) {
-        // error constructing probe query
-      }
-    }
+    // (probe search removed — was a dead debug call that added extra API calls)
     // console.log('--- [DEBUG] Parsed Hits Count from MS Graph ---', hits.length);
     // console.log('--- [DEBUG] Total Results Count from MS Graph Index ---', totalCount);
 
@@ -462,31 +463,50 @@ export class GraphSearchService {
       const getSiteName = (url: string, fallbackUrl: string): string => {
         if (!url) return 'SharePoint Portal';
 
+        let rawSiteName = '';
+
         // Handle OneDrive URLs
         if (url.includes('-my.sharepoint.com') || url.includes('/personal/')) {
           return 'OneDrive';
         }
 
-        // Try extracting from /sites/SiteName
-        const siteMatch = url.match(/\/sites\/([^/]+)/i);
+        // Try extracting from /sites/SiteName or /teams/SiteName
+        const siteMatch = url.match(/\/(?:sites|teams)\/([^/]+)/i);
         if (siteMatch && siteMatch[1]) {
           try {
-            return decodeURIComponent(siteMatch[1]);
+            rawSiteName = decodeURIComponent(siteMatch[1]);
           } catch (e) {
-            return siteMatch[1];
+            rawSiteName = siteMatch[1];
           }
-        }
-
-        // Handle Root SharePoint Site (e.g. moreyahs.sharepoint.com/Shared Documents)
-        if (url.includes('.sharepoint.com')) {
+        } else if (url.includes('.sharepoint.com')) {
+          // Handle Root SharePoint Site (e.g. moreyahs.sharepoint.com/Shared Documents)
           const hostname = url.split('/')[2];
           if (hostname && !hostname.includes('-my.sharepoint.com')) {
-            return 'Main Portal';
+            rawSiteName = 'Main Portal';
           }
         }
 
-        // Fallback
-        return fallbackUrl?.split('/').pop() || 'SharePoint Portal';
+        if (!rawSiteName) {
+          rawSiteName = fallbackUrl?.split('/').pop() || 'SharePoint Portal';
+        }
+
+        // Map known site names to UI friendly names
+        const siteNameMapping: { [key: string]: string } = {
+          'companyhub': 'Company Hub',
+          'trivandihub': 'Trivandi Hub',
+          'peoplehub': 'People Hub',
+          'brandingmarketing': 'Marketing',
+          'trivandilondon': 'Trivandi London',
+          'trivandiusa': 'Trivandi USA',
+          'trivandiaustralia': 'Trivandi Australia',
+          'trivandiaus': 'Trivandi Australia',
+          'trivandiau': 'Trivandi Australia',
+          'australia': 'Trivandi Australia',
+          'trivandiksa': 'Trivandi KSA'
+        };
+
+        const friendlyName = siteNameMapping[rawSiteName.toLowerCase()];
+        return friendlyName || rawSiteName;
       };
 
       let indexedAuthor = '';
@@ -534,7 +554,7 @@ export class GraphSearchService {
         try {
           const urlObj = new URL(cleanWebUrl);
           const segments = urlObj.pathname.split('/').filter(Boolean);
-          if (segments.length >= 3 && segments[0].toLowerCase() === 'sites') {
+          if (segments.length >= 3 && (segments[0].toLowerCase() === 'sites' || segments[0].toLowerCase() === 'teams')) {
             libUrl = `${urlObj.origin}/${segments[0]}/${segments[1]}/${segments[2]}`;
           } else {
             libUrl = urlObj.origin;
@@ -591,7 +611,7 @@ export class GraphSearchService {
         if (res.webUrl) {
           const urlObj = new URL(res.webUrl);
           const pathSegments = urlObj.pathname.split('/').filter(Boolean);
-          if (pathSegments.length >= 3 && pathSegments[0].toLowerCase() === 'sites') {
+          if (pathSegments.length >= 3 && (pathSegments[0].toLowerCase() === 'sites' || pathSegments[0].toLowerCase() === 'teams')) {
             const libPath = `/${pathSegments[0]}/${pathSegments[1]}/${pathSegments[2]}`;
             res.libraryUrl = `${urlObj.origin}${libPath}`;
           } else {
@@ -806,7 +826,7 @@ export class GraphSearchService {
       // Apply site filtering if selectedSites provided (filter to selected site only)
       if (selectedSites && selectedSites.length > 0) {
         const tenantUrl = this._getTenantUrl();
-        const siteQueries = selectedSites.map(s => `SPSiteUrl:"${tenantUrl}/sites/${s}"`);
+        const siteQueries = selectedSites.map(s => `Path:"${tenantUrl}/sites/${s}*"`);
         boostedQuery += ` AND (${siteQueries.join(' OR ')})`;
       }
 

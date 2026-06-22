@@ -115,6 +115,8 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
       }
     } catch (err: any) {
       console.error('--- [DEBUG hook] Error executing Graph Search in hook ---', err);
+      setResults([]);
+      setTotalCount(0);
       if (err?.statusCode === 429 || (err?.message && err.message.includes('429'))) {
         setError('Too many requests. Please wait a moment before searching again.');
       } else {

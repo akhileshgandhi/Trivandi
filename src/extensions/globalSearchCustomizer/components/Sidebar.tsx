@@ -6,19 +6,30 @@ import { IFiltersPanelProps } from '../interface/IFiltersPanelProps';
 import { loadAdminConfig } from '../interface/IAdminPanelProps';
 
 const getSiteId = (label: string): string => {
+  const clean = (label || '').trim().toLowerCase();
   const mapping: { [key: string]: string } = {
-    'Intranet': 'TrivandiHub',
-    'People': 'PeopleHub',
-    'Company': 'CompanyHub',
-    'Marketing': 'BrandingMarketing',
-    'Projects': 'Projects',
-    'Trivandi London': 'TrivandiLondon',
-    'TDMCC': 'TDMCC',
-    'Trivandi USA': 'TrivandiUSA',
-    'Trivandi Australia': 'TrivandiAustralia',
-    'Trivandi KSA': 'TrivandiKSA',
+    'intranet': 'TrivandiHub',
+    'trivandihub': 'TrivandiHub',
+    'people': 'PeopleHub',
+    'peoplehub': 'PeopleHub',
+    'company': 'CompanyHub',
+    'companyhub': 'CompanyHub',
+    'marketing': 'BrandingMarketing',
+    'brandingmarketing': 'BrandingMarketing',
+    'branding & marketing': 'BrandingMarketing',
+    'branding and marketing': 'BrandingMarketing',
+    'projects': 'Projects',
+    'trivandi london': 'TrivandiLondon',
+    'trivandilondon': 'TrivandiLondon',
+    'tdmcc': 'TDMCC',
+    'trivandi usa': 'TrivandiUSA',
+    'trivandiusa': 'TrivandiUSA',
+    'trivandi australia': 'TrivandiAustralia',
+    'trivandiaustralia': 'TrivandiAustralia',
+    'trivandi ksa': 'TrivandiKSA',
+    'trivandiksa': 'TrivandiKSA',
   };
-  return mapping[label] || label.replace(/\s+/g, '');
+  return mapping[clean] || label.replace(/\s+/g, '');
 };
 
 // const SITES = [
