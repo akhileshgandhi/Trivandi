@@ -321,10 +321,6 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
               accentColor = '#f5b041';
             }
 
-            // DEBUG LOG FOR EACH RESULT
-            if (idx === 0) {
-              console.log("first result inside SearchResultsList:", result);
-            }
 
             return (
               <div
@@ -410,7 +406,7 @@ export const SearchResultsList: React.FC<ISearchResultsListProps> = ({
       </div>
 
       {/* Pagination controls footer */}
-      {!isLoading && resultsToRender.length > 0 && bottomTab === 'Search Results' && (
+      {!isLoading && resultsToRender.length > 0 && bottomTab === 'Search Results' && totalCountToRender > 10 && (
         <footer className={styles.pagination}>
           <span className={styles.paginationInfo}>
             PAGE {Math.floor(from / 10) + 1} <span className={styles.infoDivider}>|</span> SHOWING <span className={styles.infoHighlight}>{from + 1}-{from + resultsToRender.length}</span> OF <span className={styles.infoHighlight}>{totalCountToRender}</span>

@@ -13,6 +13,7 @@ export interface IPermissionState {
     isViewer: boolean;
     isLoading: boolean;
     allowedSites: string[];
+    siteRoles?: { [siteKey: string]: UserRole };
     setPermissions: (permissions: Partial<IPermissionState>) => void;
     reset: () => void;
 }
@@ -28,6 +29,7 @@ export const usePermissionStore = create<IPermissionState>((set) => ({
     isViewer: false,
     isLoading: true,
     allowedSites: [],
+    siteRoles: {},
     setPermissions: (permissions) => set((state) => ({ ...state, ...permissions })),
     reset: () => set({ 
         role: 'None', 
@@ -39,6 +41,7 @@ export const usePermissionStore = create<IPermissionState>((set) => ({
         isContributor: false, 
         isViewer: false, 
         isLoading: true,
-        allowedSites: []
+        allowedSites: [],
+        siteRoles: {}
     }),
 }));

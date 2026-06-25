@@ -45,7 +45,7 @@ export const DetailPanel: React.FC<IDetailPanelProps> = ({ selectedFile, searchQ
         }
       }
     } catch (e) {
-      console.warn('Failed to get native webUrl', e);
+      // fallback
     } finally {
       setIsOpeningPreview(false);
     }

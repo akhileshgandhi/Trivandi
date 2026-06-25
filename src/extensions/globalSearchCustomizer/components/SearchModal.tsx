@@ -112,14 +112,18 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     } catch (e) { return new Set(); }
   });
 
-  const addRecentFile = (file: ISearchResult): void => {
+  const addRecentFile = React.useCallback((file: ISearchResult): void => {
     setRecentlyViewedFiles(prev => {
+      if (prev.length > 0 && prev[0].id === file.id) {
+        return prev;
+      }
       const filtered = prev.filter(f => f.id !== file.id);
       const updated = [file, ...filtered].slice(0, 30);
       try { sessionStorage.setItem('trivandi_recent_files_data', JSON.stringify(updated)); } catch (e) { /* ignored */ }
       return updated;
     });
-  };
+  }, []);
+
 
   const toggleStar = (file: ISearchResult): void => {
     setStarredIds(prev => {
@@ -164,17 +168,11 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         );
         if (response.ok) {
           const json = await response.json();
-          console.log("[DEBUG ADMIN] json:", json);
           const permissions = json.EffectiveBasePermissions || json.d?.EffectiveBasePermissions || json;
-          console.log("[DEBUG ADMIN] permissions:", permissions);
           const high = permissions.High ? parseInt(permissions.High) : 0;
-          console.log("[DEBUG ADMIN] high parsed:", high, "isAdmin set to:", high >= 432);
           setIsAdmin(high >= 432);
-        } else {
-          console.log("[DEBUG ADMIN] response not ok:", response.status);
         }
       } catch (e) {
-        console.error("[DEBUG ADMIN] error checking admin status:", e);
         setIsAdmin(false);
       }
     };
@@ -226,7 +224,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           }));
         }
       } catch (e) {
-        console.error('[SearchModal] Failed to load sites from SP list, falling back', e);
+        // failed quietly
       }
 
       try {
@@ -238,7 +236,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           }));
         }
       } catch (e) {
-        console.error('[SearchModal] Failed to load file types from SP list, falling back', e);
+        // failed quietly
       }
 
       try {
@@ -250,7 +248,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
           }));
         }
       } catch (e) {
-        console.error('[SearchModal] Failed to load date filters from SP list, falling back', e);
+        // failed quietly
       }
     };
 
@@ -486,11 +484,15 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
     return filteredLiveResults;
   }, [bottomTab, recentlyViewedFiles, starredFiles, filteredLiveResults, starredIds]);
 
+  // Ref to track the last processed file selection to prevent infinite loop/redundant analytics tracking
+  const lastSelectedFileIdRef = React.useRef<string | null>(null);
+
   // Track selectedFileId change to push clicked files into recentlyViewedFiles via store action and register clicks in analytics
   useEffect(() => {
-    if (selectedFileId) {
+    if (selectedFileId && selectedFileId !== lastSelectedFileIdRef.current) {
       const fileObj = resultsToRender.find(f => f.id === selectedFileId);
       if (fileObj) {
+        lastSelectedFileIdRef.current = selectedFileId;
         addRecentFile(fileObj);
         // Track the click in analytics
         SearchAnalyticsService.trackCardClick(fileObj.id, fileObj.title, fileObj.webUrl);
@@ -498,6 +500,8 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         setAnalyticsTrigger(prev => prev + 1);
       }
+    } else if (!selectedFileId) {
+      lastSelectedFileIdRef.current = null;
     }
   }, [selectedFileId, resultsToRender, addRecentFile]);
 
@@ -693,7 +697,7 @@ export default function SearchModal({ context, isOpen, onDismiss }: ISearchModal
             )}
 
             {/* Main Center Panel (Tabs & Listing Pane) */}
-            <div 
+            <div
               className={styles.centerContainer}
               style={{ marginRight: selectedFile ? previewWidth : 0 }}
             >

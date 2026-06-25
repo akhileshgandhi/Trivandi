@@ -128,7 +128,6 @@ export class GraphSearchService {
       if (!projectContext || projectContext.toLowerCase() === folderTitle.toLowerCase()) {
         return { folderTitle: folderTitle || folderName };
       }
-      console.log("project path ", `${folderTitle || folderName}`, `${projectContext}`)
       return { folderTitle: `${folderTitle || folderName}`, parentFolderName: `${projectContext}` };
     } catch (e) {
       return { folderTitle: folderName || 'Untitled Folder' };
@@ -175,7 +174,7 @@ export class GraphSearchService {
     }
 
     if (activeTopTab === 'Folders') {
-      queryString = boostedQuery ? `(${boostedQuery})` : '*';
+      queryString = boostedQuery ? `(${boostedQuery}) AND ContentTypeId:0x0120*` : 'ContentTypeId:0x0120*';
     } else if (activeTopTab === 'Files') {
       const docTypes = 'filetype:pdf OR filetype:doc OR filetype:docx OR filetype:xls OR filetype:xlsx OR filetype:csv OR filetype:ppt OR filetype:pptx OR filetype:txt OR filetype:rtf OR filetype:msg OR filetype:zip';
       queryString = boostedQuery ? `(${boostedQuery}) AND (${docTypes})` : `(${docTypes})`;
@@ -318,7 +317,6 @@ export class GraphSearchService {
     // which naturally excludes OneDrive and unrelated content.
 
     const expandedQuery = expandQuery(queryString);
-    console.log('--- [DEBUG] Expanded Query ---', expandedQuery);
 
     // Build Graph Search POST payload according to Microsoft Graph Search API guidelines
     const searchPayload: any = {
@@ -371,15 +369,7 @@ export class GraphSearchService {
     }
 
 
-    console.log('--- [DEBUG] Raw Search Query input ---', query);
-    console.log('--- [DEBUG] Selected Sites ---', selectedSites);
-    console.log('--- [DEBUG] Active Sites used in query ---', (selectedSites && selectedSites.length > 0) ? selectedSites : 'defaultSites');
-    console.log('--- [DEBUG] Active Top Tab ---', activeTopTab);
-    console.log('--- [DEBUG] File Type Filters ---', fileTypes);
-    console.log('--- [DEBUG] Date Filter ---', date);
-    console.log('--- [DEBUG] Final Constructed KQL QueryString ---', queryString);
-    console.log('--- [DEBUG] Expanded Query (sent to Graph) ---', expandedQuery);
-    console.log('--- [DEBUG] Search Payload ---', JSON.stringify(searchPayload, null, 2));
+
 
     let response: any;
     try {
@@ -387,13 +377,7 @@ export class GraphSearchService {
         .api('/search/query')
         .version('v1.0')
         .post(searchPayload);
-      console.log('--- [DEBUG] Search Response ---', response);
     } catch (error: any) {
-      // Graph Search 500 errors can occur when a site isn't indexed yet or when
-      // the search engine cannot fan out to a private M365 Group site.
-      // Return empty results instead of crashing the UI.
-      const statusCode = error?.statusCode || error?.status || 0;
-      console.warn('--- [DEBUG] Search Failed (returning empty) ---', statusCode, error?.message);
       return { results: [], totalCount: 0 };
     }
 
@@ -401,7 +385,7 @@ export class GraphSearchService {
     // Parse response objects
     const searchResponse = response.value?.[0];
     const hitsContainer = searchResponse?.hitsContainers?.[0];
-    const totalCount = hitsContainer?.total || 0;
+    let totalCount = hitsContainer?.total || 0;
     const hits = hitsContainer?.hits || [];
     // (probe search removed — was a dead debug call that added extra API calls)
     // console.log('--- [DEBUG] Parsed Hits Count from MS Graph ---', hits.length);
@@ -595,6 +579,70 @@ export class GraphSearchService {
         relevanceScore: hit.rank ?? 0
       };
     });
+
+    // Security trimming: filter out restricted libraries for non-Contributor/Owner users
+    const siteRoles = usePermissionStore.getState().siteRoles || {};
+    
+    // 1. BrandingMarketing -> MarketingPrivate
+    const marketingRole = siteRoles['BrandingMarketing'] || 'None';
+    const isContributorOrOwnerOnMarketing = marketingRole === 'Owner' || marketingRole === 'Contributor';
+
+    // 2. PeopleHub -> PeopleDocs
+    const peopleRole = siteRoles['PeopleHub'] || 'None';
+    const isContributorOrOwnerOnPeople = peopleRole === 'Owner' || peopleRole === 'Contributor';
+
+    // 3. CompanyHub -> CompanyPrivate*
+    const companyRole = siteRoles['CompanyHub'] || 'None';
+    const isContributorOrOwnerOnCompany = companyRole === 'Owner' || companyRole === 'Contributor';
+
+    const privateCompanyLibraries = [
+      'companyprivateaustralia',
+      'companyprivatelondon',
+      'companyprivateksa',
+      'companyprivatedubai',
+      'companyprivateusa'
+    ];
+
+    if (!isContributorOrOwnerOnMarketing || !isContributorOrOwnerOnPeople || !isContributorOrOwnerOnCompany) {
+      const originalLength = results.length;
+      results = results.filter(r => {
+        const pathLower = (r.webUrl || '').toLowerCase();
+        const rootFolderLower = (r.parentFolder || '').toLowerCase();
+        
+        // Check BrandingMarketing - MarketingPrivate
+        if (!isContributorOrOwnerOnMarketing) {
+          const isMarketingSite = pathLower.includes('/sites/brandingmarketing') || pathLower.includes('/teams/brandingmarketing');
+          const isPrivate = pathLower.includes('/marketingprivate/') || pathLower.endsWith('/marketingprivate') || rootFolderLower === 'marketingprivate' || rootFolderLower.includes('marketingprivate');
+          if (isMarketingSite && isPrivate) {
+            return false;
+          }
+        }
+        
+        // Check PeopleHub - PeopleDocs
+        if (!isContributorOrOwnerOnPeople) {
+          const isPeopleSite = pathLower.includes('/sites/peoplehub') || pathLower.includes('/teams/peoplehub');
+          const isPrivatePeople = pathLower.includes('/peopledocs/') || pathLower.endsWith('/peopledocs') || rootFolderLower === 'peopledocs' || rootFolderLower.includes('peopledocs');
+          if (isPeopleSite && isPrivatePeople) {
+            return false;
+          }
+        }
+
+        // Check CompanyHub - CompanyPrivate*
+        if (!isContributorOrOwnerOnCompany) {
+          const isCompanySite = pathLower.includes('/sites/companyhub') || pathLower.includes('/teams/companyhub');
+          const isPrivateCompany = privateCompanyLibraries.some(lib => 
+            pathLower.includes(`/${lib}/`) || pathLower.endsWith(`/${lib}`) || rootFolderLower === lib || rootFolderLower.includes(lib)
+          );
+          if (isCompanySite && isPrivateCompany) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+      const removedCount = originalLength - results.length;
+      totalCount = Math.max(0, totalCount - removedCount);
+    }
 
     // Block 1 - Thumbnail + LibraryUrl (no API)
     results = results.map((res) => {
@@ -1117,13 +1165,6 @@ export class GraphSearchService {
           });
 
           if (hasMatchingUrl || hasMatchingProjectId) {
-            const matchType = hasMatchingUrl && hasMatchingProjectId
-              ? 'URL + ProjectID'
-              : hasMatchingUrl
-                ? 'URL'
-                : 'ProjectID';
-            const shortUrl = webUrl.replace(/^https?:\/\/[^/]+/, '').substring(0, 50);
-            console.log(`âœ“ "${item.Title}" - matched by ${matchType} (${shortUrl})`);
             try {
               const cacheKeyForUrl = `projectTitle|${normalizeUrl(absoluteUrl || '')}`;
               CacheService.set(cacheKeyForUrl, item.Title, CacheService.TTL.SITE_META);
@@ -1138,8 +1179,6 @@ export class GraphSearchService {
       // error querying ProjectsNew
     }
 
-    const shortUrl = webUrl.replace(/^https?:\/\/[^/]+/, '').substring(0, 50);
-    console.log(`âœ— No match for URL: ${shortUrl}`);
     return null;
   }
 }

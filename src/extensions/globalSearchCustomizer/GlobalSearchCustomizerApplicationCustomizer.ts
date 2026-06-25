@@ -98,10 +98,6 @@ export default class GlobalSearchCustomizerApplicationCustomizer
             const currentUrl = window.location.href.toLowerCase();
             const isAllowedSite = ALLOWED_SITES.some(site => currentUrl.includes(site.toLowerCase()));
             const isLibraryOrDocPage = currentUrl.includes('/forms/') || currentUrl.includes('/allitems.aspx');
-            
-            console.log(`[GlobalSearchCustomizer] Search box clicked. Current URL: ${currentUrl}`);
-            console.log(`[GlobalSearchCustomizer] Is Allowed Site? ${isAllowedSite}`);
-
             if (!isAllowedSite) {
               return; // Let default SharePoint search handle it natively
             }

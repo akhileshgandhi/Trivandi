@@ -7,7 +7,7 @@ import "@pnp/sp/site-users/web";
 
 import "@pnp/sp/site-groups/web";
 
-import { usePermissionStore } from "./PermissionStore";
+import { usePermissionStore, UserRole } from "./PermissionStore";
 
 
 
@@ -267,22 +267,41 @@ export const checkPermissions = async (context?: any): Promise<void> => {
         const groupNames = (groups || []).map((g: any) => (g?.Title || "").toLowerCase()).filter(Boolean);
         const isSiteAdmin = currentUser?.IsSiteAdmin || false;
 
+        // Dynamically find all owner, contributor, and viewer groups on the current site based on hardcoded lists and keywords
+        const siteOwnerGroups: string[] = [];
+        const siteContributorGroups: string[] = [];
+        const siteViewerGroups: string[] = [];
+
+        (allSiteGroups || []).forEach((g: any) => {
+            const title = g?.Title || "";
+            const lower = title.toLowerCase();
+            if (!lower) return;
+
+            if (OWNER_GROUP.some(og => og.toLowerCase() === lower) || lower.includes("owners") || lower.includes("owner")) {
+                siteOwnerGroups.push(title);
+            } else if (CONTRIBUTOR_GROUP.some(cg => cg.toLowerCase() === lower) || lower.includes("members") || lower.includes("member") || lower.includes("contributor") || lower.includes("contributors") || lower.includes("contributer")) {
+                siteContributorGroups.push(title);
+            } else if (VIEWER_GROUP.some(vg => vg.toLowerCase() === lower) || lower.includes("visitors") || lower.includes("visitor") || lower.includes("viewers") || lower.includes("viewer")) {
+                siteViewerGroups.push(title);
+            }
+        });
+
         // ✅ SP ROLE
         let spRole: "Owner" | "Contributor" | "Viewer" | "None" = "None";
 
-        const isOwnerMember = OWNER_GROUP.some(g => groupNames.includes(g.toLowerCase()));
-        const isContributorMember = CONTRIBUTOR_GROUP.some(g => groupNames.includes(g.toLowerCase()));
-        const isViewerMember = VIEWER_GROUP.some(g => groupNames.includes(g.toLowerCase()));
+        const isOwnerMember = groupNames.some(g => siteOwnerGroups.some(sog => sog.toLowerCase() === g));
+        const isContributorMember = groupNames.some(g => siteContributorGroups.some(scg => scg.toLowerCase() === g));
+        const isViewerMember = groupNames.some(g => siteViewerGroups.some(svg => svg.toLowerCase() === g));
 
         const matchedSPGroups: string[] = [];
-        OWNER_GROUP.forEach(g => {
-            if (groupNames.includes(g.toLowerCase())) matchedSPGroups.push(g);
-        });
-        CONTRIBUTOR_GROUP.forEach(g => {
-            if (groupNames.includes(g.toLowerCase())) matchedSPGroups.push(g);
-        });
-        VIEWER_GROUP.forEach(g => {
-            if (groupNames.includes(g.toLowerCase())) matchedSPGroups.push(g);
+        groupNames.forEach(g => {
+            const matchedOwner = siteOwnerGroups.find(sog => sog.toLowerCase() === g);
+            const matchedContrib = siteContributorGroups.find(scg => scg.toLowerCase() === g);
+            const matchedViewer = siteViewerGroups.find(svg => svg.toLowerCase() === g);
+            const match = matchedOwner || matchedContrib || matchedViewer;
+            if (match) {
+                matchedSPGroups.push(match);
+            }
         });
 
         if (isSiteAdmin || isOwnerMember) {
@@ -295,9 +314,9 @@ export const checkPermissions = async (context?: any): Promise<void> => {
 
         // 🔹 2. AAD → SP group mapping (Check Nesting First)
         const [inOwner, inContributor, inViewer] = await Promise.all([
-            isAnyAADGroupInSPGroups(sp, OWNER_GROUP, siteGroupTitles),
-            isAnyAADGroupInSPGroups(sp, CONTRIBUTOR_GROUP, siteGroupTitles),
-            isAnyAADGroupInSPGroups(sp, VIEWER_GROUP, siteGroupTitles)
+            isAnyAADGroupInSPGroups(sp, siteOwnerGroups, siteGroupTitles),
+            isAnyAADGroupInSPGroups(sp, siteContributorGroups, siteGroupTitles),
+            isAnyAADGroupInSPGroups(sp, siteViewerGroups, siteGroupTitles)
         ]);
 
         const hasNesting = inOwner || inContributor || inViewer;
@@ -390,6 +409,8 @@ export const checkPermissions = async (context?: any): Promise<void> => {
             ]);
 
             const userInAAD = allUserAADGroups.some(g => g.id === site.aadGroupId);
+            const matchingAADGroup = allUserAADGroups.find(g => g.id === site.aadGroupId);
+            const aadGroupName = matchingAADGroup ? (matchingAADGroup.displayName || matchingAADGroup.id) : "";
             const matchedAADGroupsForSite: string[] = [];
 
             if (userInAAD) {
@@ -419,6 +440,7 @@ export const checkPermissions = async (context?: any): Promise<void> => {
                 matchedAADGroups: matchedAADGroupsForSite,
                 configuredAADId: site.aadGroupId,
                 userInAAD,
+                aadGroupName,
                 nestingInSP: inOwnerG || inContributorG || inViewerG
             };
         }));
@@ -464,6 +486,20 @@ export const checkPermissions = async (context?: any): Promise<void> => {
         //     'PembePortal'
         // ];
 
+        const siteRoles: { [siteKey: string]: UserRole } = {};
+        siteBreakdown.forEach(s => {
+            let mappedPath = "";
+            if (s.siteKey === "CompanyHub") mappedPath = "CompanyHub";
+            else if (s.siteKey === "Projects") mappedPath = "Projects";
+            else if (s.siteKey === "TrivandiHub") mappedPath = "TrivandiHub";
+            else if (s.siteKey === "Branding & Marketing") mappedPath = "BrandingMarketing";
+            else if (s.siteKey === "PeopleHub") mappedPath = "PeopleHub";
+            
+            if (mappedPath) {
+                siteRoles[mappedPath] = s.role;
+            }
+        });
+
         const permissions = {
             role,
             canAdd: isContributor,
@@ -474,7 +510,8 @@ export const checkPermissions = async (context?: any): Promise<void> => {
             isContributor,
             isViewer,
             isLoading: false,
-            allowedSites: finalAllowedSites
+            allowedSites: finalAllowedSites,
+            siteRoles
         };
 
         // 📊 CONSOLIDATED PERMISSIONS SUMMARY
@@ -495,13 +532,25 @@ export const checkPermissions = async (context?: any): Promise<void> => {
         
         console.log("🏢 --- SITE-BY-SITE ROLES BREAKDOWN ---");
         siteBreakdown.forEach(s => {
-            const allMatches = [...s.matchedSPGroups, ...s.matchedAADGroups];
-            const detail = allMatches.length > 0 ? allMatches.join(", ") : "No groups match";
-            const userInAADStr = s.userInAAD ? "Yes" : "No";
-            const nestingInSPStr = s.nestingInSP ? "Yes" : "No";
+            console.log(`  📍 %c${s.siteKey}: %c${s.role}`, "font-weight: bold; color: #1e293b;", `font-weight: bold; color: ${s.role === 'None' ? '#dc2626' : s.role === 'Owner' ? '#16a34a' : '#2563eb'}`);
+            console.log(`     ├─ Configured AAD Group ID: %c${s.configuredAADId}`, "color: #7c3aed;");
             
-            console.log(`  📍 %c${s.siteKey}: %c${s.role} %c(${detail})`, "font-weight: bold; color: #1e293b;", `font-weight: bold; color: ${s.role === 'None' ? '#64748b' : s.role === 'Owner' ? '#16a34a' : '#2563eb'}`, "color: #64748b;");
-            console.log(`     └─ Configured AAD ID: %c${s.configuredAADId}%c | User Member: %c${userInAADStr}%c | SP Nesting Active: %c${nestingInSPStr}`, "color: #7c3aed;", "color: #64748b;", `color: ${s.userInAAD ? "#16a34a" : "#dc2626"}; font-weight: bold;`, "color: #64748b;", `color: ${s.nestingInSP ? "#16a34a" : "#dc2626"}; font-weight: bold;`);
+            let statusDetail = "";
+            const directMatches = s.matchedSPGroups.length > 0 ? s.matchedSPGroups.join(", ") : "None";
+            statusDetail += `Direct SP Groups Matched: ${directMatches}`;
+            
+            if (s.userInAAD) {
+                statusDetail += ` | AAD Membership: Member of '${s.aadGroupName}' (ID: ${s.configuredAADId})`;
+                if (s.nestingInSP) {
+                    statusDetail += ` (✅ Nesting active in SP groups -> Access Granted as ${s.role})`;
+                } else {
+                    statusDetail += ` (⚠️ Nesting is NOT active in SP groups -> Access Denied)`;
+                }
+            } else {
+                statusDetail += ` | AAD Membership: Not a member of the required AAD Group`;
+            }
+            
+            console.log(`     └─ Status: %c${statusDetail}`, "color: #475569;");
         });
         console.log(`🔒 Search-Allowed Sites: %c${finalAllowedSites.join(", ")}`, "color: #0284c7; font-weight: bold;");
         console.log("---------------------------------------");
@@ -531,3 +580,5 @@ export const checkPermissions = async (context?: any): Promise<void> => {
         });
     }
 };
+
+

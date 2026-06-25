@@ -58,8 +58,6 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
 
     const currentParams = { query, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, selectedSites, sortBy, skipCorrection };
 
-    console.log('--- [DEBUG hook] Triggering executeSearch in useSearch ---', currentParams);
-
     setLoading(true);
     setError(null);
     try {
@@ -68,10 +66,10 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
 
 
       const res = await service.search(queryToSearch, pageSize, from, fileTypes, activeTopTab, date, selectedAuthors, selectedSites, sortBy);
-      
+
       // Check if parameters have changed since this request was started
       const latest = activeParamsRef.current;
-      const isStale = 
+      const isStale =
         latest.query !== currentParams.query ||
         latest.pageSize !== currentParams.pageSize ||
         latest.from !== currentParams.from ||
@@ -83,14 +81,9 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
         JSON.stringify(latest.fileTypes) !== JSON.stringify(currentParams.fileTypes);
 
       if (isStale) {
-        console.warn('--- [DEBUG hook] Stale search results discarded for query:', query);
         return;
       }
 
-      console.log('--- [DEBUG hook] Successful search response ---', {
-        resultsLength: res.results.length,
-        totalCount: res.totalCount
-      });
       const reranked = rerankResults(
         res.results,
         SearchAnalyticsService.getClickCount.bind(SearchAnalyticsService),
@@ -103,7 +96,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
         fileTypes.length === 1 && fileTypes[0] === 'All' &&
         selectedAuthors.length === 0 &&
         date === '';
-      
+
       const cappedTotalCount = isBlankSearch ? Math.min(res.totalCount, 200) : res.totalCount;
       setTotalCount(cappedTotalCount);
       setSuggestedQuery(res.suggestedQuery);
@@ -114,7 +107,6 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
         setCorrectedQuery(res.suggestedQuery || null);
       }
     } catch (err: any) {
-      console.error('--- [DEBUG hook] Error executing Graph Search in hook ---', err);
       setResults([]);
       setTotalCount(0);
       if (err?.statusCode === 429 || (err?.message && err.message.includes('429'))) {
@@ -125,7 +117,7 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
     } finally {
       // Only set loading to false if this request is not stale
       const latest = activeParamsRef.current;
-      const isStale = 
+      const isStale =
         latest.query !== currentParams.query ||
         latest.pageSize !== currentParams.pageSize ||
         latest.from !== currentParams.from ||
@@ -165,7 +157,6 @@ export function useSearch({ service, initialQuery = '', pageSize = 20, dynamicTe
     const prevLen = prevDynamicTermsLenRef.current;
     prevDynamicTermsLenRef.current = dynamicTerms.length;
     if (dynamicTerms.length > prevLen && query.trim().length > 0 && service) {
-      console.log('--- [DEBUG] dynamicTerms updated, re-running search ---', query, 'terms:', dynamicTerms.length);
       executeSearch().catch(() => undefined);
     }
   }, [dynamicTerms, query, service, executeSearch]);

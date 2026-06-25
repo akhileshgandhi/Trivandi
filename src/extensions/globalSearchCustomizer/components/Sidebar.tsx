@@ -4,6 +4,7 @@ import { User, Calendar, GripVertical, ChevronLeft, ChevronRight } from 'lucide-
 import styles from '../../../styles/PremiumSearch.module.scss';
 import { IFiltersPanelProps } from '../interface/IFiltersPanelProps';
 import { loadAdminConfig } from '../interface/IAdminPanelProps';
+import { usePermissionStore } from '../../Permission/PermissionStore';
 
 const getSiteId = (label: string): string => {
   const clean = (label || '').trim().toLowerCase();
@@ -58,10 +59,18 @@ export const Sidebar: React.FC<IFiltersPanelProps> = ({
   const adminConfig = propAdminConfig || loadAdminConfig();
   const FILE_TYPE_OPTIONS = React.useMemo(() => ['All', ...adminConfig.fileTypes], [adminConfig.fileTypes]);
   const DATE_OPTIONS = adminConfig.dateFilters;
-  const SITES = React.useMemo(() => adminConfig.sites.map(s => ({
-    label: s,
-    siteId: getSiteId(s)
-  })), [adminConfig.sites]);
+  const allowedSites = usePermissionStore((state) => state.allowedSites);
+  const isPermissionsLoading = usePermissionStore((state) => state.isLoading);
+
+  const SITES = React.useMemo(() => {
+    if (isPermissionsLoading || !allowedSites) return [];
+    return adminConfig.sites
+      .map(s => ({
+        label: s,
+        siteId: getSiteId(s)
+      }))
+      .filter(site => allowedSites.includes(site.siteId));
+  }, [adminConfig.sites, allowedSites, isPermissionsLoading]);
 
   const [authorSearchQuery, setAuthorSearchQuery] = React.useState('');
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
